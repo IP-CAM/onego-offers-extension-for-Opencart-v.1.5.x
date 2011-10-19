@@ -1,1 +1,2 @@
 2011-10-18 12:27:44 - PHP Notice:  Undefined variable: entry_tax in /opt/local/apache2/htdocs/opencart/admin/view/template/total/handling.tpl on line 28
+2011-10-19 14:24:58 - PHP Notice:  Undefined index: shipping_address_id in /opt/local/apache2/htdocs/opencart/catalog/controller/checkout/shipping.php on line 11
