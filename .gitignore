@@ -1,3 +1,5 @@
 .idea
 system/cache/*
 download/*
+image/cache/*
+
