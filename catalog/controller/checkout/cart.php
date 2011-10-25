@@ -4,7 +4,7 @@ class ControllerCheckoutCart extends Controller {
 
     public function index() {
         $this->language->load('checkout/cart');
-
+        
         if ($this->request->server['REQUEST_METHOD'] == 'POST') {
             if (isset($this->request->post['quantity'])) {
                 if (!is_array($this->request->post['quantity'])) {

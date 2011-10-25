@@ -36,8 +36,6 @@ final class Front {
         $class = $action->getClass();
         $method = $action->getMethod();
         $args = $action->getArgs();
-//dbg($file . ' // ' . $class . '-&gt;' . $method, 'execute in front controller');
-//dbg($args, 'args');
 
         $action = '';
 
@@ -47,7 +45,6 @@ final class Front {
             $controller = new $class($this->registry);
 
             if (is_callable(array($controller, $method))) {
-//dbg('calling ' . $file . ' // ' . $class . '-&gt;' . $method);
                 $action = call_user_func_array(array($controller, $method), $args);
             } else {
                 $action = $this->error;

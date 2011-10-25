@@ -12,7 +12,6 @@ abstract class Controller {
 
     public function __construct($registry) {
         $this->registry = $registry;
-//dbg('initialized '.get_class($this));
     }
 
     public function __get($key) {
@@ -38,7 +37,6 @@ abstract class Controller {
         $file = $action->getFile();
         $class = $action->getClass();
         $method = $action->getMethod();
-//dbg($file.' // '.$class.'-&gt;'.$method, 'execute in '.get_class($this).'->getChild()');
 
         if (file_exists($file)) {
             require_once($file);

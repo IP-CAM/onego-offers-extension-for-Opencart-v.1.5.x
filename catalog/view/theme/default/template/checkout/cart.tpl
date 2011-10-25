@@ -80,11 +80,6 @@
       <?php } ?>
     </div>
     <div class="cart-total">
-        <!--
-        <div class="onegoextension_login_button">
-            <a onclick="" class="button"><span><?php echo $button_onego_login; ?></span></a>
-        </div>
-        -->
       <table>
         <?php foreach ($totals as $total) { ?>
         <tr>
