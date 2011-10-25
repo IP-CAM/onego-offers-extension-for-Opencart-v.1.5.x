@@ -9,16 +9,17 @@ define('HTTPS_SERVER', 'http://opencart/');
 define('HTTPS_IMAGE', 'http://opencart/image/');
 
 // DIR
-define('DIR_APPLICATION', '/opt/local/apache2/htdocs/opencart/catalog/');
-define('DIR_SYSTEM', '/opt/local/apache2/htdocs/opencart/system/');
-define('DIR_DATABASE', '/opt/local/apache2/htdocs/opencart/system/database/');
-define('DIR_LANGUAGE', '/opt/local/apache2/htdocs/opencart/catalog/language/');
-define('DIR_TEMPLATE', '/opt/local/apache2/htdocs/opencart/catalog/view/theme/');
-define('DIR_CONFIG', '/opt/local/apache2/htdocs/opencart/system/config/');
-define('DIR_IMAGE', '/opt/local/apache2/htdocs/opencart/image/');
-define('DIR_CACHE', '/opt/local/apache2/htdocs/opencart/system/cache/');
-define('DIR_DOWNLOAD', '/opt/local/apache2/htdocs/opencart/download/');
-define('DIR_LOGS', '/opt/local/apache2/htdocs/opencart/system/logs/');
+define('DIR_ROOT', '/opt/local/www/opencart/');
+define('DIR_APPLICATION', DIR_ROOT.'catalog/');
+define('DIR_SYSTEM', DIR_ROOT.'system/');
+define('DIR_DATABASE', DIR_ROOT.'system/database/');
+define('DIR_LANGUAGE', DIR_ROOT.'catalog/language/');
+define('DIR_TEMPLATE', DIR_ROOT.'catalog/view/theme/');
+define('DIR_CONFIG', DIR_ROOT.'system/config/');
+define('DIR_IMAGE', DIR_ROOT.'image/');
+define('DIR_CACHE', DIR_ROOT.'system/cache/');
+define('DIR_DOWNLOAD', DIR_ROOT.'download/');
+define('DIR_LOGS', DIR_ROOT.'system/logs/');
 
 // DB
 define('DB_DRIVER', 'mysql');

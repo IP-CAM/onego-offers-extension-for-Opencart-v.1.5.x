@@ -1,5 +1,7 @@
 .idea
 system/cache/*
+system/logs/*
 download/*
 image/cache/*
 vqmod/vqcache/*
+/nbproject/*
