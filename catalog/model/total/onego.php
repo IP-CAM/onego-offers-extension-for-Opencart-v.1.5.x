@@ -6,6 +6,8 @@ class ModelTotalOnego extends Model {
     const LOG_NOTICE = 1;
     const LOG_WARNING = 2;
     const LOG_ERROR = 3;
+    const FUNDS_MONETARY_POINTS = 'mp';
+    const FUNDS_PREPAID = 'pp';
     
     protected $registrykey = 'onego_extension';
     protected $api_key = '72A7101DEFEC11D473B7B0911EFC9265E15F';
@@ -16,10 +18,7 @@ class ModelTotalOnego extends Model {
     
     public function __construct($registry) {
         parent::__construct($registry);
-    }
-    
-    public function __call($name, $arguments) {
-        $this->log('OUTSIDE CALL', self::LOG_WARNING);
+        $this->processActions();
     }
 
     public function getTotal(&$total_data, &$total, &$taxes) {
@@ -38,7 +37,8 @@ class ModelTotalOnego extends Model {
                 $discount_visible = $discount->amount->visible;
                 $discount_precise = $discount->amount->precise;
                 if (!empty($discount->percent)) {
-                    $title = sprintf($this->language->get('onego_cart_discount_percents'), round($discount->percent, 2));
+                    $title = sprintf($this->language->get('onego_cart_discount_percents'), 
+                            round($discount->percent, 2));
                 } else {
                     $title = $this->language->get('onego_cart_discount');
                 }
@@ -49,7 +49,6 @@ class ModelTotalOnego extends Model {
                     'value' => -$discount_visible,
                     'sort_order' => $this->config->get('onego_sort_order').'b'
                 );
-                //$total -= $discount_precise;
                 $modified = true;
             }
             
@@ -90,7 +89,10 @@ class ModelTotalOnego extends Model {
                     }
                     $fund = strtolower(preg_replace('/([a-z]+)([A-Z]+)/', '$1_$2', $fundfield));
                     $fund = preg_replace('/_received$/', '', $fund);
-                    $receivables_text[] = sprintf($this->language->get('funds_receivable_text'), 'catalog/view/theme/default/image/onego_'.$fund.'.png', $this->language->get($fund), round($onegocart->{$fundfield}->amount->visible, 2));
+                    $receivables_text[] = sprintf($this->language->get('funds_receivable_text'), 
+                            'catalog/view/theme/default/image/onego_'.$fund.'.png', 
+                            $this->language->get($fund), 
+                            round($onegocart->{$fundfield}->amount->visible, 2));
                 }
             }
             if (!empty($receivables)) {
@@ -115,84 +117,6 @@ class ModelTotalOnego extends Model {
     
     public function confirm($order_info, $order_total)
     {
-/*
-Array
-(
-    [0] => Array
-        (
-            [order_id] => 14
-            [invoice_no] => 0
-            [invoice_prefix] => INV-2011-00
-            [store_id] => 0
-            [store_name] => Your Store
-            [store_url] => http://opencart/
-            [customer_id] => 1
-            [firstname] => Saulius
-            [lastname] => Okunevičius
-            [telephone] => 865561600
-            [fax] => 
-            [email] => saulius@megarage.com
-            [shipping_firstname] => Saulius
-            [shipping_lastname] => Okunevičius
-            [shipping_company] => 
-            [shipping_address_1] => arch
-            [shipping_address_2] => 
-            [shipping_postcode] => 12345
-            [shipping_city] => vno
-            [shipping_zone_id] => 1920
-            [shipping_zone] => Vilnius
-            [shipping_zone_code] => VI
-            [shipping_country_id] => 123
-            [shipping_country] => Lithuania
-            [shipping_iso_code_2] => LT
-            [shipping_iso_code_3] => LTU
-            [shipping_address_format] => 
-            [shipping_method] => Flat Shipping Rate
-            [payment_firstname] => Saulius
-            [payment_lastname] => Okunevičius
-            [payment_company] => 
-            [payment_address_1] => arch
-            [payment_address_2] => 
-            [payment_postcode] => 12345
-            [payment_city] => vno
-            [payment_zone_id] => 1920
-            [payment_zone] => Vilnius
-            [payment_zone_code] => VI
-            [payment_country_id] => 123
-            [payment_country] => Lithuania
-            [payment_iso_code_2] => LT
-            [payment_iso_code_3] => LTU
-            [payment_address_format] => 
-            [payment_method] => Cash On Delivery
-            [comment] => 
-            [total] => 105.0000
-            [order_status_id] => 0
-            [order_status] => 
-            [language_id] => 1
-            [language_code] => en
-            [language_filename] => english
-            [language_directory] => english
-            [currency_id] => 2
-            [currency_code] => USD
-            [currency_value] => 1.00000000
-            [date_modified] => 2011-10-28 13:53:35
-            [date_added] => 2011-10-28 13:53:35
-            [ip] => 127.0.0.1
-        )
-
-    [1] => Array
-        (
-            [order_total_id] => 49
-            [order_id] => 14
-            [code] => onego
-            [title] => OneGo rewards
-            [text] => <img src="catalog/view/theme/default/image/onego_monetary_points.png" alt="OneGo monetary points" title="OneGo monetary points" /> 25&nbsp;<img src="catalog/view/theme/default/image/onego_coupon_points.png" alt="OneGo coupon points" title="OneGo coupon po
-            [value] => 0.0000
-            [sort_order] => 2
-        )
-
-)
-*/
         if ($this->isTransactionStarted()) {
             $api = $this->getApi();
             try {
@@ -438,9 +362,10 @@ Array
     {
         $onego_cart = new OneGoAPI_DTO_CartDto();
         foreach ($this->getCartProducts() as $product) {
-            $onego_cart->setEntry($product['key'], $product['key'], $product['price'], $product['quantity'], $product['total'], $product['name'], 'any');
+            $onego_cart->setEntry($product['key'], $product['key'], $product['price'], 
+                    $product['quantity'], $product['total'], $product['name'], 'any');
         }
-        return $onego_cart->entries;
+        return $onego_cart->cartEntries;
     }
     
     public function log($str, $level = self::LOG_INFO)
@@ -510,22 +435,6 @@ Array
         $trace = debug_backtrace();
         $simple = array();
         foreach ($trace as $key => $val) {
-            /*
-            if (isset($val['object'])) {
-                $trace[$key]['object'] = get_class($val['object']);
-            }
-            if (!empty($val['args'])) {
-                foreach ($val['args'] as $argk => $argv) {
-                    if (is_object($argv)) {
-                        $trace[$key]['args'][$argk] = '&lt;'.get_class($argv).'&gt;';
-                    } else if (is_array($argv)) {
-                        $trace[$key]['args'][$argk] = '(array)';
-                    } else {
-                        $trace[$key]['args'][$argk] = $argv;
-                    }
-                }
-            }
-            */            
             $row = $trace[$key];
             $id = '';
             if (isset($row['class'])) {
@@ -540,6 +449,92 @@ Array
         
         return array_slice($simple, 2, $limit);
     }
-}
+    
+    public function getFundsAvailable()
+    {
+        $funds = array();
+        $transaction = $this->getTransaction();
+        if (!empty($transaction) && !empty($transaction->buyerInfo)) {
+            $currency = isset($transaction->currencyCode) ? $transaction->currencyCode : '';
+            if (isset($transaction->buyerInfo->monetaryPointsAvailable)) {
+                $amount = $transaction->buyerInfo->monetaryPointsAvailable;
+                if (!empty($transaction->modifiedCart->monetaryPointsSpent)) {
+                    $amount += $transaction->modifiedCart->monetaryPointsSpent;
+                }
+                $funds[self::FUNDS_MONETARY_POINTS] = array(
+                    'title'     => sprintf($this->language->get('funds_monetary_points'), 
+                            $amount.' '.$currency),
+                    'amount'    => $amount,
+                    'is_used'   => !empty($transaction->modifiedCart->monetaryPointsSpent) ?
+                            $transaction->modifiedCart->monetaryPointsSpent : false
+                );
+            }
+            if (isset($transaction->buyerInfo->prepaidAvailable)) {
+                $funds[self::FUNDS_PREPAID] = array(
+                    'title'     => sprintf($this->language->get('funds_prepaid'), 
+                            $transaction->buyerInfo->prepaidAvailable.' '.$currency),
+                    'amount'    => $transaction->buyerInfo->prepaidAvailable,
+                    'is_used'   => !empty($transaction->modifiedCart->prepaidSpent) ?
+                            $transaction->modifiedCart->prepaidSpent : false
+                );
+            }
+        }       
+        return $funds;
+    }
+    
+    public function getFundsAmountAvailable($fundstype)
+    {
+        $funds = $this->getFundsAvailable();
+        return isset($funds[$fundstype]) ? $funds[$fundstype]['amount'] : false;
+    }
+    
+    public function processFundsUsage($usage)
+    {
+        $funds_available = $this->getFundsAvailable();
+        foreach ($usage as $fundtype => $use) {
+            if (isset($funds_available[$fundtype]) 
+                    && ((bool) $funds_available[$fundtype]['is_used'] != (bool) ($use == 'y'))) 
+            {
+                $this->useFunds($fundtype, $use == 'y');
+            }
+        }
+    }
+    
+    private function useFunds($fundtype, $do_use = true)
+    {
+        $api = $this->getApi();
+        if ($this->isTransactionStarted()) {
+            $transaction = $this->getTransaction();
+            try {
+                switch ($fundtype) {
+                    case self::FUNDS_MONETARY_POINTS:
+                        if ($do_use) {
+                            $this->log('transaction/monetary-points/spend', self::LOG_NOTICE);
+                            $transaction = $api->spendMonetaryPoints($transaction->id, $this->getFundsAmountAvailable($fundtype));
+                        } else {
+                            $this->log('transaction/monetary-points/spending/cancel', self::LOG_NOTICE);
+                            $transaction = $api->cancelSpendingMonetaryPoints($transaction->id);
+                        }
+                        $this->saveToSession('transaction', $transaction);
+                        break;
+                    case self::FUNDS_PREPAID:
 
-?>
+                        break;
+                }
+                return true;
+            } catch (Exception $e) {
+                $this->log('funds usage call exception: '.$e->getMessage(), self::LOG_ERROR);
+            }
+        }
+        return false;
+    }
+    
+    protected function processActions()
+    {
+        // OneGo funds usage
+        if (!empty($this->request->post['use_onego_funds'])) {
+            $this->processFundsUsage($this->request->post['use_onego_funds']);
+            $this->request->post['use_onego_funds'] = null;
+        }
+    }
+}

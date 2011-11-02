@@ -1,6 +1,31 @@
 <div>
-  <div class="cart-heading"><?php echo $heading_title; ?></div>
-  <div class="cart-content" id="onego">
+  <div class="cart-heading active"><?php echo $heading_title; ?></div>
+  <div class="cart-content-opened" id="onego">
+      
+      <div class="onego_funds">
+          <form action="<?php echo $funds_action ?>" method="post" id="onego_funds_use">
+              <strong><?php echo $use_funds ?>:</strong>
+              <?php
+              if (!empty($funds)) {
+                  foreach ($funds as $key => $fund) {
+                      $disabled = $fund['amount'] > 0 ? '' : ' disabled="disabled"';
+                      $st = $fund['is_used'] ? ' checked="checked"' : '';
+                      echo '<input type="hidden" name="use_onego_funds['.$key.']" value="n" />';
+                      echo '<input type="checkbox" name="use_onego_funds['.$key.']" class="onego_funds" id="onego_funds_'.$key.'" value="y"'.$disabled.$st.' /> ';
+                      echo '<label for="onego_funds_'.$key.'">'.$fund['title'].'</label>&nbsp;&nbsp;&nbsp;';
+                  }
+                  ?>
+
+                  <?php
+              } else {
+                  ?>
+              <em><?php echo $no_funds_available; ?></em>
+                  <?php
+              }
+              ?>
+          </form>
+      </div>
+      <br />
       
       <table border="1" style="display: none;">
           <tr>
@@ -17,22 +42,14 @@
       
     <a href="<?php echo $onego_update; ?>" class="button"><span><?php echo $button_update; ?></span></a>
     <a href="<?php echo $onego_disable; ?>" class="button"><span><?php echo $button_disable; ?></span></a>
-    
-<div id="koqosjmul7vuaexjk5zlwb267wpqtm9u7q65">
-   <noscript>
-       <div>
-           <div><img src="http://widget.test.onego.com/images/disabledjs/id/koqosjmul7vuaexjk5zlwb267wpqtm9u7q65"/></div>
-           <div style="text-align:center;">Jūsų naršyklėje yra išjungtas javascript palaikymas. Prašome įjungti javascript palaikymą arba naudoti kitą naršyklę.</div>
-       </div>
-   </noscript>
-</div>
-<script type="text/javascript">
-     (function() {
-        var og = document.createElement('script'); og.type = 'text/javascript'; og.async = true;
-        og.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'widget.test.onego.com/script/?id=koqosjmul7vuaexjk5zlwb267wpqtm9u7q65&width=350&height=450';
-        var s = document.getElementById('koqosjmul7vuaexjk5zlwb267wpqtm9u7q65'); s.appendChild(og);
-     })();
-</script>
-    
+        
   </div>
 </div>
+
+<script type="text/javascript">
+$(document).ready(function(){
+    $('input.onego_funds').change(function(e){
+        $('form#onego_funds_use').submit();
+    })
+})
+</script>

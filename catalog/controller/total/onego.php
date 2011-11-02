@@ -4,7 +4,7 @@ class ControllerTotalOnego extends Controller {
 
     public function index() {
         $this->language->load('total/onego');
-
+        
         $this->data['heading_title'] = $this->language->get('heading_title');
         if (isset($this->session->data['onego'])) {
             $this->data['onego'] = $this->session->data['onego'];
@@ -13,6 +13,7 @@ class ControllerTotalOnego extends Controller {
         }
 
         $onego = $this->getModel();
+        
         if ($onego->isTransactionStarted()) {
             $this->data['transaction'] = $onego->getTransaction();
             $this->data['cart_products'] = $this->cart->getProducts();
@@ -20,6 +21,11 @@ class ControllerTotalOnego extends Controller {
             $this->data['onego_disable'] = $this->url->link('total/onego/disable');
             $this->data['button_update'] = $this->language->get('button_update');
             $this->data['onego_update'] = $this->url->link('total/onego/updatebenefits');
+            
+            $this->data['funds'] = $onego->getFundsAvailable();
+            $this->data['use_funds'] = $this->language->get('use_funds');
+            $this->data['no_funds_available'] = $this->language->get('no_funds_available');
+            $this->data['funds_action'] = $this->url->link('checkout/cart');
             
             if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_account.tpl')) {
                 $this->template = $this->config->get('config_template') . '/template/total/onego_account.tpl';
@@ -39,36 +45,6 @@ class ControllerTotalOnego extends Controller {
 
         $this->response->setOutput($this->render());
     }
-
-    /*
-    public function calculate() {
-        $this->language->load('total/coupon');
-
-        $json = array();
-
-        if (!$this->cart->hasProducts()) {
-            $json['redirect'] = $this->url->link('checkout/cart');
-        }
-
-        if (isset($this->request->post['coupon'])) {
-            $this->load->model('checkout/coupon');
-
-            $coupon_info = $this->model_checkout_coupon->getCoupon($this->request->post['coupon']);
-
-            if ($coupon_info) {
-                $this->session->data['coupon'] = $this->request->post['coupon'];
-
-                $this->session->data['success'] = $this->language->get('text_success');
-
-                $json['redirect'] = $this->url->link('checkout/cart', '', 'SSL');
-            } else {
-                $json['error'] = $this->language->get('error_coupon');
-            }
-        }
-
-        $this->response->setOutput(json_encode($json));
-    }
-    */
     
     public function issuetoken()
     {
@@ -189,5 +165,3 @@ class ControllerTotalOnego extends Controller {
         return $this->url->link('checkout/cart');
     }
 }
-
-?>

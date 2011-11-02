@@ -25,4 +25,8 @@ $_['funds_receivable_text'] = '<img src="%1$s" alt="%2$s" title="%2$s" /> %3$s';
 $_['monetary_points'] = 'OneGo monetary points';
 $_['coupon_points'] = 'OneGo coupon points';
 $_['prepaid'] = 'OneGo prepaid funds';
+$_['use_funds'] = 'Use your OneGo funds';
+$_['no_funds_available'] = 'You have no funds available yet';
+$_['funds_monetary_points'] = 'use my monetary points %s';
+$_['funds_prepaid'] = 'use my prepaid %s';
 ?>
