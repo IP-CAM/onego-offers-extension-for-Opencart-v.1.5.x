@@ -518,7 +518,14 @@ class ModelTotalOnego extends Model {
                         $this->saveToSession('transaction', $transaction);
                         break;
                     case self::FUNDS_PREPAID:
-
+                        if ($do_use) {
+                            $this->log('transaction/prepaid/spend', self::LOG_NOTICE);
+                            $transaction = $api->spendPrepaid($transaction->id, $this->getFundsAmountAvailable($fundtype));
+                        } else {
+                            $this->log('transaction/prepaid/spending/cancel', self::LOG_NOTICE);
+                            $transaction = $api->cancelSpendingPrepaid($transaction->id);
+                        }
+                        $this->saveToSession('transaction', $transaction);
                         break;
                 }
                 return true;
