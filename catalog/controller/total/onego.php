@@ -13,6 +13,13 @@ class ControllerTotalOnego extends Controller {
         }
 
         $onego = $this->getModel();
+        if (!$onego->isTransactionStarted() && ($token = $onego->getFromSession('verified_token'))) {
+            try {
+                $onego->beginTransaction($token);
+            } catch (Exception $e) {
+                // dissmiss failure
+            }
+        }
         
         if ($onego->isTransactionStarted()) {
             $this->data['transaction'] = $onego->getTransaction();
@@ -120,6 +127,7 @@ class ControllerTotalOnego extends Controller {
         
         if ($onego->isTransactionStarted()) {
             if ($onego->cancelTransaction()) {
+                $onego->saveToSession('verified_token', null);
                 $onego->log('transaction cancelled');
                 $onego->getSession()->data['success'] = $this->language->get('benefits_disabled');
             } else {

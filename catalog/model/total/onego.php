@@ -470,10 +470,14 @@ class ModelTotalOnego extends Model {
                 );
             }
             if (isset($transaction->buyerInfo->prepaidAvailable)) {
+                $amount = $transaction->buyerInfo->prepaidAvailable;
+                if (!empty($transaction->modifiedCart->prepaidSpent)) {
+                    $amount += $transaction->modifiedCart->prepaidSpent;
+                }
                 $funds[self::FUNDS_PREPAID] = array(
                     'title'     => sprintf($this->language->get('funds_prepaid'), 
-                            $transaction->buyerInfo->prepaidAvailable.' '.$currency),
-                    'amount'    => $transaction->buyerInfo->prepaidAvailable,
+                            $amount.' '.$currency),
+                    'amount'    => $amount,
                     'is_used'   => !empty($transaction->modifiedCart->prepaidSpent) ?
                             $transaction->modifiedCart->prepaidSpent : false
                 );
