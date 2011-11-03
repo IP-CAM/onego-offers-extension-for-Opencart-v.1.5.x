@@ -32,10 +32,9 @@ class ModelTotalOnego extends Model {
             
             // cart discount
             if (!empty($onegocart->totalDiscount) && ($discount = $onegocart->totalDiscount) 
-                    && !empty($discount->amount->precise)) 
+                    && !empty($discount->amount->visible)) 
             {
                 $discount_visible = $discount->amount->visible;
-                $discount_precise = $discount->amount->precise;
                 if (!empty($discount->percent)) {
                     $title = sprintf($this->language->get('onego_cart_discount_percents'), 
                             round($discount->percent, 2));
@@ -57,7 +56,7 @@ class ModelTotalOnego extends Model {
                 $total_data[] = array(
                     'code' => 'onego',
                     'title' => $this->language->get('monetary_points_spent'),
-                    'text' => $this->currency->format($onegocart->monetaryPointsSpent),
+                    'text' => $this->currency->format(-$onegocart->monetaryPointsSpent),
                     'value' => 0,
                     'sort_order' => $this->config->get('onego_sort_order').'c'
                 );
@@ -66,7 +65,7 @@ class ModelTotalOnego extends Model {
                 $total_data[] = array(
                     'code' => 'onego',
                     'title' => $this->language->get('prepaid_spent'),
-                    'text' => $this->currency->format($onegocart->prepaidSpent),
+                    'text' => $this->currency->format(-$onegocart->prepaidSpent),
                     'value' => 0,
                     'sort_order' => $this->config->get('onego_sort_order').'d'
                 );
@@ -90,13 +89,13 @@ class ModelTotalOnego extends Model {
                     $fund = strtolower(preg_replace('/([a-z]+)([A-Z]+)/', '$1_$2', $fundfield));
                     $fund = preg_replace('/_received$/', '', $fund);
                     $receivables_text[] = sprintf($this->language->get('funds_receivable_text'), 
-                            'catalog/view/theme/default/image/onego_'.$fund.'.png', 
+                            //'catalog/view/theme/default/image/onego_'.$fund.'.png', 
                             $this->language->get($fund), 
                             round($onegocart->{$fundfield}->amount->visible, 2));
                 }
             }
             if (!empty($receivables)) {
-                $receivables['text'] = implode('&nbsp;', $receivables_text);
+                $receivables['text'] = implode(' / ', $receivables_text);
                 $total_data[] = $receivables;
             }
             
@@ -117,6 +116,9 @@ class ModelTotalOnego extends Model {
     
     public function confirm($order_info, $order_total)
     {
+        // modify order_totals texts to plain text
+        
+        
         if ($this->isTransactionStarted()) {
             $api = $this->getApi();
             try {
@@ -124,8 +126,8 @@ class ModelTotalOnego extends Model {
             } catch (Exception $e) {
                 $this->throwError($e->getMessage());
             }
+            $this->log('confirm() called, params: '.count(func_get_args()), self::LOG_NOTICE);
         }
-        $this->log('confirm() called, params: '.count(func_get_args()), self::LOG_NOTICE);
     }
     
     public function isTransactionStarted()
@@ -349,6 +351,13 @@ class ModelTotalOnego extends Model {
             $cart = $this->getRegistryObj()->get('cart');
             $products = $cart->getProducts();
             self::$cart_hash = $products;
+            
+            // load additional info
+            $ids = implode(',', array_keys(self::$cart_hash));
+            $products_query = $this->db->query("SELECT product_id, sku, upc FROM ".DB_PREFIX."product p WHERE product_id IN ({$ids})");
+            foreach ($products_query->rows as $product) {
+                self::$cart_hash[$product['product_id']]['_item_code'] = !empty($product['sku']) ? $product['sku'] : 'PID'.$product['product_id'];
+            }
         }
         return self::$cart_hash;
     }
@@ -362,8 +371,8 @@ class ModelTotalOnego extends Model {
     {
         $onego_cart = new OneGoAPI_DTO_CartDto();
         foreach ($this->getCartProducts() as $product) {
-            $onego_cart->setEntry($product['key'], $product['key'], $product['price'], 
-                    $product['quantity'], $product['total'], $product['name'], 'any');
+            $onego_cart->setEntry($product['key'], $product['_item_code'], $product['price'], 
+                    $product['quantity'], $product['total'], $product['name']);
         }
         return $onego_cart->cartEntries;
     }
@@ -405,8 +414,6 @@ class ModelTotalOnego extends Model {
                 $msg = 'OneGo: '.$row['message'];
                 $msg = preg_replace('/[\r\n]+/', ' ', $msg);
                 $msg = preg_replace('/\'/', '\\\'', $msg);
-                //$msg = htmlspecialchars($msg, ENT_QUOTES);
-                //$msg = json_encode($msg);
                 list($usec, $sec) = explode(" ", $row['time']);
                 if (!empty($sec)) {
                     $msg .= ' ['.date('H:i:s').' / '.$row['pid'].']';

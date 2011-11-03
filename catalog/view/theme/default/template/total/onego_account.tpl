@@ -1,6 +1,6 @@
 <div>
   <div class="cart-heading active"><?php echo $heading_title; ?></div>
-  <div class="cart-content-opened" id="onego">
+  <div class="cart-content" id="onego" style="display: block;">
       
       <div class="onego_funds">
           <form action="<?php echo $funds_action ?>" method="post" id="onego_funds_use">
