@@ -14,14 +14,29 @@ class ModelTotalOnego extends Model {
     protected $api_pass = '9C7A5C0874424BD21870764C533AD6BA3077';
     protected $api_url = 'http://api.test.onego.com/pos/v1/';
     protected $terminal_id = '1';
-    protected static $cart_hash = false;
+    protected static $transaction_cart = false;
     
     public function __construct($registry) {
         parent::__construct($registry);
         $this->processActions();
     }
+    
+    public static function getInstance()
+    {
+        global $registry;
+        return new self($registry);
+    }
 
-    public function getTotal(&$total_data, &$total, &$taxes) {
+    public function getTotal(&$total_data, &$total, &$taxes) {        
+        // autostart transaction if verified token is available
+        if (!$this->isTransactionStarted() && ($token = $this->getFromSession('verified_token'))) {
+            try {
+                $this->beginTransaction($token);
+            } catch (Exception $e) {
+                // dissmiss failure
+            }
+        }
+        
         $transaction = $this->getTransaction();
         if ($transaction && !empty($transaction->modifiedCart) && ($onegocart = $transaction->modifiedCart)) 
         {
@@ -84,19 +99,27 @@ class ModelTotalOnego extends Model {
                             'value' => 0,
                             'sort_order' => $this->config->get('onego_sort_order').'f'
                         );
-                        $receivables_text = array();
+                        $receivables_text = $receivables_text_rich = array();
                     }
                     $fund = strtolower(preg_replace('/([a-z]+)([A-Z]+)/', '$1_$2', $fundfield));
                     $fund = preg_replace('/_received$/', '', $fund);
-                    $receivables_text[] = sprintf($this->language->get('funds_receivable_text'), 
-                            //'catalog/view/theme/default/image/onego_'.$fund.'.png', 
+                    $receivables_text[] = sprintf($this->language->get('funds_receivable_text'),  
                             $this->language->get($fund), 
+                            round($onegocart->{$fundfield}->amount->visible, 2));
+                    $receivables_text_rich[] = sprintf($this->language->get('funds_receivable_text_rich'), 
+                            'catalog/view/theme/default/image/onego_'.$fund.'.png', 
+                            $this->language->get($fund.'_full'), 
                             round($onegocart->{$fundfield}->amount->visible, 2));
                 }
             }
             if (!empty($receivables)) {
-                $receivables['text'] = implode(' / ', $receivables_text);
+                $receivables_text_rich = implode('&nbsp;', $receivables_text_rich);
+                $receivables_text = implode(' / ', $receivables_text);
+                $receivables['text'] = self::isAjaxRequest() ? 
+                        $receivables_text_rich : $receivables_text;
                 $total_data[] = $receivables;
+                // save rich text version to replace on page
+                $this->saveToRegistry('receivables', array($receivables_text => $receivables_text_rich));
             }
             
             // onego subtotal
@@ -345,36 +368,60 @@ class ModelTotalOnego extends Model {
         return false;
     }
     
-    protected function getCartProducts($reload = false)
+    protected function getTransactionCart($reload = false)
     {
-        if ($reload || (self::$cart_hash === false)) {
+        if ($reload || (self::$transaction_cart === false)) {
+            // add Opencart cart items
             $cart = $this->getRegistryObj()->get('cart');
             $products = $cart->getProducts();
-            self::$cart_hash = $products;
+            self::$transaction_cart = $products;
             
-            // load additional info
-            $ids = implode(',', array_keys(self::$cart_hash));
+            // load products details to determine item_code
+            $ids = implode(',', array_keys(self::$transaction_cart));
             $products_query = $this->db->query("SELECT product_id, sku, upc FROM ".DB_PREFIX."product p WHERE product_id IN ({$ids})");
             foreach ($products_query->rows as $product) {
-                self::$cart_hash[$product['product_id']]['_item_code'] = !empty($product['sku']) ? $product['sku'] : 'PID'.$product['product_id'];
+                self::$transaction_cart[$product['product_id']]['_item_code'] = !empty($product['sku']) ? $product['sku'] : 'PID'.$product['product_id'];
             }
+            
+            // add shipping as an item
+            $this->addShippingToCart(self::$transaction_cart);
         }
-        return self::$cart_hash;
+        return self::$transaction_cart;
     }
     
     protected function getCartHash()
     {
-        return md5(serialize($this->getCartProducts()));
+        return md5(serialize($this->getTransactionCart()));
     }
     
     public function collectCartEntries()
     {
         $onego_cart = new OneGoAPI_DTO_CartDto();
-        foreach ($this->getCartProducts() as $product) {
+        foreach ($this->getTransactionCart() as $product) {
             $onego_cart->setEntry($product['key'], $product['_item_code'], $product['price'], 
                     $product['quantity'], $product['total'], $product['name']);
         }
         return $onego_cart->cartEntries;
+    }
+    
+    protected function addShippingToCart(&$transaction_cart)
+    {
+        if ($shipping = $this->registry->get('model_total_shipping')) {
+            $total_data = array();
+            $taxes = array();
+            $total = 0;
+            $shipping->getTotal($total_data, $total, $taxes);
+            if ($total > 0) {
+                $transaction_cart['shipping'] = array(
+                    'key'           => 'shipping',
+                    '_item_code'    => 'shipping',
+                    'price'         => $total,
+                    'quantity'      => 1,
+                    'total'         => $total,
+                    'name'          => 'Shipping',
+                );
+            }
+        }
     }
     
     public function log($str, $level = self::LOG_INFO)
@@ -402,11 +449,9 @@ class ModelTotalOnego extends Model {
         return $log;
     }
     
-    public static function outputLogToFirebug()
+    public function getLogForFirebugConsole()
     {
-        global $registry;
-        $onego = new self($registry);
-        $log = $onego->getLog(true);
+        $log = $this->getLog(true);
         if (!empty($log)) {
             echo '<script type="text/javascript">';
             echo 'if (console) { '."\r\n";
@@ -554,5 +599,55 @@ class ModelTotalOnego extends Model {
             $this->processFundsUsage($this->request->post['use_onego_funds']);
             $this->request->post['use_onego_funds'] = null;
         }
+    }
+    
+    public static function showOutput()
+    {
+        $onego = self::getInstance();
+        echo $onego->getLogForFirebugConsole();
+        echo $onego->getHtmlDecoratorCode();
+    }
+    
+    public function getHtmlDecoratorCode()
+    {
+        $this->load->language('total/onego');
+        $javascript = '';
+        if ($receivables = $this->getFromRegistry('receivables')) {
+            list($receivables_from, $receivables_to) = each($receivables);
+            $receivables_from = self::escapeJs($receivables_from);
+            $receivables_to = self::escapeJs($receivables_to);
+            $javascript .= <<<END
+$('div.cart-total td').each(function(){
+    if ($(this).html() == '{$receivables_from}') {
+        $(this).html('{$receivables_to}');
+    }
+});
+END;
+        }
+        return <<<END
+<script type="text/javascript">
+{$javascript}
+</script>
+END;
+    }
+    
+    public static function escapeJs($str, $strong = false) {
+	$new_str = '';
+	$str_len = strlen($str);
+	for($i = 0; $i < $str_len; $i++) {
+            $char = $str[$i];
+            if ($strong || in_array($char, array('\'', '"', "\r", "\n"))) {
+                $new_str .= '\\x' . dechex(ord(substr($str, $i, 1)));
+            } else {
+                $new_str .= $char;
+            }
+	}
+	return $new_str;
+    }
+    
+    public static function isAjaxRequest()
+    {
+        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+            ($_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest");
     }
 }
