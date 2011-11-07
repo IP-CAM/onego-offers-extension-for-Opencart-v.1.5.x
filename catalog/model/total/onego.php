@@ -15,22 +15,42 @@ class ModelTotalOnego extends Model {
     protected $api_pass = '9C7A5C0874424BD21870764C533AD6BA3077';
     protected $api_url = 'http://api.test.onego.com/pos/v1/';
     protected $terminal_id = '1';
-    protected static $transaction_cart = false;
+    protected static $current_eshop_cart = false;
     
+    /**
+     * Constructor method: initializes and processes any related actions submitted
+     *
+     * @param Registry $registry 
+     */
     public function __construct($registry) {
         parent::__construct($registry);
         $this->processActions();
     }
     
+    /**
+     * Instance factory
+     *
+     * @global Registry $registry
+     * @return self
+     */
     public static function getInstance()
     {
         global $registry;
         return new self($registry);
     }
 
+    /**
+     * Modifies Opencart's totals list by adding OneGo benefits and receivables
+     *
+     * @param array $total_data
+     * @param float $total
+     * @param array $taxes 
+     */
     public function getTotal(&$total_data, &$total, &$taxes) {        
         // autostart transaction if verified token is available
-        if (!$this->isTransactionStarted() && ($token = $this->getFromSession('verified_token'))) {
+        if (!$this->isTransactionStarted() 
+                && ($token = $this->getFromSession('verified_token'))) 
+        {
             try {
                 $this->beginTransaction($token);
             } catch (Exception $e) {
@@ -39,7 +59,8 @@ class ModelTotalOnego extends Model {
         }
         
         $transaction = $this->getTransaction();
-        if ($transaction && !empty($transaction->modifiedCart) && ($onegocart = $transaction->modifiedCart)) 
+        if ($transaction && !empty($transaction->modifiedCart) 
+                && ($onegocart = $transaction->modifiedCart)) 
         {
             $this->load->language('total/onego');
             
@@ -124,13 +145,18 @@ class ModelTotalOnego extends Model {
                     }
                     $fund = strtolower(preg_replace('/([a-z]+)([A-Z]+)/', '$1_$2', $fundfield));
                     $fund = preg_replace('/_received$/', '', $fund);
-                    $receivables_text[] = sprintf($this->language->get('funds_receivable_text'),  
+                    $receivables_text[] = sprintf(
+                            $this->language->get('funds_receivable_text'),  
                             $this->language->get($fund), 
-                            round($onegocart->{$fundfield}->amount->visible, 2));
-                    $receivables_text_rich[] = sprintf($this->language->get('funds_receivable_text_rich'), 
-                            'catalog/view/theme/default/image/onego_'.$fund.'.png', 
-                            $this->language->get($fund.'_full'), 
-                            round($onegocart->{$fundfield}->amount->visible, 2));
+                            round($onegocart->{$fundfield}->amount->visible, 2)
+                        );
+                    $receivables_text_rich[] = 
+                            sprintf(
+                                $this->language->get('funds_receivable_text_rich'), 
+                                'catalog/view/theme/default/image/onego_'.$fund.'.png', 
+                                $this->language->get($fund.'_full'), 
+                                round($onegocart->{$fundfield}->amount->visible, 2)
+                            );
                 }
             }
             if (!empty($receivables)) {
@@ -158,11 +184,14 @@ class ModelTotalOnego extends Model {
         }
     }
     
+    /**
+     * Method is called from Opencart code on order confirmation
+     *
+     * @param array $order_info
+     * @param type $order_total 
+     */
     public function confirm($order_info, $order_total)
     {
-        // modify order_totals texts to plain text
-        
-        
         if ($this->isTransactionStarted()) {
             $api = $this->getApi();
             try {
@@ -174,11 +203,21 @@ class ModelTotalOnego extends Model {
         }
     }
     
+    /**
+     *
+     * @return boolean
+     */
     public function isTransactionStarted()
     {
         return ($this->getTransaction() !== false);
     }
     
+    /**
+     * Return current OneGo transaction object from session; autoupdate if required
+     *
+     * @param boolean $autoupdate Whether to update transaction if it is stale
+     * @return OneGoAPI_DTO_TransactionDto
+     */
     public function getTransaction($autoupdate = true)
     {
         // initialize OneGo API autoloader to unserialize transaction object from session
@@ -198,27 +237,40 @@ class ModelTotalOnego extends Model {
         }
     }
     
+    /**
+     *
+     * @return string Current transaction's cart's hash code
+     */
     public function getTransactionCartHash()
     {
         return $this->getFromSession('cart_hash');
     }
     
+    /**
+     * Compare current saved OneGo transaction cart's hash code to Opencart cart's hash
+     * 
+     * @return boolean
+     */
     public function isTransactionStale()
     {
-        return $this->getTransactionCartHash() != $this->getCartHash();
+        return $this->getTransactionCartHash() != $this->getEshopCartHash();
     }
     
+    /**
+     *
+     * @return Object OneGo transaction's id value
+     */
     protected function getTransactionId()
     {
         $transaction = $this->getTransaction(false);
         return !empty($transaction) ? $transaction->id : false;
     }
     
-    public function getHttpReferer()
-    {
-        return !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : false;
-    }
-    
+    /**
+     * Singleton factory for SimpleAPI
+     *
+     * @return OneGoAPI_Impl_SimpleAPI Instance of SimpleAPI
+     */    
     public function getApi()
     {
         $api = $this->getFromRegistry('api');
@@ -228,6 +280,11 @@ class ModelTotalOnego extends Model {
         return $api;
     }
     
+    /**
+     * Initializer
+     *
+     * @return OneGoAPI_Impl_SimpleAPI 
+     */
     private function initApi()
     {
         require_once DIR_ROOT.'../php-api/src/OneGoAPI/init.php';
@@ -246,11 +303,19 @@ class ModelTotalOnego extends Model {
         return $simpleapi;
     }
     
+    /**
+     *
+     * @return Registry 
+     */
     public function getRegistryObj()
     {
         return $this->registry;
     }
     
+    /**
+     *
+     * @return Session 
+     */
     public function getSession()
     {
         $session = $this->getRegistryObj()->get('session');
@@ -260,6 +325,12 @@ class ModelTotalOnego extends Model {
         return $session;
     }
     
+    /**
+     * Saves data to registry simulating own namespace
+     *
+     * @param string $key
+     * @param mixed $val 
+     */
     public function saveToRegistry($key, $val)
     {
         $registry = $this->getRegistryObj();
@@ -271,6 +342,12 @@ class ModelTotalOnego extends Model {
         $registry->set($this->registrykey, $onego_data);
     }
     
+    /**
+     * Getter from registry namespace
+     *
+     * @param string $key
+     * @return mixed null if no such data is available 
+     */
     public function getFromRegistry($key)
     {
         $registry = $this->getRegistryObj();
@@ -278,12 +355,23 @@ class ModelTotalOnego extends Model {
         return isset($onego_data[$key]) ? $onego_data[$key] : null;
     }
     
+    /**
+     * Wrapper for exception throwing
+     *
+     * @param string $message 
+     */
     public function throwError($message)
     {
         $this->log('exeption: '.$message, self::LOG_ERROR);
         throw new Exception('OneGo extension error: '.$message);
     }
     
+    /**
+     * Saves data to session under own namespace
+     *
+     * @param string $key
+     * @param mixed $val 
+     */
     public function saveToSession($key, $val)
     {
         $session = $this->getSession();
@@ -295,6 +383,12 @@ class ModelTotalOnego extends Model {
         $session->data[$this->registrykey] = $onego_data;
     }
     
+    /**
+     * Namespaced getter from session
+     *
+     * @param string $key
+     * @return mixed 
+     */
     public function getFromSession($key)
     {
         $session = $this->getSession();
@@ -302,7 +396,12 @@ class ModelTotalOnego extends Model {
         return isset($onego_data[$key]) ? $onego_data[$key] : null;
     }
     
-    // TEMPORARY
+    /**
+     * Temporary fix for auth URL returned by issueEshopToken
+     *
+     * @param string $url
+     * @return string 
+     */
     public function fixAuthUrl($url)
     {
         if (!preg_match('#^http.?//:#i', $url)) {
@@ -311,11 +410,21 @@ class ModelTotalOnego extends Model {
         return $url;
     }
     
+    /**
+     *
+     * @return string Pseudo unique receipt number for current date/time 
+     */
     public function generateReceiptNumber()
     {
         return date('ymdHis').'_'.substr(uniqid(), 0, 23);
     }
     
+    /**
+     * Starts OneGo transaction with current Opencart's cart items
+     *
+     * @param string $token
+     * @return boolean Operation status 
+     */
     public function beginTransaction($token)
     {
         $api = $this->getApi();
@@ -328,7 +437,7 @@ class ModelTotalOnego extends Model {
             
             $this->saveToSession('transaction', $transaction);
             // save cart hash to later detect when transaction cart needs to be updated
-            $this->saveToSession('cart_hash', $this->getCartHash());
+            $this->saveToSession('cart_hash', $this->getEshopCartHash());
             $transaction = $this->getTransaction();
             $this->log('transaction started: '.$transaction->id->id);
             return true;
@@ -338,6 +447,11 @@ class ModelTotalOnego extends Model {
         }
     }
     
+    /**
+     * Confirm OneGo transaction, unset saved transaction
+     *
+     * @return boolean status 
+     */
     public function confirmTransaction()
     {
         $api = $this->getApi();
@@ -355,6 +469,11 @@ class ModelTotalOnego extends Model {
         return false;
     }
     
+    /**
+     * Reset OneGo transaction, unset saved transaction
+     *
+     * @return boolean status
+     */
     public function cancelTransaction()
     {
         $api = $this->getApi();
@@ -372,6 +491,11 @@ class ModelTotalOnego extends Model {
         return false;
     }
     
+    /**
+     * Update transaction cart entries using current Opencart's cart
+     *
+     * @return boolean status
+     */
     public function updateTransactionCart()
     {
         $api = $this->getApi();
@@ -380,7 +504,7 @@ class ModelTotalOnego extends Model {
                 $this->log('transaction cart update', self::LOG_NOTICE);
                 $transaction = $api->updateCart($transaction_id, $this->collectCartEntries());
                 $this->saveToSession('transaction', $transaction);
-                $this->saveToSession('cart_hash', $this->getCartHash());
+                $this->saveToSession('cart_hash', $this->getEshopCartHash());
                 return true;
             } catch (Exception $e) {
                 $this->log('transaction cart update exception: '.$e->getMessage(), self::LOG_ERROR);
@@ -389,42 +513,62 @@ class ModelTotalOnego extends Model {
         return false;
     }
     
-    protected function getTransactionCart($reload = false)
+    /**
+     * Calculates current Opencart shopping cart contents, adds other data required
+     * for OneGo transaction handling; adds shipping info as cart item to apply
+     * OneGo discounts for shipping
+     *
+     * @param boolean $reload Whether to force cart reload
+     * @return array List of collected current cart items and shipping 
+     */
+    protected function getEshopCart($reload = false)
     {
-        if ($reload || (self::$transaction_cart === false)) {
+        if ($reload || (self::$current_eshop_cart === false)) {
             // add Opencart cart items
             $cart = $this->getRegistryObj()->get('cart');
             $products = $cart->getProducts();
-            self::$transaction_cart = $products;
+            self::$current_eshop_cart = $products;
             
             // load products details to determine item_code
-            $ids = implode(',', array_keys(self::$transaction_cart));
+            $ids = implode(',', array_keys(self::$current_eshop_cart));
             $products_query = $this->db->query("SELECT product_id, sku, upc FROM ".DB_PREFIX."product p WHERE product_id IN ({$ids})");
             foreach ($products_query->rows as $product) {
-                self::$transaction_cart[$product['product_id']]['_item_code'] = !empty($product['sku']) ? $product['sku'] : 'PID'.$product['product_id'];
+                self::$current_eshop_cart[$product['product_id']]['_item_code'] = !empty($product['sku']) ? $product['sku'] : 'PID'.$product['product_id'];
             }
             
             // add shipping as an item
-            $this->addShippingToCart(self::$transaction_cart);
+            $this->addShippingToCart(self::$current_eshop_cart);
         }
-        return self::$transaction_cart;
+        return self::$current_eshop_cart;
     }
     
-    protected function getCartHash()
+    /**
+     *
+     * @return string hash for current Opencart cart
+     */
+    protected function getEshopCartHash()
     {
-        return md5(serialize($this->getTransactionCart()));
+        return md5(serialize($this->getEshopCart()));
     }
     
+    /**
+     *
+     * @return array List of OneGoAPI_DTO_CartEntryDto objects for current cart 
+     */
     public function collectCartEntries()
     {
         $onego_cart = new OneGoAPI_DTO_CartDto();
-        foreach ($this->getTransactionCart() as $product) {
+        foreach ($this->getEshopCart() as $product) {
             $onego_cart->setEntry($product['key'], $product['_item_code'], $product['price'], 
                     $product['quantity'], $product['total'], $product['name']);
         }
         return $onego_cart->cartEntries;
     }
     
+    /**
+     *
+     * @return array Data for including shipping as a cart item
+     */
     protected function getShippingAsItem()
     {
         if ($this->config->get('shipping_status') && $this->cart->hasShipping() 
@@ -450,6 +594,10 @@ class ModelTotalOnego extends Model {
         return false;
     }
     
+    /**
+     *
+     * @param array $transaction_cart Cart entries for OneGo transaction
+     */
     protected function addShippingToCart(&$transaction_cart)
     {
         if ($shipping = $this->getShippingAsItem()) {
@@ -457,7 +605,177 @@ class ModelTotalOnego extends Model {
         }
     }
     
-    public function log($str, $level = self::LOG_INFO)
+    /**
+     *
+     * @return array List of funds owned by buyer, as set in transaction's buyerInfo property 
+     */
+    public function getFundsAvailable()
+    {
+        $funds = array();
+        $transaction = $this->getTransaction();
+        if (!empty($transaction) && !empty($transaction->buyerInfo)) {
+            $currency = isset($transaction->currencyCode) ? $transaction->currencyCode : '';
+            if (isset($transaction->buyerInfo->monetaryPointsAvailable)) {
+                $amount = $transaction->buyerInfo->monetaryPointsAvailable;
+                if (!empty($transaction->modifiedCart->monetaryPointsSpent)) {
+                    $amount += $transaction->modifiedCart->monetaryPointsSpent;
+                }
+                $funds[self::FUNDS_MONETARY_POINTS] = array(
+                    'title'     => sprintf($this->language->get('funds_monetary_points'), 
+                            $amount.' '.$currency),
+                    'amount'    => $amount,
+                    'is_used'   => !empty($transaction->modifiedCart->monetaryPointsSpent) ?
+                            $transaction->modifiedCart->monetaryPointsSpent : false
+                );
+            }
+            if (isset($transaction->buyerInfo->prepaidAvailable)) {
+                $amount = $transaction->buyerInfo->prepaidAvailable;
+                if (!empty($transaction->modifiedCart->prepaidSpent)) {
+                    $amount += $transaction->modifiedCart->prepaidSpent;
+                }
+                $funds[self::FUNDS_PREPAID] = array(
+                    'title'     => sprintf($this->language->get('funds_prepaid'), 
+                            $amount.' '.$currency),
+                    'amount'    => $amount,
+                    'is_used'   => !empty($transaction->modifiedCart->prepaidSpent) ?
+                            $transaction->modifiedCart->prepaidSpent : false
+                );
+            }
+        }       
+        return $funds;
+    }
+    
+    /**
+     *
+     * @param string $fundstype
+     * @return float total amount of funds of specified type owned by buyer
+     */
+    public function getFundsAmountAvailable($fundstype)
+    {
+        $funds = $this->getFundsAvailable();
+        return isset($funds[$fundstype]) ? $funds[$fundstype]['amount'] : false;
+    }
+    
+    /**
+     * Call corresponding API methods to update funds usage, for changed usage only
+     *
+     * @param array $usage list of $fundtype => $is_used values, where $is_used is 'y' or 'n'
+     */
+    public function processFundsUsage($usage)
+    {
+        $funds_available = $this->getFundsAvailable();
+        foreach ($usage as $fundtype => $use) {
+            if (isset($funds_available[$fundtype]) 
+                    && ((bool) $funds_available[$fundtype]['is_used'] != (bool) ($use == 'y'))) 
+            {
+                $this->useFunds($fundtype, $use == 'y');
+            }
+        }
+    }
+    
+    /**
+     * Call API method for using/cancel using of fund type; uses max amount of funds available to user
+     *
+     * @param string $fundtype
+     * @param boolean $do_use
+     * @return boolean status 
+     */
+    private function useFunds($fundtype, $do_use = true)
+    {
+        $api = $this->getApi();
+        if ($this->isTransactionStarted()) {
+            $transaction = $this->getTransaction();
+            try {
+                switch ($fundtype) {
+                    case self::FUNDS_MONETARY_POINTS:
+                        if ($do_use) {
+                            $this->log('transaction/monetary-points/spend', self::LOG_NOTICE);
+                            $transaction = $api->spendMonetaryPoints($transaction->id, $this->getFundsAmountAvailable($fundtype));
+                        } else {
+                            $this->log('transaction/monetary-points/spending/cancel', self::LOG_NOTICE);
+                            $transaction = $api->cancelSpendingMonetaryPoints($transaction->id);
+                        }
+                        $this->saveToSession('transaction', $transaction);
+                        break;
+                    case self::FUNDS_PREPAID:
+                        if ($do_use) {
+                            $this->log('transaction/prepaid/spend', self::LOG_NOTICE);
+                            $transaction = $api->spendPrepaid($transaction->id, $this->getFundsAmountAvailable($fundtype));
+                        } else {
+                            $this->log('transaction/prepaid/spending/cancel', self::LOG_NOTICE);
+                            $transaction = $api->cancelSpendingPrepaid($transaction->id);
+                        }
+                        $this->saveToSession('transaction', $transaction);
+                        break;
+                }
+                return true;
+            } catch (Exception $e) {
+                $this->log('funds usage call exception: '.$e->getMessage(), self::LOG_ERROR);
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Process all POST data in HTTP request, related to this module
+     */
+    protected function processActions()
+    {
+        // OneGo funds usage
+        if (!empty($this->request->post['use_onego_funds'])) {
+            $this->processFundsUsage($this->request->post['use_onego_funds']);
+            $this->request->post['use_onego_funds'] = null;
+        }
+    }
+    
+    /**
+     * Show HTML/JS code required by this model
+     */
+    public static function showOutput()
+    {
+        $onego = self::getInstance();
+        echo $onego->getLogForFirebugConsole();
+        echo $onego->getHtmlDecoratorCode();
+    }
+    
+    /**
+     *
+     * @return string HTML/JC code to modify page contents 
+     */
+    public function getHtmlDecoratorCode()
+    {
+        $this->load->language('total/onego');
+        $javascript = '';
+        if ($receivables = $this->getFromRegistry('receivables')) {
+            list($receivables_from, $receivables_to) = each($receivables);
+            $receivables_from = self::escapeJs($receivables_from);
+            $receivables_to = self::escapeJs($receivables_to);
+            $javascript .= <<<END
+$('div.cart-total td').each(function(){
+    if ($(this).html() == '{$receivables_from}') {
+        $(this).html('{$receivables_to}');
+    }
+});
+END;
+        }
+        return <<<END
+<script type="text/javascript">
+{$javascript}
+</script>
+END;
+    }
+    
+    // ******* helper methods **************************************************
+    
+    /**
+     * Save log message to session to later display in debugger, truncate log to
+     * specified length 
+     *
+     * @param string $str Log message text
+     * @param string $level self::LOG_INFO, self::LOG_NOTICE, self::LOG_WARNING, self::LOG_ERROR
+     * @param integer $max_length Max amount of log messages to be saved
+     */
+    public function log($str, $level = self::LOG_INFO, $max_length = 25)
     {
         $log = $this->getLog();
         $log[] = array(
@@ -466,10 +784,16 @@ class ModelTotalOnego extends Model {
             'message'   => $str,
             'level'     => $level,
         );
-        $log = array_slice($log, -25); // keep log small
+        $log = array_slice($log, -$max_length); // keep log small
         $this->saveToSession('log', $log);
     }
     
+    /**
+     * Returns list of messages saved in log
+     *
+     * @param boolean $clear Whether to remove returned log messages
+     * @return array List of saved log entries
+     */
     public function getLog($clear = false)
     {
         $log = $this->getFromSession('log');
@@ -482,6 +806,9 @@ class ModelTotalOnego extends Model {
         return $log;
     }
     
+    /**
+     * Output HTML/JS code required to display log entries in Firebug's console
+     */
     public function getLogForFirebugConsole()
     {
         $log = $this->getLog(true);
@@ -519,6 +846,12 @@ class ModelTotalOnego extends Model {
         }
     }
     
+    /**
+     * Get backtrace info for debugging purposes, valid for the calling method
+     *
+     * @param integer $limit Max amount of backtrace steps to be returned
+     * @return array List of backtrace data from latest calls to oldest
+     */
     public static function debugBacktrace($limit = 5)
     {
         $trace = debug_backtrace();
@@ -539,135 +872,12 @@ class ModelTotalOnego extends Model {
         return array_slice($simple, 2, $limit);
     }
     
-    public function getFundsAvailable()
-    {
-        $funds = array();
-        $transaction = $this->getTransaction();
-        if (!empty($transaction) && !empty($transaction->buyerInfo)) {
-            $currency = isset($transaction->currencyCode) ? $transaction->currencyCode : '';
-            if (isset($transaction->buyerInfo->monetaryPointsAvailable)) {
-                $amount = $transaction->buyerInfo->monetaryPointsAvailable;
-                if (!empty($transaction->modifiedCart->monetaryPointsSpent)) {
-                    $amount += $transaction->modifiedCart->monetaryPointsSpent;
-                }
-                $funds[self::FUNDS_MONETARY_POINTS] = array(
-                    'title'     => sprintf($this->language->get('funds_monetary_points'), 
-                            $amount.' '.$currency),
-                    'amount'    => $amount,
-                    'is_used'   => !empty($transaction->modifiedCart->monetaryPointsSpent) ?
-                            $transaction->modifiedCart->monetaryPointsSpent : false
-                );
-            }
-            if (isset($transaction->buyerInfo->prepaidAvailable)) {
-                $amount = $transaction->buyerInfo->prepaidAvailable;
-                if (!empty($transaction->modifiedCart->prepaidSpent)) {
-                    $amount += $transaction->modifiedCart->prepaidSpent;
-                }
-                $funds[self::FUNDS_PREPAID] = array(
-                    'title'     => sprintf($this->language->get('funds_prepaid'), 
-                            $amount.' '.$currency),
-                    'amount'    => $amount,
-                    'is_used'   => !empty($transaction->modifiedCart->prepaidSpent) ?
-                            $transaction->modifiedCart->prepaidSpent : false
-                );
-            }
-        }       
-        return $funds;
-    }
-    
-    public function getFundsAmountAvailable($fundstype)
-    {
-        $funds = $this->getFundsAvailable();
-        return isset($funds[$fundstype]) ? $funds[$fundstype]['amount'] : false;
-    }
-    
-    public function processFundsUsage($usage)
-    {
-        $funds_available = $this->getFundsAvailable();
-        foreach ($usage as $fundtype => $use) {
-            if (isset($funds_available[$fundtype]) 
-                    && ((bool) $funds_available[$fundtype]['is_used'] != (bool) ($use == 'y'))) 
-            {
-                $this->useFunds($fundtype, $use == 'y');
-            }
-        }
-    }
-    
-    private function useFunds($fundtype, $do_use = true)
-    {
-        $api = $this->getApi();
-        if ($this->isTransactionStarted()) {
-            $transaction = $this->getTransaction();
-            try {
-                switch ($fundtype) {
-                    case self::FUNDS_MONETARY_POINTS:
-                        if ($do_use) {
-                            $this->log('transaction/monetary-points/spend', self::LOG_NOTICE);
-                            $transaction = $api->spendMonetaryPoints($transaction->id, $this->getFundsAmountAvailable($fundtype));
-                        } else {
-                            $this->log('transaction/monetary-points/spending/cancel', self::LOG_NOTICE);
-                            $transaction = $api->cancelSpendingMonetaryPoints($transaction->id);
-                        }
-                        $this->saveToSession('transaction', $transaction);
-                        break;
-                    case self::FUNDS_PREPAID:
-                        if ($do_use) {
-                            $this->log('transaction/prepaid/spend', self::LOG_NOTICE);
-                            $transaction = $api->spendPrepaid($transaction->id, $this->getFundsAmountAvailable($fundtype));
-                        } else {
-                            $this->log('transaction/prepaid/spending/cancel', self::LOG_NOTICE);
-                            $transaction = $api->cancelSpendingPrepaid($transaction->id);
-                        }
-                        $this->saveToSession('transaction', $transaction);
-                        break;
-                }
-                return true;
-            } catch (Exception $e) {
-                $this->log('funds usage call exception: '.$e->getMessage(), self::LOG_ERROR);
-            }
-        }
-        return false;
-    }
-    
-    protected function processActions()
-    {
-        // OneGo funds usage
-        if (!empty($this->request->post['use_onego_funds'])) {
-            $this->processFundsUsage($this->request->post['use_onego_funds']);
-            $this->request->post['use_onego_funds'] = null;
-        }
-    }
-    
-    public static function showOutput()
-    {
-        $onego = self::getInstance();
-        echo $onego->getLogForFirebugConsole();
-        echo $onego->getHtmlDecoratorCode();
-    }
-    
-    public function getHtmlDecoratorCode()
-    {
-        $this->load->language('total/onego');
-        $javascript = '';
-        if ($receivables = $this->getFromRegistry('receivables')) {
-            list($receivables_from, $receivables_to) = each($receivables);
-            $receivables_from = self::escapeJs($receivables_from);
-            $receivables_to = self::escapeJs($receivables_to);
-            $javascript .= <<<END
-$('div.cart-total td').each(function(){
-    if ($(this).html() == '{$receivables_from}') {
-        $(this).html('{$receivables_to}');
-    }
-});
-END;
-        }
-        return <<<END
-<script type="text/javascript">
-{$javascript}
-</script>
-END;
-    }
-    
+    /**
+     *
+     * @param string $str
+     * @param boolean $strong Whether to escape all characters and not just quotes
+     * @return string
+     */
     public static function escapeJs($str, $strong = false) {
 	$new_str = '';
 	$str_len = strlen($str);
@@ -682,9 +892,23 @@ END;
 	return $new_str;
     }
     
+    /**
+     * Determine if current request is an AJAX request
+     *
+     * @return boolean
+     */
     public static function isAjaxRequest()
     {
         return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
             ($_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest");
+    }
+    
+    /**
+     *
+     * @return string HTTP referrer's URL
+     */
+    public function getHttpReferer()
+    {
+        return !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : false;
     }
 }
