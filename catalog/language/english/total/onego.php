@@ -20,6 +20,7 @@ $_['text_sub_total'] = 'Sub-Total with OneGo benefits';
 $_['monetary_points_spent'] = 'OneGo monetary points spent';
 $_['prepaid_spent'] = 'OneGo prepaid spent';
 $_['funds_receivable'] = 'OneGo rewards';
+$_['text_shipping_discount'] = 'OneGo shipping discount';
 
 $_['funds_receivable_text'] = '%s %s';
 $_['monetary_points'] = 'MP';
@@ -33,4 +34,3 @@ $_['use_funds'] = 'Use your OneGo funds';
 $_['no_funds_available'] = 'You have no funds available yet';
 $_['funds_monetary_points'] = 'use my monetary points %s';
 $_['funds_prepaid'] = 'use my prepaid %s';
-?>

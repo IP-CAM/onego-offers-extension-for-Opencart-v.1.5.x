@@ -8,6 +8,7 @@ class ModelTotalOnego extends Model {
     const LOG_ERROR = 3;
     const FUNDS_MONETARY_POINTS = 'mp';
     const FUNDS_PREPAID = 'pp';
+    const SHIPPING = 'shipping';
     
     protected $registrykey = 'onego_extension';
     protected $api_key = '72A7101DEFEC11D473B7B0911EFC9265E15F';
@@ -61,9 +62,29 @@ class ModelTotalOnego extends Model {
                     'title' => $title,
                     'text' => $this->currency->format(-$discount_visible),
                     'value' => -$discount_visible,
-                    'sort_order' => $this->config->get('onego_sort_order').'b'
+                    'sort_order' => $this->config->get('onego_sort_order').'a'
                 );
                 $modified = true;
+            }
+            
+            // shipping discounts
+            if (!empty($onegocart->entries)) {
+                $shipping_discount = 0;
+                foreach ($onegocart->entries as $cartitem) {
+                    if ($cartitem->itemCode == self::SHIPPING && !empty($cartitem->discount->amount->visible)) {
+                        $shipping_discount += $cartitem->discount->amount->visible;
+                    }
+                }
+                if ($shipping_discount > 0) {
+                    $total -= $shipping_discount;
+                    $total_data[] = array(
+                        'code' => 'onego',
+                        'title' => $this->language->get('text_shipping_discount'),
+                        'text' => $this->currency->format(-$shipping_discount),
+                        'value' => $shipping_discount,
+                        'sort_order' => $this->config->get('onego_sort_order').'b'
+                    );
+                }
             }
             
             // funds spent
@@ -73,7 +94,7 @@ class ModelTotalOnego extends Model {
                     'title' => $this->language->get('monetary_points_spent'),
                     'text' => $this->currency->format(-$onegocart->monetaryPointsSpent),
                     'value' => 0,
-                    'sort_order' => $this->config->get('onego_sort_order').'c'
+                    'sort_order' => $this->config->get('onego_sort_order').'m'
                 );
             }
             if (!empty($onegocart->prepaidSpent)) {
@@ -82,7 +103,7 @@ class ModelTotalOnego extends Model {
                     'title' => $this->language->get('prepaid_spent'),
                     'text' => $this->currency->format(-$onegocart->prepaidSpent),
                     'value' => 0,
-                    'sort_order' => $this->config->get('onego_sort_order').'d'
+                    'sort_order' => $this->config->get('onego_sort_order').'p'
                 );
             }
             
@@ -97,7 +118,7 @@ class ModelTotalOnego extends Model {
                             'title' => $this->language->get('funds_receivable'),
                             'text' => '',
                             'value' => 0,
-                            'sort_order' => $this->config->get('onego_sort_order').'f'
+                            'sort_order' => $this->config->get('onego_sort_order').'r'
                         );
                         $receivables_text = $receivables_text_rich = array();
                     }
@@ -131,7 +152,7 @@ class ModelTotalOnego extends Model {
                     'title' => $this->language->get('text_sub_total'),
                     'text' => $this->currency->format($onegocart->cashAmount->visible),
                     'value' => $onegocart->cashAmount->visible,
-                    'sort_order' => $this->config->get('onego_sort_order').'z'
+                    'sort_order' => $this->config->get('onego_sort_order').'t'
                 );
             }
         }
@@ -404,23 +425,35 @@ class ModelTotalOnego extends Model {
         return $onego_cart->cartEntries;
     }
     
-    protected function addShippingToCart(&$transaction_cart)
+    protected function getShippingAsItem()
     {
-        if ($shipping = $this->registry->get('model_total_shipping')) {
+        if ($this->config->get('shipping_status') && $this->cart->hasShipping() 
+                && isset($this->session->data['shipping_method'])) 
+        {
+            $this->load->model('total/shipping');
+            $shipping = $this->registry->get('model_total_shipping');
             $total_data = array();
             $taxes = array();
             $total = 0;
             $shipping->getTotal($total_data, $total, $taxes);
             if ($total > 0) {
-                $transaction_cart['shipping'] = array(
-                    'key'           => 'shipping',
-                    '_item_code'    => 'shipping',
+                return array(
+                    'key'           => self::SHIPPING,
+                    '_item_code'    => self::SHIPPING,
                     'price'         => $total,
                     'quantity'      => 1,
                     'total'         => $total,
                     'name'          => 'Shipping',
                 );
             }
+        }
+        return false;
+    }
+    
+    protected function addShippingToCart(&$transaction_cart)
+    {
+        if ($shipping = $this->getShippingAsItem()) {
+            $transaction_cart['shipping'] = $shipping;
         }
     }
     
@@ -477,6 +510,10 @@ class ModelTotalOnego extends Model {
                         echo 'console.error(\''.$msg.'\');';
                 }
                 echo "\r\n";
+            }
+            if ($transaction = $this->getTransaction(false)) {
+                echo 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction)).')};'."\r\n";
+                echo 'console.dir(transaction);'."\r\n";
             }
             echo '}</script>';
         }
