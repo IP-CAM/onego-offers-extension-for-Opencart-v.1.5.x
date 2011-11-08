@@ -64,12 +64,42 @@ class ModelTotalOnego extends Model {
         {
             $this->load->language('total/onego');
             
+            $initial_total = $total;
+            
             // items discounts
             // TODO
             
+            // shipping discounts
+            $free_shipping = false;
+            if (!empty($onegocart->entries)) {
+                $shipping_discount = 0;
+                foreach ($onegocart->entries as $cartitem) {
+                    if ($cartitem->itemCode == self::SHIPPING && !empty($cartitem->discount->amount->visible)) {
+                        $shipping_discount += $cartitem->discount->amount->visible;
+                    }
+                }
+                if ($shipping_discount > 0) {
+                    $total -= $shipping_discount;
+                    $total_data[] = array(
+                        'code' => 'onego',
+                        'title' => $this->language->get('text_shipping_discount'),
+                        'text' => $this->currency->format(-$shipping_discount),
+                        'value' => $shipping_discount,
+                        'sort_order' => $this->config->get('onego_sort_order').'y'
+                    );
+                }
+                if ($shipping_discount && isset($this->session->data['shipping_method'])) {
+                    $opencart_shipping_cost = $this->session->data['shipping_method']['cost'];
+                    if ($opencart_shipping_cost - $shipping_discount == 0) {
+                        $free_shipping = true;
+                    }
+                }
+            }
+            
             // cart discount
             if (!empty($onegocart->totalDiscount) && ($discount = $onegocart->totalDiscount) 
-                    && !empty($discount->amount->visible)) 
+                    && !empty($discount->amount->visible) 
+                    && ($discount->amount->visible != $shipping_discount)) // TEMPORARY FIX
             {
                 $discount_visible = $discount->amount->visible;
                 if (!empty($discount->percent)) {
@@ -86,26 +116,6 @@ class ModelTotalOnego extends Model {
                     'sort_order' => $this->config->get('onego_sort_order').'a'
                 );
                 $modified = true;
-            }
-            
-            // shipping discounts
-            if (!empty($onegocart->entries)) {
-                $shipping_discount = 0;
-                foreach ($onegocart->entries as $cartitem) {
-                    if ($cartitem->itemCode == self::SHIPPING && !empty($cartitem->discount->amount->visible)) {
-                        $shipping_discount += $cartitem->discount->amount->visible;
-                    }
-                }
-                if ($shipping_discount > 0) {
-                    $total -= $shipping_discount;
-                    $total_data[] = array(
-                        'code' => 'onego',
-                        'title' => $this->language->get('text_shipping_discount'),
-                        'text' => $this->currency->format(-$shipping_discount),
-                        'value' => $shipping_discount,
-                        'sort_order' => $this->config->get('onego_sort_order').'b'
-                    );
-                }
             }
             
             // funds spent
@@ -139,7 +149,7 @@ class ModelTotalOnego extends Model {
                             'title' => $this->language->get('funds_receivable'),
                             'text' => '',
                             'value' => 0,
-                            'sort_order' => $this->config->get('onego_sort_order').'r'
+                            'sort_order' => 1000,//$this->config->get('onego_sort_order').'x'
                         );
                         $receivables_text = $receivables_text_rich = array();
                     }
@@ -170,9 +180,10 @@ class ModelTotalOnego extends Model {
             }
             
             // onego subtotal
-            if ($onegocart->originalAmount->visible != $onegocart->cashAmount->visible) {
-                $diff = $onegocart->originalAmount->visible - $onegocart->cashAmount->visible;
-                $total -= $diff;
+            $onego_discount = 0;
+            if ($initial_total != $onegocart->cashAmount->visible) {
+                $onego_discount = $onegocart->originalAmount->visible - $onegocart->cashAmount->visible;
+                $total -= $onego_discount;
                 $total_data[] = array(
                     'code' => 'onego',
                     'title' => $this->language->get('text_sub_total'),
@@ -180,6 +191,36 @@ class ModelTotalOnego extends Model {
                     'value' => $onegocart->cashAmount->visible,
                     'sort_order' => $this->config->get('onego_sort_order').'t'
                 );
+            }
+            
+            // decrease taxes if discount was applied
+            if ($onego_discount) {
+                // decrease taxes applied for products
+                foreach ($this->cart->getProducts() as $product) {
+                    if ($product['tax_class_id']) {
+                        // discount part for this product
+                        $discount = $onego_discount * ($product['total'] / $total);
+                        $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
+                        foreach ($tax_rates as $tax_rate) {
+                            if ($tax_rate['type'] == 'P') {
+                                $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                            }
+                        }
+                    }
+                }
+                // decrease taxes applied for shipping
+                if ($free_shipping && isset($this->session->data['shipping_method'])) {
+                    if (!empty($this->session->data['shipping_method']['tax_class_id'])) {
+                        // tax rates that will be applied (or were already) to shipping
+                        $tax_rates = $this->tax->getRates($this->session->data['shipping_method']['cost'], $this->session->data['shipping_method']['tax_class_id']);
+                        // subtract them
+                        foreach ($tax_rates as $tax_rate) {
+                            if ($tax_rate['type'] == 'P') {
+                                $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                            }
+                        }
+                    }
+                }
             }
         }
     }
