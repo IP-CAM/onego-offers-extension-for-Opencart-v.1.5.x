@@ -40,8 +40,10 @@
           </tr>
       </table>
       
+    <!--
     <a href="<?php echo $onego_update; ?>" class="button"><span><?php echo $button_update; ?></span></a>
     <a href="<?php echo $onego_disable; ?>" class="button"><span><?php echo $button_disable; ?></span></a>
+    -->
         
   </div>
 </div>

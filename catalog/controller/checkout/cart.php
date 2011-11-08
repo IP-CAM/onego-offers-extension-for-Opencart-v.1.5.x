@@ -504,6 +504,15 @@ class ControllerCheckoutCart extends Controller {
         } else {
             $this->template = 'default/template/common/cart.tpl';
         }
+        
+        // onego
+        $this->load->model('total/onego');
+        $onego = ModelTotalOnego::getInstance();
+        if (!$onego->isTransactionStarted()) {
+            $this->data['show_onego'] = true;
+            $this->data['button_onego_login'] = 'Apply OneGo benefits';
+            $this->data['onego_login'] = $this->url->link('total/onego/issuetoken');
+        }
 
         $json['output'] = $this->render();
 

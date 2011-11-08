@@ -203,7 +203,7 @@ class ModelTotalOnego extends Model {
                         $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
                         foreach ($tax_rates as $tax_rate) {
                             if ($tax_rate['type'] == 'P') {
-                                $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                                //$taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
                             }
                         }
                     }
@@ -216,7 +216,7 @@ class ModelTotalOnego extends Model {
                         // subtract them
                         foreach ($tax_rates as $tax_rate) {
                             if ($tax_rate['type'] == 'P') {
-                                $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                                //$taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
                             }
                         }
                     }
@@ -237,6 +237,8 @@ class ModelTotalOnego extends Model {
             $api = $this->getApi();
             try {
                 $this->confirmTransaction();
+                $this->saveToSession('onego_benefits_applied', true);
+                $this->log('benefits applied');
             } catch (Exception $e) {
                 $this->throwError($e->getMessage());
             }
@@ -250,7 +252,7 @@ class ModelTotalOnego extends Model {
      */
     public function isTransactionStarted()
     {
-        return ($this->getTransaction() !== false);
+        return ($this->getTransaction(false) !== false);
     }
     
     /**
@@ -479,6 +481,7 @@ class ModelTotalOnego extends Model {
             $this->saveToSession('transaction', $transaction);
             // save cart hash to later detect when transaction cart needs to be updated
             $this->saveToSession('cart_hash', $this->getEshopCartHash());
+            $this->saveToSession('onego_benefits_applied', false);
             $transaction = $this->getTransaction();
             $this->log('transaction started: '.$transaction->id->id);
             return true;
@@ -501,6 +504,7 @@ class ModelTotalOnego extends Model {
                 $this->log('transaction confirm', self::LOG_NOTICE);
                 $api->confirmTransaction($transaction_id);
                 $this->saveToSession('transaction', null);
+                $this->saveToSession('onego_benefits_applied', true);
                 return true;
             } catch (Exception $e) {
                 $this->log('transaction/end/confirm exception: '.$e->getMessage(), self::LOG_ERROR);
@@ -523,6 +527,7 @@ class ModelTotalOnego extends Model {
                 $this->log('transaction cancel', self::LOG_NOTICE);
                 $api->cancelTransaction($transaction_id);
                 $this->saveToSession('transaction', null);
+                $this->saveToSession('onego_benefits_applied', false);
                 return true;
             } catch (Exception $e) {
                 $this->log('transaction/end/cancel exception: '.$e->getMessage(), self::LOG_ERROR);
@@ -571,10 +576,12 @@ class ModelTotalOnego extends Model {
             self::$current_eshop_cart = $products;
             
             // load products details to determine item_code
-            $ids = implode(',', array_keys(self::$current_eshop_cart));
-            $products_query = $this->db->query("SELECT product_id, sku, upc FROM ".DB_PREFIX."product p WHERE product_id IN ({$ids})");
-            foreach ($products_query->rows as $product) {
-                self::$current_eshop_cart[$product['product_id']]['_item_code'] = !empty($product['sku']) ? $product['sku'] : 'PID'.$product['product_id'];
+            if (count(self::$current_eshop_cart)) {
+                $ids = implode(',', array_keys(self::$current_eshop_cart));
+                $products_query = $this->db->query("SELECT product_id, sku, upc FROM ".DB_PREFIX."product p WHERE product_id IN ({$ids})");
+                foreach ($products_query->rows as $product) {
+                    self::$current_eshop_cart[$product['product_id']]['_item_code'] = !empty($product['sku']) ? $product['sku'] : 'PID'.$product['product_id'];
+                }
             }
             
             // add shipping as an item
@@ -883,6 +890,8 @@ END;
                 echo 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction)).')};'."\r\n";
                 echo 'console.dir(transaction);'."\r\n";
             }
+            echo 'var onego_session = {\'onego_session\' : $.parseJSON('.json_encode(json_encode($this->session->data[$this->registrykey])).')};'."\r\n";
+            echo 'console.dir(onego_session);'."\r\n";
             echo '}</script>';
         }
     }
