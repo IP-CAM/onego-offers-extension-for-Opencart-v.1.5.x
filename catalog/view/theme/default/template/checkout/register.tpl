@@ -11,15 +11,7 @@
   <span class="required">*</span> <?php echo $entry_email; ?><br />
   <input type="text" name="email" value="" class="large-field" />
   <br />
-  <br />
-  
-  <?php if (!empty($onego_apply)) { ?>
-  <label for="onego_apply"><?php echo $onego_apply; ?></label><br />
-  <input type="checkbox" name="onego_apply" value="y" id="onego_apply" />
-  <br />
-  <br />
-  <?php } ?>
-    
+  <br />  
   <span class="required">*</span> <?php echo $entry_telephone; ?><br />
   <input type="text" name="telephone" value="" class="large-field" />
   <br />

@@ -140,7 +140,7 @@ class ModelTotalOnego extends Model {
             
             
             // funds received
-            $funds_fields = array('monetaryPointsReceived', 'couponPointsReceived', 'prepaidReceived');
+            $funds_fields = array('monetaryPointsReceived'/*, 'couponPointsReceived', 'prepaidReceived'*/);
             foreach ($funds_fields as $fundfield) {
                 if (!empty($onegocart->{$fundfield}) && $onegocart->{$fundfield}->amount->visible) {
                     if (!isset($receivables)) {
@@ -172,8 +172,7 @@ class ModelTotalOnego extends Model {
             if (!empty($receivables)) {
                 $receivables_text_rich = implode('&nbsp;', $receivables_text_rich);
                 $receivables_text = implode(' / ', $receivables_text);
-                $receivables['text'] = self::isAjaxRequest() ? 
-                        $receivables_text_rich : $receivables_text;
+                $receivables['text'] = $receivables_text;
                 $total_data[] = $receivables;
                 // save rich text version to replace on page
                 $this->saveToRegistry('receivables', array($receivables_text => $receivables_text_rich));
@@ -676,19 +675,6 @@ class ModelTotalOnego extends Model {
                             $transaction->modifiedCart->monetaryPointsSpent : false
                 );
             }
-            if (isset($transaction->buyerInfo->prepaidAvailable)) {
-                $amount = $transaction->buyerInfo->prepaidAvailable;
-                if (!empty($transaction->modifiedCart->prepaidSpent)) {
-                    $amount += $transaction->modifiedCart->prepaidSpent;
-                }
-                $funds[self::FUNDS_PREPAID] = array(
-                    'title'     => sprintf($this->language->get('funds_prepaid'), 
-                            $amount.' '.$currency),
-                    'amount'    => $amount,
-                    'is_used'   => !empty($transaction->modifiedCart->prepaidSpent) ?
-                            $transaction->modifiedCart->prepaidSpent : false
-                );
-            }
         }       
         return $funds;
     }
@@ -745,6 +731,7 @@ class ModelTotalOnego extends Model {
                         }
                         $this->saveToSession('transaction', $transaction);
                         break;
+                    /*
                     case self::FUNDS_PREPAID:
                         if ($do_use) {
                             $this->log('transaction/prepaid/spend', self::LOG_NOTICE);
@@ -755,6 +742,7 @@ class ModelTotalOnego extends Model {
                         }
                         $this->saveToSession('transaction', $transaction);
                         break;
+                    */
                 }
                 return true;
             } catch (Exception $e) {

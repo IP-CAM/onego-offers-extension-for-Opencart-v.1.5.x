@@ -168,13 +168,6 @@ class ControllerCheckoutGuest extends Controller {
             $this->data['entry_country'] = $this->language->get('entry_country');
             $this->data['entry_zone'] = $this->language->get('entry_zone');
             $this->data['entry_shipping'] = $this->language->get('entry_shipping');
-            
-            // TODO: load from language file
-            $this->load->model('total/onego');
-            $onego = ModelTotalOnego::getInstance();
-            if (!$onego->isTransactionStarted()) {
-                $this->data['onego_apply'] = 'I\'d like to get <a href="http://www.onego.com">OneGo</a> benefits, I agree to expose my e-mail to OneGo:';
-            }
 
             $this->data['button_continue'] = $this->language->get('button_continue');
 

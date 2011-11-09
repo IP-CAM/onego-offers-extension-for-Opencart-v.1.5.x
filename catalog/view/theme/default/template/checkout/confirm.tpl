@@ -1,3 +1,130 @@
+<script type="text/javascript">
+<!--
+$("#onego_apply").fancybox({
+    'width': 500,
+    'height': 380,
+    'autoScale': true,
+    'autoDimensions': true,
+    'transitionIn': 'none',
+    'transitionOut': 'none',
+    'type': 'iframe',
+    'onClosed': function() {
+        $.ajax({
+            url: 'index.php?route=checkout/confirm',
+            dataType: 'json',
+            success: function(json) {
+                if (json['redirect']) {
+                    location = json['redirect'];
+                }	
+
+                if (json['output']) {
+                    $('#confirm .checkout-content').html(json['output']);
+                    $('#confirm .checkout-content').slideDown('slow');
+                }
+            },
+            error: function(xhr, ajaxOptions, thrownError) {
+                alert(thrownError);
+            }
+        });
+    }
+});
+$('#onego_funds_use input.onego_funds').unbind('change').change(function(e) {
+    $.ajax({
+        url: 'index.php?route=checkout/confirm', 
+        type: 'post',
+        data: $('#onego_funds_use').serialize(),
+        dataType: 'json',
+        beforeSend: function() {
+            $(this).attr('disabled', true);
+            $('#onego_controls').html('<span class="wait">&nbsp;<img src="catalog/view/theme/default/image/loading.gif" alt="" /></span>');
+        },	
+        complete: function() {
+            $(this).attr('disabled', false);
+            $('.wait').remove();
+        },			
+        success: function(json) {
+            $('.warning').remove();
+
+            if (json['redirect']) {
+                location = json['redirect'];
+            }
+
+            if (json['error']) {
+                if (json['error']['warning']) {
+                    $('#confirm .checkout-content').prepend('<div class="warning" style="display: none;">' + json['error']['warning'] + '</div>');
+
+                    $('.warning').fadeIn('slow');
+                }			
+            } else {
+                $('#confirm .checkout-content').html(json['output']);
+            }
+        }
+    });
+});
+$('#onego_agree').unbind().change(function(e){
+    $.ajax({
+        url: 'index.php?route=total/onego/agree', 
+        type: 'post',
+        data: { 'agree': $(this).is(':checked') ? 1 : 0 },
+        dataType: 'json',
+        beforeSend: function() {
+            $(this).attr('disabled', true);
+        },	
+        success: function() {
+            $(this).removeAttr('disabled');
+        }
+    });
+})
+//-->
+</script> 
+
+
+<div id="onego_controls" style="margin-bottom: 10px;">
+    <fieldset style="border: 1px solid #D8DEE1; margin: 0px 20px; border-radius: 5px;">
+        <legend><img src="catalog/view/theme/default/image/onego.png" alt="OneGo benefits" title="OneGo benefits" /></legend>
+        <?php if (empty($onego_applied)) { ?>
+        <ul style="margin: 0px; padding: 0px 20px;">
+            <li>
+                I already have my OneGo account - <a href="<?php echo $onego_login_url ?>" class="button" id="onego_apply"><span>Apply my benefits</span></a>
+            </li>
+            <li>
+                I wish to receive OneGo rewards for the purchase and I agree that my e-mail address is exposed to OneGo: 
+                <input type="checkbox" id="onego_agree" value="y" <?php echo !empty($onego_agreed) ? 'checked="checked"' : '' ?> />
+            </li>
+        </ul>
+
+        <?php } else { ?>
+
+          <div class="onego_funds">
+              <form action="<?php echo $funds_action ?>" method="post" id="onego_funds_use">
+                  <!--<strong><?php echo $use_funds ?>:</strong>-->
+                  <?php
+                  if (!empty($funds)) {
+                      foreach ($funds as $key => $fund) {
+                          $disabled = $fund['amount'] > 0 ? '' : ' disabled="disabled"';
+                          $st = $fund['is_used'] ? ' checked="checked"' : '';
+                          echo '<label for="onego_funds_'.$key.'">'.$fund['title'].'</label> ';
+                          echo '<input type="hidden" name="use_onego_funds['.$key.']" value="n" />';
+                          echo '<input type="checkbox" name="use_onego_funds['.$key.']" class="onego_funds" id="onego_funds_'.$key.'" value="y"'.$disabled.$st.' /> ';
+
+                      }
+                      ?>
+
+                      <?php
+                  } else {
+                      ?>
+                  <em><?php echo $no_funds_available; ?></em>
+                      <?php
+                  }
+                  ?>
+              </form>
+          </div>
+
+        <?php } ?>
+    </fieldset>
+</div>
+
+
 <div class="checkout-product">
   <table>
     <thead>

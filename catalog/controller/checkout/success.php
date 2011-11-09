@@ -63,7 +63,9 @@ class ControllerCheckoutSuccess extends Controller {
         
         // TODO: refactor
         $this->load->model('total/onego');
-        $this->data['onego_benefits_applyable'] = !ModelTotalOnego::getInstance()->getFromSession('onego_benefits_applied');
+        $onego = ModelTotalOnego::getInstance();
+        $this->data['onego_benefits_applyable'] = !$onego->getFromSession('onego_benefits_applied') && !$onego->getFromSession('onego_agreed');
+        $this->data['onego_claim'] = $this->url->link('total/onego/claimBenefits');
 
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/common/success.tpl')) {
             $this->template = $this->config->get('config_template') . '/template/common/success.tpl';
