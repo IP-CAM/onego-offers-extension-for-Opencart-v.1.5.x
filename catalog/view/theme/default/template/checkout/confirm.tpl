@@ -9,23 +9,7 @@ $("#onego_apply").fancybox({
     'transitionOut': 'none',
     'type': 'iframe',
     'onClosed': function() {
-        $.ajax({
-            url: 'index.php?route=checkout/confirm',
-            dataType: 'json',
-            success: function(json) {
-                if (json['redirect']) {
-                    location = json['redirect'];
-                }	
-
-                if (json['output']) {
-                    $('#confirm .checkout-content').html(json['output']);
-                    $('#confirm .checkout-content').slideDown('slow');
-                }
-            },
-            error: function(xhr, ajaxOptions, thrownError) {
-                alert(thrownError);
-            }
-        });
+        reloadConfirmation();
     }
 });
 $('#onego_funds_use input.onego_funds').unbind('change').change(function(e) {
@@ -75,6 +59,42 @@ $('#onego_agree').unbind().change(function(e){
         }
     });
 })
+$('#onego_logout').unbind().click(function(e){
+    e.preventDefault();
+    $.ajax({
+        url: 'index.php?route=total/onego/disable', 
+        type: 'post',
+        data: null,
+        dataType: 'json',
+        beforeSend: function() {
+            $(this).after('<span class="wait">&nbsp;<img src="catalog/view/theme/default/image/loading.gif" alt="" /></span>');
+            $(this).remove();
+        },	
+        complete: function() {
+            reloadConfirmation();
+        }
+    });
+})
+function reloadConfirmation()
+{
+    $.ajax({
+        url: 'index.php?route=checkout/confirm',
+        dataType: 'json',
+        success: function(json) {
+            if (json['redirect']) {
+                location = json['redirect'];
+            }	
+
+            if (json['output']) {
+                $('#confirm .checkout-content').html(json['output']);
+                $('#confirm .checkout-content').slideDown('slow');
+            }
+        },
+        error: function(xhr, ajaxOptions, thrownError) {
+            alert(thrownError);
+        }
+    });
+}
 //-->
 </script> 
 
@@ -97,7 +117,9 @@ $('#onego_agree').unbind().change(function(e){
 
           <div class="onego_funds">
               <form action="<?php echo $funds_action ?>" method="post" id="onego_funds_use">
-                  <!--<strong><?php echo $use_funds ?>:</strong>-->
+                  <table border="0" width="100%">
+                      <tr>
+                          <td>
                   <?php
                   if (!empty($funds)) {
                       foreach ($funds as $key => $fund) {
@@ -117,6 +139,12 @@ $('#onego_agree').unbind().change(function(e){
                       <?php
                   }
                   ?>
+                          </td>
+                          <td align="right">
+                              Logged in as <?php echo $onego_buyer ?>. <a href="javascript:logoutOnego();" id="onego_logout">Not you?</a>
+                          </td>
+                      </tr>
+                  </table>
               </form>
           </div>
 

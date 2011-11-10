@@ -33,6 +33,7 @@ class ControllerTotalOnego extends Controller {
             $this->data['use_funds'] = $this->language->get('use_funds');
             $this->data['no_funds_available'] = $this->language->get('no_funds_available');
             $this->data['funds_action'] = $this->url->link('checkout/cart');
+            $this->data['onego_buyer'] = $onego->getBuyerName();
             
             if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_account.tpl')) {
                 $this->template = $this->config->get('config_template') . '/template/total/onego_account.tpl';
@@ -169,11 +170,9 @@ class ControllerTotalOnego extends Controller {
     {
         $this->language->load('total/onego');
         $onego = $this->getModel();
-        $referer = $onego->getFromSession('referer') ? $onego->getFromSession('referer') : $this->getDefaultReferer();
         
         if ($onego->isTransactionStarted()) {
             if ($onego->cancelTransaction()) {
-                $onego->saveToSession('verified_token', null);
                 $onego->log('transaction cancelled');
                 $onego->getSession()->data['success'] = $this->language->get('benefits_disabled');
             } else {
@@ -181,7 +180,9 @@ class ControllerTotalOnego extends Controller {
             }
         }
         
-        $this->redirect($referer);
+        if (!ModelTotalOnego::isAjaxRequest()) {
+            $this->redirect($this->getReferer());
+        }
     }
     
     public function updatebenefits()

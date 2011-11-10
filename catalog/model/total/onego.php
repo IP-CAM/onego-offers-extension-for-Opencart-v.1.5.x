@@ -308,6 +308,11 @@ class ModelTotalOnego extends Model {
         return !empty($transaction) ? $transaction->id : false;
     }
     
+    public function getBuyerName()
+    {
+        return $this->isTransactionStarted() ? 'Saulius Okunevičius' : false;
+    }
+    
     /**
      * Singleton factory for SimpleAPI
      *
@@ -526,6 +531,7 @@ class ModelTotalOnego extends Model {
                 $this->log('transaction cancel', self::LOG_NOTICE);
                 $api->cancelTransaction($transaction_id);
                 $this->saveToSession('transaction', null);
+                $this->saveToSession('verified_token', null);
                 $this->saveToSession('onego_benefits_applied', false);
                 return true;
             } catch (Exception $e) {

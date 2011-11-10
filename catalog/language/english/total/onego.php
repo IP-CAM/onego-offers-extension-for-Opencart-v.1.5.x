@@ -30,7 +30,7 @@ $_['monetary_points_full'] = 'OneGo monetary points';
 $_['coupon_points_full'] = 'OneGo coupon points';
 
 $_['prepaid'] = 'OneGo prepaid funds';
-$_['use_funds'] = 'Use your OneGo funds';
-$_['no_funds_available'] = 'You have no funds available yet';
-$_['funds_monetary_points'] = 'Use my OneGo funds %s';
+$_['use_funds'] = 'Do you want to use your OneGo funds?';
+$_['no_funds_available'] = '%s, you have no funds available yet';
+$_['funds_monetary_points'] = 'Use my %s';
 $_['funds_prepaid'] = 'use my prepaid %s';

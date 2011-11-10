@@ -17,6 +17,7 @@ class ControllerCheckoutConfirm extends Controller {
             $this->data['use_funds'] = $this->language->get('use_funds');
             $this->data['no_funds_available'] = $this->language->get('no_funds_available');
             $this->data['funds_action'] = $this->url->link('checkout/confirm');
+            $this->data['onego_buyer'] = $onego->getBuyerName();
         } else {
             $this->data['onego_login_url'] = $this->url->link('total/onego/auth');
             $this->data['onego_agreed'] = $onego->getFromSession('onego_agreed');
