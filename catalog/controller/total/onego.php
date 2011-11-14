@@ -188,7 +188,7 @@ class ControllerTotalOnego extends Controller {
     public function updatebenefits()
     {
         $onego = $this->getModel();
-        $referer = $onego->getFromSession('referer') ? $onego->getFromSession('referer') : $this->getDefaultReferer();
+        $referer = $this->getReferer();
         
         if ($onego->isTransactionStarted()) {
             $onego->updateTransactionCart();

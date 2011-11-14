@@ -33,6 +33,9 @@
                       </td>
                       <td align="right">
                           Logged in as <?php echo $onego_buyer ?>. <a href="<?php echo $onego_disable; ?>" id="onego_logout">Not you?</a>
+                          
+                          
+                          [<a href="<?php echo $onego_update ?>">upd</a>]
                       </td>
                   </tr>
               </table>

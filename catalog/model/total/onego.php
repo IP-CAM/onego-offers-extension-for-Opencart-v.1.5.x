@@ -183,40 +183,39 @@ class ModelTotalOnego extends Model {
             if ($initial_total != $onegocart->cashAmount->visible) {
                 $onego_discount = $onegocart->originalAmount->visible - $onegocart->cashAmount->visible;
                 $total -= $onego_discount;
+                /*
                 $total_data[] = array(
                     'code' => 'onego',
                     'title' => $this->language->get('text_sub_total'),
                     'text' => $this->currency->format($onegocart->cashAmount->visible),
                     'value' => $onegocart->cashAmount->visible,
                     'sort_order' => $this->config->get('onego_sort_order').'t'
-                );
+                );*/
             }
             
             // decrease taxes if discount was applied
             if ($onego_discount) {
-                // decrease taxes applied for products
+                // decrease taxes to be applied for products
                 foreach ($this->cart->getProducts() as $product) {
                     if ($product['tax_class_id']) {
                         // discount part for this product
-                        $discount = $onego_discount * ($product['total'] / $total);
+                        $discount = $onego_discount * ($product['total'] / $initial_total);
                         $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
                         foreach ($tax_rates as $tax_rate) {
                             if ($tax_rate['type'] == 'P') {
-                                //$taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                                $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
                             }
                         }
                     }
                 }
-                // decrease taxes applied for shipping
+                // decrease taxes to be applied for shipping
                 if ($free_shipping && isset($this->session->data['shipping_method'])) {
                     if (!empty($this->session->data['shipping_method']['tax_class_id'])) {
                         // tax rates that will be applied (or were already) to shipping
                         $tax_rates = $this->tax->getRates($this->session->data['shipping_method']['cost'], $this->session->data['shipping_method']['tax_class_id']);
                         // subtract them
                         foreach ($tax_rates as $tax_rate) {
-                            if ($tax_rate['type'] == 'P') {
-                                //$taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
-                            }
+                            $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
                         }
                     }
                 }
