@@ -9,13 +9,18 @@ class ModelTotalOnego extends Model {
     const FUNDS_MONETARY_POINTS = 'mp';
     const FUNDS_PREPAID = 'pp';
     const SHIPPING = 'shipping';
+    const AUTH_MESSAGE_AUTHENTICATED = 'onego.widget.user.authenticated';
+    const AUTH_MESSAGE_ANONYMOUS = 'onego.widget.user.anonymous';
     
     protected $registrykey = 'onego_extension';
     protected $api_key = '72A7101DEFEC11D473B7B0911EFC9265E15F';
     protected $api_pass = '9C7A5C0874424BD21870764C533AD6BA3077';
     protected $api_url = 'http://api.test.onego.com/pos/v1/';
+    protected $authagent_url = 'http://eshopwidget.test.onego.com';
     protected $terminal_id = '1';
+    
     protected static $current_eshop_cart = false;
+    protected static $authagent_listeners = false;
     
     /**
      * Constructor method: initializes and processes any related actions submitted
@@ -231,17 +236,56 @@ class ModelTotalOnego extends Model {
      */
     public function confirm($order_info, $order_total)
     {
+        $benefits_applied = false;
         if ($this->isTransactionStarted()) {
             $api = $this->getApi();
             try {
                 $this->confirmTransaction();
-                $this->saveToSession('onego_benefits_applied', true);
                 $this->log('benefits applied');
+                $this->saveOrderDetails($order_info['order_id'], true);
             } catch (Exception $e) {
                 $this->throwError($e->getMessage());
             }
-            $this->log('confirm() called, params: '.count(func_get_args()), self::LOG_NOTICE);
         }
+        // save order details to apply OneGo benefits later if user choses so
+        $this->log('confirm() called, params: '.count(func_get_args()), self::LOG_NOTICE);
+        
+    }
+    
+    public function saveOrderDetails($order_id, $benefits_applied = true)
+    {
+        $last_order = $this->getFromSession('last_order');
+        if (!$last_order || ($last_order['order_id'] != $order_id)) {
+            $this->load->model('account/order');		
+            $order_info = $this->model_account_order->getOrder($order_id);
+            $last_order = array(
+                'order_id'          => $order_id,
+                'confirmed_on'      => time(),
+                'benefits_applied'  => $benefits_applied,
+                'buyer_email'       => $order_info['email'],
+            );
+            $this->saveToSession('last_order', $last_order);
+        }
+    }
+    
+    public function isAnonymousRewardsApplied()
+    {
+        $last_order = $this->getFromSession('last_order');
+        if ($this->getFromSession('onego_agreed') && !$last_order['benefits_applied']) {
+            // apply rewards - To DO
+            
+            // fake
+            $last_order['benefits_applied'] = true;
+            $this->saveToSession('last_order', $last_order);
+            return true;
+        }
+        return false;
+    }
+    
+    public function isOnegoBenefitsApplyable()
+    {
+        $last_order = $this->getFromSession('last_order');
+        return !$this->getFromSession('onego_agreed') && !$last_order['benefits_applied'];
     }
     
     /**
@@ -342,7 +386,7 @@ class ModelTotalOnego extends Model {
         $gw = new OneGoAPI_Impl_Gateway($cfg, $http);
         $api = new OneGoAPI_Impl_OneGoAPI($gw);
         $simpleapi = new OneGoAPI_Impl_SimpleAPI($api);
-        $this->log('API initialized');
+        //$this->log('API initialized');
         
         $this->saveToRegistry('api', $simpleapi);
         
@@ -507,6 +551,7 @@ class ModelTotalOnego extends Model {
                 $this->log('transaction confirm', self::LOG_NOTICE);
                 $api->confirmTransaction($transaction_id);
                 $this->saveToSession('transaction', null);
+                $this->saveToSession('verified_token', null);
                 $this->saveToSession('onego_benefits_applied', true);
                 return true;
             } catch (Exception $e) {
@@ -770,20 +815,21 @@ class ModelTotalOnego extends Model {
     }
     
     /**
-     * Show HTML/JS code required by this model
+     * Get HTML/JS code required by this model
      */
-    public static function showOutput()
+    public static function getHeaderHtml()
     {
         $onego = self::getInstance();
-        echo $onego->getLogForFirebugConsole();
-        echo $onego->getHtmlDecoratorCode();
+        return $onego->getAuthServicesJS()
+                .$onego->getHtmlDecoratorJS()
+                .$onego->getDebugLogJS();
     }
     
     /**
      *
      * @return string HTML/JC code to modify page contents 
      */
-    public function getHtmlDecoratorCode()
+    public function getHtmlDecoratorJS()
     {
         $this->load->language('total/onego');
         $javascript = '';
@@ -791,20 +837,92 @@ class ModelTotalOnego extends Model {
             list($receivables_from, $receivables_to) = each($receivables);
             $receivables_from = self::escapeJs($receivables_from);
             $receivables_to = self::escapeJs($receivables_to);
-            $javascript .= <<<END
-$('div.cart-total td').each(function(){
-    if ($(this).html() == '{$receivables_from}') {
-        $(this).html('{$receivables_to}');
-    }
-});
-END;
+            $javascript .= 'OneGo.decorator.placeholders[\''.$receivables_from.'\'] = \''.$receivables_to.'\''."\r\n";
         }
         return <<<END
 <script type="text/javascript">
 {$javascript}
 </script>
+
 END;
     }
+    
+    public function getAuthServicesJS()
+    {
+        $iframe_url = $this->authagent_url;
+        $iframe_url_full = $iframe_url.(strpos($iframe_url, '?') ? '&' : '?').'ref='.urlencode(self::selfUrl());
+        $login_url = $this->registry->get('url')->link('total/onego/auth');
+        $logoff_url = $this->registry->get('url')->link('total/onego/disable');
+        $authagent_listeners_code = $this->renderAuthAgentListenersCode();
+        $html = <<<END
+<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>
+<script type="text/javascript">
+OneGo.authAgent.url = '{$iframe_url}';
+OneGo.authAgent.url_full = '{$iframe_url_full}';
+OneGo.authAgent.login_url = '{$login_url}';
+OneGo.authAgent.logoff_url = '{$logoff_url}';
+{$authagent_listeners_code}</script>
+
+END;
+        return $html;
+    }
+    
+    public function setDefaultAuthAgentListeners()
+    {
+        if (!empty($this->request->request['route']) && ($this->request->request['route'] == 'checkout/checkout')) {
+            // widget listeners specific for checkout page only
+            if ($this->isTransactionStarted()) {
+                // listen for logoff on widget
+                $this->setAuthAgentListener(self::AUTH_MESSAGE_ANONYMOUS, 
+                        'function(){
+                            OneGo.opencart.processLogoffDynamic();
+                         }'
+                );
+            } else {
+                // listen for login on widget
+                $this->setAuthAgentListener(self::AUTH_MESSAGE_AUTHENTICATED, 
+                        'function(){ 
+                            OneGo.opencart.processLoginDynamic();
+                         }'
+                );
+            }
+        } else {
+            if ($this->isTransactionStarted()) {
+                // listen for logoff on widget
+                $url = $this->getRegistryObj()->get('url')->link('total/onego/disable');
+                $js = "function(){ window.location.href='{$url}'; }";
+                $this->setAuthAgentListener(self::AUTH_MESSAGE_ANONYMOUS, $js);
+            } else {
+                // listen for login on widget
+                $url = $this->getRegistryObj()->get('url')->link('total/onego/issuetoken');
+                $js = "function(){ window.location.href='{$url}'; }";
+                $this->setAuthAgentListener(self::AUTH_MESSAGE_AUTHENTICATED, $js);
+            }
+        }
+    }
+    
+    public function setAuthAgentListener($message, $listener_code = false)
+    {
+        if (self::$authagent_listeners === false) {
+            self::$authagent_listeners = array();
+        }
+        self::$authagent_listeners[$message] = $listener_code ? $listener_code : 'null';
+    }
+    
+    public function renderAuthAgentListenersCode()
+    {
+        if (self::$authagent_listeners === false) {
+            $this->setDefaultAuthAgentListeners();
+        }
+        $code = '';
+        foreach (self::$authagent_listeners as $message => $js) {
+            if (!empty($js)) {
+                $code .= 'OneGo.authAgent.setListener(\''.$message.'\', '.$js.");\r\n";
+            }
+        }
+        return $code;
+    }
+    
     
     // ******* helper methods **************************************************
     
@@ -850,12 +968,13 @@ END;
     /**
      * Output HTML/JS code required to display log entries in Firebug's console
      */
-    public function getLogForFirebugConsole()
+    public function getDebugLogJS()
     {
         $log = $this->getLog(true);
+        $html = '';
         if (!empty($log)) {
-            echo '<script type="text/javascript">';
-            echo 'if (console) { '."\r\n";
+            $html .= '<script type="text/javascript">';
+            $html .= 'if (typeof console != \'undefined\') { '."\r\n";
             foreach ($log as $row) {
                 $msg = 'OneGo: '.$row['message'];
                 $msg = preg_replace('/[\r\n]+/', ' ', $msg);
@@ -866,26 +985,29 @@ END;
                 }
                 switch ($row['level']) {
                     case self::LOG_INFO:
-                        echo 'console.log(\''.$msg.'\');';
+                        $html .= 'console.log(\''.$msg.'\');';
                         break;
                     case self::LOG_NOTICE:
-                        echo 'console.info(\''.$msg.'\');';
+                        $html .= 'console.info(\''.$msg.'\');';
                         break;
                     case self::LOG_WARNING:
-                        echo 'console.warn(\''.$msg.'\');';
+                        $html .= 'console.warn(\''.$msg.'\');';
                         break;
                     default:
-                        echo 'console.error(\''.$msg.'\');';
+                        $html .= 'console.error(\''.$msg.'\');';
                 }
-                echo "\r\n";
+                $html .= "\r\n";
             }
+            /*
             if ($transaction = $this->getTransaction(false)) {
-                echo 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction)).')};'."\r\n";
-                echo 'console.dir(transaction);'."\r\n";
+                $html .= 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction)).')};'."\r\n";
+                $html .= 'console.dir(transaction);'."\r\n";
             }
-            echo 'var onego_session = {\'onego_session\' : $.parseJSON('.json_encode(json_encode($this->session->data[$this->registrykey])).')};'."\r\n";
-            echo 'console.dir(onego_session);'."\r\n";
-            echo '}</script>';
+            $html .= 'var onego_session = {\'onego_session\' : $.parseJSON('.json_encode(json_encode($this->session->data[$this->registrykey])).')};'."\r\n";
+            $html .= 'console.dir(onego_session);'."\r\n";
+             */
+            $html .= '}</script>'."\r\n";
+            return $html;
         }
     }
     
@@ -953,5 +1075,20 @@ END;
     public function getHttpReferer()
     {
         return !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : false;
+    }
+    
+    public static function selfUrl()
+    {
+        $pageURL = 'http';
+        if (!empty($_SERVER["HTTPS"]) && ($_SERVER["HTTPS"] == "on")) {
+            $pageURL .= "s";
+        }
+        $pageURL .= "://";
+        if ($_SERVER["SERVER_PORT"] != "80") {
+            $pageURL .= $_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"];
+        } else {
+            $pageURL .= $_SERVER["SERVER_NAME"].$_SERVER["REQUEST_URI"];
+        }
+        return $pageURL;
     }
 }

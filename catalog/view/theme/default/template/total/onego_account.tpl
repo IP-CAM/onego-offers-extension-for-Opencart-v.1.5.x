@@ -33,9 +33,7 @@
                       </td>
                       <td align="right">
                           Logged in as <?php echo $onego_buyer ?>. <a href="<?php echo $onego_disable; ?>" id="onego_logout">Not you?</a>
-                          
-                          
-                          [<a href="<?php echo $onego_update ?>">upd</a>]
+                          <!--[<a href="<?php echo $onego_update ?>">upd</a>]-->
                       </td>
                   </tr>
               </table>
@@ -52,10 +50,6 @@
 $(document).ready(function(){
     $('input.onego_funds').change(function(e){
         $('form#onego_funds_use').submit();
-    })
-    $('#onego_logout').click(function(e){
-        //e.preventDefault();
-        //logoutWidget();
     })
 })
 

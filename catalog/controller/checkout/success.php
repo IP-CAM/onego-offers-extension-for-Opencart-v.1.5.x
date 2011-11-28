@@ -3,6 +3,20 @@
 class ControllerCheckoutSuccess extends Controller {
 
     public function index() {
+        // TODO: refactor
+        $this->load->model('total/onego');
+        $onego = ModelTotalOnego::getInstance();
+        if (isset($this->session->data['order_id'])) {
+            $onego->saveOrderDetails($this->session->data['order_id'], false);
+        }
+        if ($onego->isAnonymousRewardsApplied()) {
+            $this->data['onego_benefits_applied'] = true;
+        } else if ($onego->isOnegoBenefitsApplyable()) {
+            $this->data['onego_benefits_applyable'] = true;
+        }
+        $this->data['onego_claim'] = $this->url->link('total/onego/claimBenefits');
+        
+        
         if (isset($this->session->data['order_id'])) {
             $this->cart->clear();
 
@@ -60,12 +74,6 @@ class ControllerCheckoutSuccess extends Controller {
         $this->data['button_continue'] = $this->language->get('button_continue');
 
         $this->data['continue'] = $this->url->link('common/home');
-        
-        // TODO: refactor
-        $this->load->model('total/onego');
-        $onego = ModelTotalOnego::getInstance();
-        $this->data['onego_benefits_applyable'] = !$onego->getFromSession('onego_benefits_applied') && !$onego->getFromSession('onego_agreed');
-        $this->data['onego_claim'] = $this->url->link('total/onego/claimBenefits');
 
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/common/success.tpl')) {
             $this->template = $this->config->get('config_template') . '/template/common/success.tpl';

@@ -19,6 +19,14 @@ class ControllerCommonHeader extends Controller {
 		$this->data['google_analytics'] = html_entity_decode($this->config->get('config_google_analytics'), ENT_QUOTES, 'UTF-8');
 		
 		$this->language->load('common/header');
+                
+                // init onego 
+                if ($this->config->get('onego_status')) {
+                    $this->load->model('total/onego');
+                    $this->data['onego_header'] = ModelTotalOnego::getHeaderHtml();
+                } else {
+                    $this->data['onego_header'] = '';
+                }
 		
 		if (isset($this->request->server['HTTPS']) && (($this->request->server['HTTPS'] == 'on') || ($this->request->server['HTTPS'] == '1'))) {
 			$server = HTTPS_IMAGE;

@@ -7,23 +7,6 @@ class ControllerCheckoutConfirm extends Controller {
             $json['redirect'] = $this->url->link('checkout/cart');
         }
         
-        // onego actions
-        $this->load->model('total/onego');
-        $this->language->load('total/onego');
-        $onego = $this->model_total_onego;
-        if ($this->data['onego_applied'] = $onego->isTransactionStarted()) {
-            
-            $this->data['funds'] = $onego->getFundsAvailable();
-            $this->data['use_funds'] = $this->language->get('use_funds');
-            $this->data['no_funds_available'] = $this->language->get('no_funds_available');
-            $this->data['funds_action'] = $this->url->link('checkout/confirm');
-            $this->data['onego_buyer'] = $onego->getBuyerName();
-        } else {
-            $this->data['onego_login_url'] = $this->url->link('total/onego/auth');
-            $this->data['onego_agreed'] = $onego->getFromSession('onego_agreed');
-        }
-        
-
         $this->load->model('account/address');
 
         if ($this->customer->isLogged()) {
@@ -374,6 +357,24 @@ class ControllerCheckoutConfirm extends Controller {
                 $this->template = $this->config->get('config_template') . '/template/checkout/confirm.tpl';
             } else {
                 $this->template = 'default/template/checkout/confirm.tpl';
+            }
+            
+            // onego actions
+            $this->load->model('total/onego');
+            $this->language->load('total/onego');
+            $onego = $this->model_total_onego;
+            if ($this->data['onego_applied'] = $onego->isTransactionStarted()) {
+                $this->data['funds'] = $onego->getFundsAvailable();
+                $this->data['use_funds'] = $this->language->get('use_funds');
+                $this->data['no_funds_available'] = $this->language->get('no_funds_available');
+                $this->data['funds_action'] = $this->url->link('checkout/confirm');
+                $this->data['onego_buyer'] = $onego->getBuyerName();
+                $this->data['receivables'] = $onego->getHtmlDecoratorJS();
+            } else {
+                $this->data['onego_login_url'] = $this->url->link('total/onego/auth');
+                $this->data['onego_authstatus_url'] = $this->url->link('total/onego/authStatus');
+                $this->data['onego_agreed'] = $onego->getFromSession('onego_agreed');
+                $this->data['receivables'] = '';
             }
 
             $json['output'] = $this->render();

@@ -1,3 +1,4 @@
+<?php echo $receivables; ?>
 <script type="text/javascript">
 <!--
 $("#onego_apply").fancybox({
@@ -9,9 +10,15 @@ $("#onego_apply").fancybox({
     'transitionOut': 'none',
     'type': 'iframe',
     'onClosed': function() {
-        reloadConfirmation();
+        OneGo.opencart.reloadCheckoutOrderInfo();
     }
 });
+$('#onego_logout').unbind().click(function(e){
+    e.preventDefault();
+    $(this).after('<span class="wait">&nbsp;<img src="catalog/view/theme/default/image/loading.gif" alt="" /></span>');
+    $(this).remove();
+    OneGo.opencart.processLogoffDynamic();
+})
 $('#onego_funds_use input.onego_funds').unbind('change').change(function(e) {
     $.ajax({
         url: 'index.php?route=checkout/confirm', 
@@ -59,44 +66,12 @@ $('#onego_agree').unbind().change(function(e){
         }
     });
 })
-$('#onego_logout').unbind().click(function(e){
-    e.preventDefault();
-    $.ajax({
-        url: 'index.php?route=total/onego/disable', 
-        type: 'post',
-        data: null,
-        dataType: 'json',
-        beforeSend: function() {
-            $(this).after('<span class="wait">&nbsp;<img src="catalog/view/theme/default/image/loading.gif" alt="" /></span>');
-            $(this).remove();
-        },	
-        complete: function() {
-            reloadConfirmation();
-        }
-    });
-})
-function reloadConfirmation()
-{
-    $.ajax({
-        url: 'index.php?route=checkout/confirm',
-        dataType: 'json',
-        success: function(json) {
-            if (json['redirect']) {
-                location = json['redirect'];
-            }	
 
-            if (json['output']) {
-                $('#confirm .checkout-content').html(json['output']);
-                $('#confirm .checkout-content').slideDown('slow');
-            }
-        },
-        error: function(xhr, ajaxOptions, thrownError) {
-            alert(thrownError);
-        }
-    });
-}
+$(document).ready(function(){
+    OneGo.decorator.apply();
+})
 //-->
-</script> 
+</script>
 
 
 <div id="onego_controls" style="margin-bottom: 10px;">
