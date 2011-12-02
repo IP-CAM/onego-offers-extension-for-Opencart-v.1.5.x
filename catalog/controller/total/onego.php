@@ -269,6 +269,12 @@ class ControllerTotalOnego extends Controller {
         $this->response->setOutput($this->render());
     }
     
+    public function redeemgiftcard()
+    {
+        $this->template = 'default/template/total/onego_giftcard.tpl';
+        $this->response->setOutput($this->render());
+    }
+    
     
     // === service methods
     protected function getModel()

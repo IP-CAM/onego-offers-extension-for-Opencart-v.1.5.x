@@ -63,10 +63,18 @@ OneGo.authAgent = {
     url_full: '',
     handlers: {},
     init: function() {
-        // create hidden iframe to handle communication with OneGo widget
-        //$('body').append('<iframe id="onego_hidden_iframe" name="onego_hidden_iframe" src="'+OneGo.authAgent.url_full+'" width="100%" height="50" frameborder="0"></iframe>');
-        $('body').append('<iframe id="onego_hidden_iframe" name="onego_hidden_iframe" src="'+OneGo.authAgent.url_full+'" width="0" height="0" frameborder="0"></iframe>');
+        OneGo.authAgent.initAuthWidget();
         OneGo.authAgent.initListeners();
+    },
+    initAuthWidget: function() {
+        if ($('#onego_authwidget_container').length) {
+            $('#onego_authwidget_container').html('<div id="onego_authwidget_loading">'+$('#onego_authwidget_container').html()+'</div>');
+            $('#onego_authwidget_container').append('<iframe id="onego_authwidget" name="onego_hidden_iframe" src="'+OneGo.authAgent.url_full+'" width="100%" height="100%" frameborder="0" allowtransparency="true" style="display: none;"></iframe>');
+            $('#onego_authwidget').load(function(e){ $('#onego_authwidget_loading').fadeOut('fast', function(){ $('#onego_authwidget').fadeIn('fast'); }); })
+        } else {
+            var url = OneGo.authAgent.url_full + '&h=1';
+            $('body').append('<iframe id="onego_authwidget" name="onego_authwidget" src="'+url+'" width="0" height="0" frameborder="0"></iframe>');
+        }
     },
     initListeners: function(){
         OneGo.XDC.receiveMessage(function(authWidgetMessage){
@@ -155,6 +163,21 @@ OneGo.opencart = {
                 }
             });
         }
+    },
+    redeemGiftCardAnonymous: function(){
+        $.fancybox({
+            'width': 800,
+            'height': 500,
+            'autoScale': true,
+            'autoDimensions': true,
+            'transitionIn': 'none',
+            'transitionOut': 'none',
+            'type': 'ajax',
+            'href': 'http://opencart/index.php?route=total/onego/redeemgiftcard',
+            'onClosed': function() {
+
+            }
+        });
     }
 }
 
@@ -188,4 +211,12 @@ OneGo.log = function(msg)
 $(document).ready(function(){
     OneGo.authAgent.init();
     OneGo.decorator.init();
+    
+    $('input.watermark').focus(function(){
+        $(this).addClass('focused');
+        $(this).val('');
+    })
+    $('input.watermark').blur(function(){
+        $(this).removeClass('focused');
+    })
 })

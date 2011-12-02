@@ -19,11 +19,11 @@ $('#onego_logout').unbind().click(function(e){
     $(this).remove();
     OneGo.opencart.processLogoffDynamic();
 })
-$('#onego_funds_use input.onego_funds').unbind('change').change(function(e) {
+$('#onego_account input.onego_funds').unbind('change').change(function(e) {
     $.ajax({
         url: 'index.php?route=checkout/confirm', 
         type: 'post',
-        data: $('#onego_funds_use').serialize(),
+        data: $('#onego_account').serialize(),
         dataType: 'json',
         beforeSend: function() {
             $(this).attr('disabled', true);
@@ -66,6 +66,39 @@ $('#onego_agree').unbind().change(function(e){
         }
     });
 })
+$('#onego_giftcard_redeem').unbind('click').click(function(e) {
+    $.ajax({
+        url: 'index.php?route=checkout/confirm', 
+        type: 'post',
+        data: $('#onego_account').serialize(),
+        dataType: 'json',
+        beforeSend: function() {
+            $(this).attr('disabled', true);
+            $('#onego_controls').html('<span class="wait">&nbsp;<img src="catalog/view/theme/default/image/loading.gif" alt="" /></span>');
+        },	
+        complete: function() {
+            $(this).attr('disabled', false);
+            $('.wait').remove();
+        },			
+        success: function(json) {
+            $('.warning').remove();
+
+            if (json['redirect']) {
+                location = json['redirect'];
+            }
+
+            if (json['error']) {
+                if (json['error']['warning']) {
+                    $('#confirm .checkout-content').prepend('<div class="warning" style="display: none;">' + json['error']['warning'] + '</div>');
+
+                    $('.warning').fadeIn('slow');
+                }			
+            } else {
+                $('#confirm .checkout-content').html(json['output']);
+            }
+        }
+    });
+});
 
 $(document).ready(function(){
     OneGo.decorator.apply();
@@ -75,7 +108,7 @@ $(document).ready(function(){
 
 
 <div id="onego_controls" style="margin-bottom: 10px;">
-    <fieldset style="border: 1px solid #D8DEE1; margin: 0px 20px; border-radius: 5px;">
+    <fieldset id="onego_panel">
         <legend><img src="catalog/view/theme/default/image/onego.png" alt="OneGo benefits" title="OneGo benefits" /></legend>
         <?php if (empty($onego_applied)) { ?>
         <ul style="margin: 0px; padding: 0px 20px;">
@@ -86,15 +119,23 @@ $(document).ready(function(){
                 I wish to receive OneGo rewards for the purchase and I agree that my e-mail address is exposed to OneGo: 
                 <input type="checkbox" id="onego_agree" value="y" <?php echo !empty($onego_agreed) ? 'checked="checked"' : '' ?> />
             </li>
+            <li>
+                I wish to redeem my Gift Card:
+                <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="watermark" value="Gift Card Number" />
+                <input type="button" value="Redeem" onclick="OneGo.opencart.redeemGiftCardAnonymous();" />
+            </li>
         </ul>
 
         <?php } else { ?>
 
           <div class="onego_funds">
-              <form action="<?php echo $funds_action ?>" method="post" id="onego_funds_use">
+              <form action="<?php echo $funds_action ?>" method="post" id="onego_account">
                   <table border="0" width="100%">
                       <tr>
-                          <td>
+                          <td align="left" rowspan="2">
+                              Logged in as <?php echo $onego_buyer ?>. <a href="javascript:logoutOnego();" id="onego_logout">Not you?</a>
+                          </td>
+                          <td align="right">
                   <?php
                   if (!empty($funds)) {
                       foreach ($funds as $key => $fund) {
@@ -115,8 +156,11 @@ $(document).ready(function(){
                   }
                   ?>
                           </td>
-                          <td align="right">
-                              Logged in as <?php echo $onego_buyer ?>. <a href="javascript:logoutOnego();" id="onego_logout">Not you?</a>
+                      </tr>
+                      <tr>
+                          <td align="right" valign="top">
+                              <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="watermark" />
+                              <input type="button" id="onego_giftcard_redeem" value="redeem" />
                           </td>
                       </tr>
                   </table>

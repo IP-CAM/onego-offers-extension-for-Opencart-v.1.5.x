@@ -2,15 +2,21 @@
   <div class="cart-heading active"><?php echo $heading_title; ?></div>
   <div class="cart-content" id="onego" style="display: block;">
       
-      <fieldset style="border: 1px solid #D8DEE1; margin: 0px 20px; border-radius: 5px;">
+      <fieldset id="onego_panel">
         <legend><img src="catalog/view/theme/default/image/onego.png" alt="OneGo benefits" title="OneGo benefits" /></legend>
         
       <div class="onego_funds">
-          <form action="<?php echo $funds_action ?>" method="post" id="onego_funds_use">
+          <form action="<?php echo $funds_action ?>" method="post" id="onego_account">
               <table border="0" width="100%">
                   <tr>
-                      <td>
-                          <strong><?php echo $use_funds ?></strong>
+                      <td rowspan="2" align="left" valign="top">
+                          <div id="onego_authwidget_container">
+                              <img src="catalog/view/theme/default/image/loading.gif" /> Checking OneGo user identity... <a href="<?php echo $onego_disable; ?>" id="onego_logout">Wish to log out?</a>
+                          </div>
+                          <a href="<?php echo $onego_disable; ?>" id="onego_logout" style="color: silver;">[logoff]</a>
+                          <a href="<?php echo $onego_update ?>" style="color: silver;">[upd]</a>
+                      </td>
+                      <td align="right">
                           <?php
                           if (!empty($funds)) {
                               foreach ($funds as $key => $fund) {
@@ -24,16 +30,15 @@
                               ?>
 
                               <?php
-                          } else {
-                              ?>
-                          <em><?php echo $no_funds_available; ?></em>
-                              <?php
                           }
                           ?>
                       </td>
+                      
+                  </tr>
+                  <tr>
                       <td align="right">
-                          Logged in as <?php echo $onego_buyer ?>. <a href="<?php echo $onego_disable; ?>" id="onego_logout">Not you?</a>
-                          <!--[<a href="<?php echo $onego_update ?>">upd</a>]-->
+                          <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="watermark" />
+                          <input type="button" id="onego_giftcard_redeem" value="redeem" />
                       </td>
                   </tr>
               </table>
@@ -49,14 +54,10 @@
 <script type="text/javascript">
 $(document).ready(function(){
     $('input.onego_funds').change(function(e){
-        $('form#onego_funds_use').submit();
+        $('form#onego_account').submit();
+    })
+    $('#onego_giftcard_redeem').click(function(e){
+        $('form#onego_account').submit();
     })
 })
-
-function logoutWidget()
-{
-    $('.onego_widget iframe').each(function(){
-        $(this).attr('src', 'http://localhost/test/iframe.php');
-    })
-}
 </script>

@@ -13,10 +13,15 @@ class ModelTotalOnego extends Model {
     const AUTH_MESSAGE_ANONYMOUS = 'onego.widget.user.anonymous';
     
     protected $registrykey = 'onego_extension';
+    /*
     protected $api_key = '72A7101DEFEC11D473B7B0911EFC9265E15F';
     protected $api_pass = '9C7A5C0874424BD21870764C533AD6BA3077';
-    protected $api_url = 'http://api.test.onego.com/pos/v1/';
-    protected $authagent_url = 'http://eshopwidget.test.onego.com';
+    protected $api_url = 'http://api.dev.onego.com/pos/v1/';
+    */
+    protected $api_key = 'a53rdpm3y760ftusta8ou5vbu5dgqinojypt';
+    protected $api_pass = '4f63vgdi1fwh6nemrg86cllo24ii95plkk6r';
+    protected $api_url = 'http://api.dev.onego.com/pos/v1/';
+    protected $authagent_url = 'http://authwidget.dev.onego.com';
     protected $terminal_id = '1';
     
     protected static $current_eshop_cart = false;
@@ -76,8 +81,8 @@ class ModelTotalOnego extends Model {
             
             // shipping discounts
             $free_shipping = false;
+            $shipping_discount = 0;
             if (!empty($onegocart->entries)) {
-                $shipping_discount = 0;
                 foreach ($onegocart->entries as $cartitem) {
                     if ($cartitem->itemCode == self::SHIPPING && !empty($cartitem->discount->amount->visible)) {
                         $shipping_discount += $cartitem->discount->amount->visible;
@@ -145,7 +150,7 @@ class ModelTotalOnego extends Model {
             
             
             // funds received
-            $funds_fields = array('monetaryPointsReceived'/*, 'couponPointsReceived', 'prepaidReceived'*/);
+            $funds_fields = array('monetaryPointsReceived', 'couponPointsReceived', 'prepaidReceived');
             foreach ($funds_fields as $fundfield) {
                 if (!empty($onegocart->{$fundfield}) && $onegocart->{$fundfield}->amount->visible) {
                     if (!isset($receivables)) {
@@ -495,7 +500,7 @@ class ModelTotalOnego extends Model {
     public function fixAuthUrl($url)
     {
         if (!preg_match('#^http.?//:#i', $url)) {
-            $url = 'http://auth.test.onego.com'.$url;
+            $url = 'http://auth.dev.onego.com'.$url;
         }
         return $url;
     }
@@ -712,17 +717,17 @@ class ModelTotalOnego extends Model {
         $transaction = $this->getTransaction();
         if (!empty($transaction) && !empty($transaction->buyerInfo)) {
             $currency = isset($transaction->currencyCode) ? $transaction->currencyCode : '';
-            if (isset($transaction->buyerInfo->monetaryPointsAvailable)) {
-                $amount = $transaction->buyerInfo->monetaryPointsAvailable;
-                if (!empty($transaction->modifiedCart->monetaryPointsSpent)) {
-                    $amount += $transaction->modifiedCart->monetaryPointsSpent;
+            if (isset($transaction->buyerInfo->prepaidAvailable)) {
+                $amount = $transaction->buyerInfo->prepaidAvailable;
+                if (!empty($transaction->modifiedCart->prepaidSpent)) {
+                    $amount += $transaction->modifiedCart->prepaidSpent;
                 }
-                $funds[self::FUNDS_MONETARY_POINTS] = array(
-                    'title'     => sprintf($this->language->get('funds_monetary_points'), 
+                $funds[self::FUNDS_PREPAID] = array(
+                    'title'     => sprintf($this->language->get('funds_prepaid'), 
                             $amount.' '.$currency),
                     'amount'    => $amount,
-                    'is_used'   => !empty($transaction->modifiedCart->monetaryPointsSpent) ?
-                            $transaction->modifiedCart->monetaryPointsSpent : false
+                    'is_used'   => !empty($transaction->modifiedCart->prepaidSpent) ?
+                            $transaction->modifiedCart->prepaidSpent : false
                 );
             }
         }       
@@ -757,6 +762,17 @@ class ModelTotalOnego extends Model {
         }
     }
     
+    public function processGiftCard($cardno)
+    {
+        if ($cardno != '1111') {
+            $this->getSession()->data['error'] = 'Invalid OneGo gift card number';
+        } else {
+            $this->getSession()->data['success'] = 'OneGo gift card redeemed';
+        }
+        header('Location: '.self::selfUrl());
+        exit();
+    }
+    
     /**
      * Call API method for using/cancel using of fund type; uses max amount of funds available to user
      *
@@ -781,7 +797,6 @@ class ModelTotalOnego extends Model {
                         }
                         $this->saveToSession('transaction', $transaction);
                         break;
-                    /*
                     case self::FUNDS_PREPAID:
                         if ($do_use) {
                             $this->log('transaction/prepaid/spend', self::LOG_NOTICE);
@@ -792,7 +807,6 @@ class ModelTotalOnego extends Model {
                         }
                         $this->saveToSession('transaction', $transaction);
                         break;
-                    */
                 }
                 return true;
             } catch (Exception $e) {
@@ -811,6 +825,11 @@ class ModelTotalOnego extends Model {
         if (!empty($this->request->post['use_onego_funds'])) {
             $this->processFundsUsage($this->request->post['use_onego_funds']);
             $this->request->post['use_onego_funds'] = null;
+        }
+        // OneGo funds usage
+        if (!empty($this->request->post['onego_giftcard']) && ($this->request->post['onego_giftcard'] != 'Gift Card Number')) {
+            $this->processGiftCard($this->request->post['onego_giftcard']);
+            $this->request->post['onego_giftcard'] = null;
         }
     }
     

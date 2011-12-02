@@ -18,7 +18,7 @@ $_['onego_cart_discount'] = 'OneGo discount';
 $_['onego_cart_discount_percents'] = 'OneGo discount (%s%%)';
 $_['text_sub_total'] = 'Sub-Total with OneGo benefits';
 $_['monetary_points_spent'] = 'OneGo funds spent';
-$_['prepaid_spent'] = 'OneGo prepaid spent';
+$_['prepaid_spent'] = 'OneGo funds spent';
 $_['funds_receivable'] = 'OneGo rewards';
 $_['text_shipping_discount'] = 'OneGo shipping discount';
 
@@ -29,8 +29,8 @@ $_['funds_receivable_text_rich'] = '<img src="%1$s" alt="%2$s" title="%2$s" /> %
 $_['monetary_points_full'] = 'OneGo monetary points';
 $_['coupon_points_full'] = 'OneGo coupon points';
 
-$_['prepaid'] = 'OneGo prepaid funds';
+$_['prepaid'] = 'prepaid';
 $_['use_funds'] = 'Do you want to use your OneGo funds?';
-$_['no_funds_available'] = '%s, you have no funds available yet';
+$_['no_funds_available'] = 'You have no funds available yet';
 $_['funds_monetary_points'] = 'Use my %s';
-$_['funds_prepaid'] = 'use my prepaid %s';
+$_['funds_prepaid'] = 'Use my OneGo funds: %s';
