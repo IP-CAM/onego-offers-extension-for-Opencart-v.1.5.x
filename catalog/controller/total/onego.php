@@ -13,9 +13,9 @@ class ControllerTotalOnego extends Controller {
         }
 
         $onego = $this->getModel();
-        if (!$onego->isTransactionStarted() && ($token = $onego->getFromSession('verified_token'))) {
+        if (!$onego->isTransactionStarted() && ($token = $onego->getOAuthToken())) {
             try {
-                $onego->beginTransaction($token);
+                $onego->beginTransaction($token->accessToken);
             } catch (Exception $e) {
                 // dissmiss failure
             }
@@ -82,6 +82,72 @@ class ControllerTotalOnego extends Controller {
         } else {
             $onego->throwError('could not issue e-shop token');
         }
+    }
+    
+    public function autologin()
+    {
+        $onego = $this->getModel();
+        $referer = $this->getReferer();
+        
+        // login not required if user is already athenticated with OneGo, return
+        if ($onego->isUserAuthenticated()) {
+            $onego->log('autologin not needed, user already authenticated', ModelTotalOnego::LOG_NOTICE);
+            $this->redirect($referer);
+        }
+        
+        if ($onego->autologinBlockedUntil()) {
+            $onego->log('autologin blocked after last fail', ModelTotalOnego::LOG_NOTICE);
+            $this->redirect($referer);
+        }
+        
+        // redirect to OneGo authentication page
+        $redirect_uri = $this->url->link('total/onego/authorizationResponse');
+        $request_id = uniqid();
+        $onego->saveToSession('oauth_authorize_request', array(
+            'request_id'    => $request_id,
+            'referer'       => $referer,
+            'scope'         => ModelTotalOnego::SCOPE_RECEIVE_ONLY,
+        ));
+        $authorize_url = $onego->getOAuthAuthorizationUrl(
+            $redirect_uri, 
+            ModelTotalOnego::SCOPE_RECEIVE_ONLY, 
+            true,
+            $request_id
+        );
+        $this->redirect($authorize_url);
+    }
+    
+    public function authorizationResponse()
+    {
+        $onego = $this->getModel();
+        $request = $this->registry->get('request');
+        $auth_request = $onego->getFromSession('oauth_authorize_request');
+        try {
+            $onego->processAuthorizationResponse($request->get, $auth_request);
+            $onego->log('authorization success', ModelTotalOnego::LOG_INFO);
+        } catch (OneGoOAuthException $e) {
+            switch ($e->getCode()) {
+                case (OneGoOAuthException::OAUTH_ACCESS_DENIED):
+                case (OneGoOAuthException::OAUTH_BAD_LOGIN_ATTEMPT):
+                case (OneGoOAuthException::OAUTH_INVALID_REQUEST):
+                case (OneGoOAuthException::OAUTH_INVALID_SCOPE):
+                case (OneGoOAuthException::OAUTH_TEMPORARILY_UNAVAILABLE):
+                case (OneGoOAuthException::OAUTH_UNAUTHORIZED_CLIENT):
+                case (OneGoOAuthException::OAUTH_UNSUPPORTED_RESPONSE_TYPE):
+                case (OneGoOAuthException::OAUTH_USER_ERROR):
+                case (OneGoOAuthException::OAUTH_SERVER_ERROR):
+                default:
+                    $this->session->data['error'] = $e->getMessage();
+                    $onego->blockAutologin(30);
+            }
+            $onego->log('authorization failed: '.$e->getMessage(), ModelTotalOnego::LOG_ERROR);
+        } catch (Exception $e) {
+            $this->session->data['error'] = $e->getMessage();
+            $onego->blockAutologin(30);
+            $onego->log('authorization failed: '.$e->getMessage(), ModelTotalOnego::LOG_ERROR);
+        }
+        $referer = !empty($auth_request['referer']) ? $auth_request['referer'] : $this->getDefaultReferer();
+        $this->redirect($referer);
     }
     
     public function auth()

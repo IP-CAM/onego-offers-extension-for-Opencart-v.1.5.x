@@ -45,6 +45,7 @@ DD_belatedPNG.fix('#logo img');
 </script>
 <![endif]-->
 <?php echo $google_analytics; ?>
+<?php echo $onego_header; ?>
 </head>
 <body>
 <div id="container">

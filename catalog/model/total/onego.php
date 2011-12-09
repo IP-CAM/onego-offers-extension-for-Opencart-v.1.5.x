@@ -11,6 +11,8 @@ class ModelTotalOnego extends Model {
     const SHIPPING = 'shipping';
     const AUTH_MESSAGE_AUTHENTICATED = 'onego.widget.user.authenticated';
     const AUTH_MESSAGE_ANONYMOUS = 'onego.widget.user.anonymous';
+    const SCOPE_RECEIVE_ONLY = 'pos.receive-only';
+    const SCOPE_USE_BENEFITS = 'pos.use-benefits';
     
     protected $registrykey = 'onego_extension';
     /*
@@ -23,6 +25,9 @@ class ModelTotalOnego extends Model {
     protected $api_url = 'http://api.dev.onego.com/pos/v1/';
     protected $authagent_url = 'http://authwidget.dev.onego.com';
     protected $terminal_id = '1';
+    
+    protected $oauth_authorize_url  = 'http://mobile-local.dev.onego.com/authorize';
+    protected $oauth_token_url      = 'http://oauth.dev.onego.cloud:8080/oauth/token';
     
     protected static $current_eshop_cart = false;
     protected static $authagent_listeners = false;
@@ -47,6 +52,15 @@ class ModelTotalOnego extends Model {
     {
         global $registry;
         return new self($registry);
+    }
+    
+    public function getConfig($key = false)
+    {
+        $config = array(
+            'client_id'     => $this->api_key,
+            'client_secret' => $this->api_pass,
+            
+        );
     }
 
     /**
@@ -316,7 +330,7 @@ class ModelTotalOnego extends Model {
         $transaction = $this->getFromSession('transaction');
         
         if (empty($transaction)) {
-            $this->log('checked for transaction, not found');
+            //$this->log('checked for transaction, not found');
             return false;
         } else {
             if ($this->isTransactionStale() && $autoupdate) {
@@ -354,11 +368,6 @@ class ModelTotalOnego extends Model {
     {
         $transaction = $this->getTransaction(false);
         return !empty($transaction) ? $transaction->id : false;
-    }
-    
-    public function getBuyerName()
-    {
-        return $this->isTransactionStarted() ? 'Saulius Okunevičius' : false;
     }
     
     /**
@@ -839,9 +848,15 @@ class ModelTotalOnego extends Model {
     public static function getHeaderHtml()
     {
         $onego = self::getInstance();
-        return $onego->getAuthServicesJS()
+        return $onego->getJSIncludesHTML()
+                .$onego->getAuthServicesJS()
                 .$onego->getHtmlDecoratorJS()
                 .$onego->getDebugLogJS();
+    }
+    
+    public function getJSIncludesHTML()
+    {
+        return '<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>'."\n";
     }
     
     /**
@@ -873,13 +888,14 @@ END;
         $login_url = $this->registry->get('url')->link('total/onego/auth');
         $logoff_url = $this->registry->get('url')->link('total/onego/disable');
         $authagent_listeners_code = $this->renderAuthAgentListenersCode();
+        $autologin_blocked_until = $this->autologinBlockedUntil() ? ($this->autologinBlockedUntil() - time()) * 1000 : 0;
         $html = <<<END
-<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>
 <script type="text/javascript">
 OneGo.authAgent.url = '{$iframe_url}';
 OneGo.authAgent.url_full = '{$iframe_url_full}';
 OneGo.authAgent.login_url = '{$login_url}';
 OneGo.authAgent.logoff_url = '{$logoff_url}';
+OneGo.authAgent.autologinBlockedUntil = new Date().getTime() + {$autologin_blocked_until};
 {$authagent_listeners_code}</script>
 
 END;
@@ -890,7 +906,7 @@ END;
     {
         if (!empty($this->request->request['route']) && ($this->request->request['route'] == 'checkout/checkout')) {
             // widget listeners specific for checkout page only
-            if ($this->isTransactionStarted()) {
+            if ($this->isUserAuthenticated()) {
                 // listen for logoff on widget
                 $this->setAuthAgentListener(self::AUTH_MESSAGE_ANONYMOUS, 
                         'function(){
@@ -906,15 +922,15 @@ END;
                 );
             }
         } else {
-            if ($this->isTransactionStarted()) {
+            if ($this->isUserAuthenticated()) {
                 // listen for logoff on widget
                 $url = $this->getRegistryObj()->get('url')->link('total/onego/disable');
                 $js = "function(){ window.location.href='{$url}'; }";
                 $this->setAuthAgentListener(self::AUTH_MESSAGE_ANONYMOUS, $js);
             } else {
                 // listen for login on widget
-                $url = $this->getRegistryObj()->get('url')->link('total/onego/issuetoken');
-                $js = "function(){ window.location.href='{$url}'; }";
+                $url = $this->getRegistryObj()->get('url')->link('total/onego/autologin');
+                $js = "function(){ if (OneGo.authAgent.isAutologinAllowed()) window.location.href='{$url}'; }";
                 $this->setAuthAgentListener(self::AUTH_MESSAGE_AUTHENTICATED, $js);
             }
         }
@@ -1109,5 +1125,189 @@ END;
             $pageURL .= $_SERVER["SERVER_NAME"].$_SERVER["REQUEST_URI"];
         }
         return $pageURL;
+    }
+    
+    // =================== NEW
+    
+    public function getOAuthToken()
+    {
+        $token = $this->getFromSession('OAuthToken');
+        if (!empty($token)) {
+            $token = unserialize($token);
+        }
+        return $token;
+    }
+    
+    public function saveOAuthToken(OneGoOAuthToken $token)
+    {
+        $this->saveToSession('OAuthToken', serialize($token));
+    }
+    
+    public function isAutologinAttemptExpected()
+    {
+        if (($token = $this->getOAuthToken()) && !$token->isExpired()) {
+            return false;
+        }
+        return true;
+    }
+    
+    public function getOAuthAuthorizationUrl($redirect_uri, $scope = null, $autologin = null, $state = null)
+    {
+        $query_params = array(
+            'client_id'     => $this->api_key,
+            'response_type' => 'code',
+            'redirect_uri'  => $redirect_uri,
+            'scope'         => !empty($scope) ? $scope : null,
+            'state'         => $state,
+            'autologin'     => $autologin ? 'true' : null,
+            'features'      => '3rd-party',
+        );
+        $url = $this->oauth_authorize_url;
+        foreach ($query_params as $key => $val) {
+            if (!empty($val)) {
+                $prefix = strpos($url, '?') ? '&' : '?';
+                $url .= $prefix.$key.'='.urlencode($val);
+            }
+        }
+        return $url;
+    }
+    
+    public function processAuthorizationResponse($response_params, $authorization_request)
+    {
+        if (!empty($response_params['code'])) {
+            // issue token
+            
+            $token = $this->requestOAuthToken($response_params['code'], $authorization_request);
+            
+            // save token
+            $this->saveOAuthToken($token);
+            
+            return true;
+        } else if (!empty($response_params['token'])) {
+            
+        } else {
+            $error_code = !empty($response_params['error']) ? 
+                $response_params['error'] : 'authorization_response_error';
+            $error_message = !empty($response_params['error_description']) ? 
+                $response_params['error_description'] : '';
+            throw new OneGoOAuthException($error_code, $error_message);
+        }
+    }
+    
+    public function requestOAuthToken($authorization_code, $authorization_request)
+    {
+        $params = array(
+            'grant_type'    => 'authorization_code',
+            'redirect_uri'  => $this->registry->get('url')->link('total/onego/authorizationResponse'),
+            'code'          => $authorization_code,
+        );
+        $arr = array();
+        foreach ($params as $key => $val) {
+            $arr[] = $key.'='.urlencode($val);
+        }
+        $data = implode('&', $arr);
+        
+        if (!function_exists('curl_init')) {
+            throw new Exception('CURL library missing');
+        }
+        if (!function_exists('json_decode')) {
+            throw new Exception('JSON library missing');
+        }
+
+        $ch = curl_init($this->oauth_token_url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Basic ' . base64_encode("{$this->api_key}:{$this->api_pass}"),
+            'Content-Type: application/x-www-form-urlencoded;charset=UTF-8'
+        ));
+        //curl_setopt($ch, CURLOPT_HEADER, true); // Display headers
+        //curl_setopt($ch, CURLOPT_VERBOSE, true); // Display communication with server
+        //curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+
+        $response = curl_exec($ch);
+        $details = curl_getinfo($ch);
+        
+        $oauth_response = @json_decode($response);
+        if (!empty($oauth_response->access_token)) {
+            $token = new OneGoOAuthToken();
+            $token->accessToken = $oauth_response->access_token;
+            $token->tokenType = $oauth_response->token_type;
+            if (!empty($oauth_response->expires_in)) {
+                $token->tokenExpiresIn = $oauth_response->expires_in;
+            }
+            if (!empty($oauth_response->refresh_token)) {
+                $token->refreshToken = $oauth_response->refresh_token;
+            }
+            if (!empty($oauth_response->scope)) {
+                $token->scope = $oauth_response->scope;
+            } else if (isset($authorization_request['scope'])) {
+                $token->scope = $authorization_request['scope'];
+            }
+            return $token;
+        } else if (!empty($oauth_response->error)) {
+            $error_code = $oauth_response->error;
+            $error_message = !empty($oauth_response->error_description) ?
+                $oauth_response->error_description : '';
+            throw new OneGoOAuthException($error_code, $error_message);
+        } else {
+            throw new OneGoOAuthException(OneGoOAuthException::OAUTH_SERVER_ERROR, 'Internal OAuth server error');
+        }
+    }
+    
+    public function autologinBlockedUntil()
+    {
+        $blocked_until = $this->getFromSession('autologinBlocked');
+        return $blocked_until > time() ? $blocked_until : false;
+    }
+    
+    public function blockAutologin($period = 60) // seconds
+    {
+        $this->saveToSession('autologinBlocked', time() + $period);
+        $this->log('Autologin blocked until '.date('Y-m-d H:i:s', time() + $period), self::LOG_NOTICE);
+    }
+    
+    public function isUserAuthenticated()
+    {
+        $token = $this->getOAuthToken();
+        return !empty($token) && !$token->isExpired();
+    }
+}
+
+class OneGoOAuthToken 
+{
+    public $accessToken;
+    public $refreshToken;
+    public $tokenType = 'bearer';
+    public $tokenExpiresIn = 3600;
+    public $tokenIssuedOn;
+    public $scope;
+ 
+    public function __construct() {
+        $this->tokenIssuedOn = time();
+    }
+    
+    public function isExpired()
+    {
+        return $this->tokenIssuedOn + $this->tokenExpiresIn < time();
+    }
+}
+
+class OneGoOAuthException extends Exception
+{
+    const OAUTH_SERVER_ERROR = 'server_error';
+    const OAUTH_INVALID_REQUEST = 'invalid_request';
+    const OAUTH_INVALID_SCOPE = 'invalid_scope';
+    const OAUTH_ACCESS_DENIED = 'access_denied';
+    const OAUTH_UNAUTHORIZED_CLIENT = 'unauthorized_client';
+    const OAUTH_UNSUPPORTED_RESPONSE_TYPE = 'unsupported_response_type';
+    const OAUTH_TEMPORARILY_UNAVAILABLE = 'temporarily_unavailable';
+    const OAUTH_BAD_LOGIN_ATTEMPT = 'bad_login_attempt';
+    const OAUTH_USER_ERROR = 'user_error';
+    
+    public function __construct($code, $message) {
+        $this->code     = $code;
+        $this->message  = $message;
     }
 }

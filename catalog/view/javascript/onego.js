@@ -62,15 +62,19 @@ OneGo.authAgent = {
     url: '',
     url_full: '',
     handlers: {},
+    autologinBlockedUntil: false,
     init: function() {
         OneGo.authAgent.initAuthWidget();
         OneGo.authAgent.initListeners();
+        if (OneGo.authAgent.isAutologinAttemptExpected) {
+            OneGo.authAgent.attemptAutologin();
+        }
     },
     initAuthWidget: function() {
         if ($('#onego_authwidget_container').length) {
             $('#onego_authwidget_container').html('<div id="onego_authwidget_loading">'+$('#onego_authwidget_container').html()+'</div>');
             $('#onego_authwidget_container').append('<iframe id="onego_authwidget" name="onego_hidden_iframe" src="'+OneGo.authAgent.url_full+'" width="100%" height="100%" frameborder="0" allowtransparency="true" style="display: none;"></iframe>');
-            $('#onego_authwidget').load(function(e){ $('#onego_authwidget_loading').fadeOut('fast', function(){ $('#onego_authwidget').fadeIn('fast'); }); })
+            $('#onego_authwidget').load(function(e){$('#onego_authwidget_loading').fadeOut('fast', function(){$('#onego_authwidget').fadeIn('fast');});})
         } else {
             var url = OneGo.authAgent.url_full + '&h=1';
             $('body').append('<iframe id="onego_authwidget" name="onego_authwidget" src="'+url+'" width="0" height="0" frameborder="0"></iframe>');
@@ -95,7 +99,7 @@ OneGo.authAgent = {
     login_url: false,
     logoff_url: false,
     autologin: function(callback) {
-        if (OneGo.authAgent.login_url) {
+        if (OneGo.authAgent.login_url && OneGo.authAgent.isAutologinAllowed()) {
             $('iframe#onego_autologin').remove();
             //$(document.body).append('<iframe id="onego_autologin" name="onego_autologin" width="100%" height="30" frameborder="1"></iframe>');
             $(document.body).append('<iframe id="onego_autologin" name="onego_autologin" width="0" height="0" frameborder="0"></iframe>');
@@ -125,6 +129,15 @@ OneGo.authAgent = {
         } else {
             OneGo.authAgent.handlers[message] = callback;
         }
+    },
+    isAutologinAllowed: function() {
+        var blockedTill = new Date(OneGo.authAgent.autologinBlockedUntil).getTime();
+        var now = new Date().getTime();
+        if (blockedTill > now) {
+            OneGo.log('Autologin blocked for '+((blockedTill - now)/1000)+' more seconds');
+            return false;
+        }
+        return true;
     }
 }
 
