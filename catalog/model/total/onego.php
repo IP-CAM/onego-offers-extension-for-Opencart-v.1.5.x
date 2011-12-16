@@ -1,6 +1,8 @@
 <?php
+require_once DIR_ROOT.'../php-api/src/OneGoAPI/init.php';
 
 class ModelTotalOnego extends Model {
+//    public function getTotal(&$total_data, &$total, &$taxes) {} } class whatever {
     
     const LOG_INFO = 0;
     const LOG_NOTICE = 1;
@@ -23,7 +25,8 @@ class ModelTotalOnego extends Model {
     protected $api_key = 'a53rdpm3y760ftusta8ou5vbu5dgqinojypt';
     protected $api_pass = '4f63vgdi1fwh6nemrg86cllo24ii95plkk6r';
     protected $api_url = 'http://api.dev.onego.com/pos/v1/';
-    protected $authagent_url = 'http://authwidget.dev.onego.com';
+    protected $authagent_url = 'http://authwidget.dev.onego.com/agent';
+    protected $authwidget_url = 'http://authwidget.dev.onego.com';
     protected $terminal_id = '1';
     
     protected $oauth_authorize_url  = 'http://mobile-local.dev.onego.com/authorize';
@@ -70,10 +73,9 @@ class ModelTotalOnego extends Model {
      * @param float $total
      * @param array $taxes 
      */
-    public function getTotal(&$total_data, &$total, &$taxes) {        
+    public function getTotal(&$total_data, &$total, &$taxes) {
         // autostart transaction if verified token is available
-        if (!$this->isTransactionStarted() 
-                && ($token = $this->getFromSession('verified_token'))) 
+        if (!$this->isTransactionStarted() && ($token = $this->getOAuthToken())) 
         {
             try {
                 $this->beginTransaction($token);
@@ -391,20 +393,21 @@ class ModelTotalOnego extends Model {
      */
     private function initApi()
     {
-        require_once DIR_ROOT.'../php-api/src/OneGoAPI/init.php';
-
-        $cfg = new OneGoAPI_Config($this->terminal_id, $this->api_key, $this->api_pass);
+        $cfg = new OneGoAPI_Config($this->terminal_id);
         $cfg->apiUrl = $this->api_url;
         $cfg->currencyCode = $this->getRegistryObj()->get('config')->get('config_currency');
-        $http = new OneGoAPI_Impl_CurlHttpClient();
-        $gw = new OneGoAPI_Impl_Gateway($cfg, $http);
-        $api = new OneGoAPI_Impl_OneGoAPI($gw);
-        $simpleapi = new OneGoAPI_Impl_SimpleAPI($api);
-        //$this->log('API initialized');
+        $api = OneGoAPI_Impl_SimpleAPI::init($cfg);
+        if ($this->getOAuthToken()) {
+            $api->setOAuthToken($this->getOAuthToken());
+        }
+        $transaction = $this->getFromSession('transaction');
+        if ($transaction) {
+            $api->setTransaction($transaction);
+        }
         
-        $this->saveToRegistry('api', $simpleapi);
+        $this->saveToRegistry('api', $api);
         
-        return $simpleapi;
+        return $api;
     }
     
     /**
@@ -531,12 +534,14 @@ class ModelTotalOnego extends Model {
      */
     public function beginTransaction($token)
     {
+        throw new Exception('transaction could not be started');
+        
         $api = $this->getApi();
         
         $receiptNumber = $this->generateReceiptNumber();
         $cart_entries = $this->collectCartEntries();
         try {
-            $this->log('transaction/begin: token='.$token.'; cart entries: '.count($cart_entries), self::LOG_NOTICE);
+            $this->log('transaction/begin: token='.$token->accessToken.'; cart entries: '.count($cart_entries), self::LOG_NOTICE);
             $transaction = $api->beginTransaction($token, $receiptNumber, $cart_entries, uniqid());
             
             $this->saveToSession('transaction', $transaction);
@@ -847,6 +852,7 @@ class ModelTotalOnego extends Model {
      */
     public static function getHeaderHtml()
     {
+        return '';
         $onego = self::getInstance();
         return $onego->getJSIncludesHTML()
                 .$onego->getAuthServicesJS()
@@ -883,16 +889,17 @@ END;
     
     public function getAuthServicesJS()
     {
-        $iframe_url = $this->authagent_url;
-        $iframe_url_full = $iframe_url.(strpos($iframe_url, '?') ? '&' : '?').'ref='.urlencode(self::selfUrl());
+        $authagent_url = $this->authagent_url;
+        $authagent_url_full = $authagent_url.(strpos($authagent_url, '?') ? '&' : '?').'ref='.urlencode(self::selfUrl());
         $login_url = $this->registry->get('url')->link('total/onego/auth');
         $logoff_url = $this->registry->get('url')->link('total/onego/disable');
         $authagent_listeners_code = $this->renderAuthAgentListenersCode();
         $autologin_blocked_until = $this->autologinBlockedUntil() ? ($this->autologinBlockedUntil() - time()) * 1000 : 0;
         $html = <<<END
 <script type="text/javascript">
-OneGo.authAgent.url = '{$iframe_url}';
-OneGo.authAgent.url_full = '{$iframe_url_full}';
+OneGo.authAgent.url = '{$authagent_url}';
+OneGo.authAgent.url_full = '{$authagent_url_full}';
+OneGo.authWidget.url = '{$this->authwidget_url}';
 OneGo.authAgent.login_url = '{$login_url}';
 OneGo.authAgent.logoff_url = '{$logoff_url}';
 OneGo.authAgent.autologinBlockedUntil = new Date().getTime() + {$autologin_blocked_until};
@@ -1143,6 +1150,12 @@ END;
         $this->saveToSession('OAuthToken', serialize($token));
     }
     
+    public function destroyOAuthToken()
+    {
+        $this->saveToSession('OAuthToken', null);
+        $this->log('OAuth token destroyed');
+    }
+    
     public function isAutologinAttemptExpected()
     {
         if (($token = $this->getOAuthToken()) && !$token->isExpired()) {
@@ -1183,8 +1196,6 @@ END;
             $this->saveOAuthToken($token);
             
             return true;
-        } else if (!empty($response_params['token'])) {
-            
         } else {
             $error_code = !empty($response_params['error']) ? 
                 $response_params['error'] : 'authorization_response_error';
@@ -1231,6 +1242,12 @@ END;
         
         $oauth_response = @json_decode($response);
         if (!empty($oauth_response->access_token)) {
+            //$token = 
+            
+            
+            
+            
+            
             $token = new OneGoOAuthToken();
             $token->accessToken = $oauth_response->access_token;
             $token->tokenType = $oauth_response->token_type;
@@ -1273,6 +1290,12 @@ END;
         $token = $this->getOAuthToken();
         return !empty($token) && !$token->isExpired();
     }
+    
+    public function userHasScope($scope)
+    {
+        $token = $this->getOAuthToken();
+        return ($token && $token->hasScope($scope));
+    }
 }
 
 class OneGoOAuthToken 
@@ -1291,6 +1314,12 @@ class OneGoOAuthToken
     public function isExpired()
     {
         return $this->tokenIssuedOn + $this->tokenExpiresIn < time();
+    }
+    
+    public function hasScope($scope)
+    {
+        $scopes = explode(' ', $this->scope);
+        return in_array($scope, $scopes);
     }
 }
 

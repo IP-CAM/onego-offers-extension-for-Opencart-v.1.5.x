@@ -12,7 +12,7 @@ function closeFancybox()
 }
 
 var status = {
-    authenticated: <?php echo (!empty($onego_enabled) ? 'true' : 'false') ?>
+    authenticated: <?php echo (!empty($onego_authenticated) ? 'true' : 'false') ?>
 }
 </script>
 <style>
@@ -30,9 +30,9 @@ html {
 <?php } ?>
 
 
-<?php if (!empty($onego_enabled)) { ?>
+<?php if (!empty($onego_authenticated)) { ?>
 
-OneGo benefits applied
+OneGo user authenticated
 
 <script type="text/javascript">
 closeFancybox();
@@ -40,7 +40,7 @@ closeFancybox();
 
 <?php } else { ?>
 
-OneGo disabled
+Not authenticated
 
 <?php } ?>
 

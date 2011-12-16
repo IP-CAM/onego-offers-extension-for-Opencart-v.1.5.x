@@ -21,19 +21,22 @@ class ControllerTotalOnego extends Controller {
             }
         }
         
-        if ($onego->isTransactionStarted()) {
-            $this->data['transaction'] = $onego->getTransaction();
-            $this->data['cart_products'] = $this->cart->getProducts();
-            $this->data['button_disable'] = $this->language->get('button_disable');
+        if ($onego->isUserAuthenticated()) {
             $this->data['onego_disable'] = $this->url->link('total/onego/disable');
-            $this->data['button_update'] = $this->language->get('button_update');
             $this->data['onego_update'] = $this->url->link('total/onego/updatebenefits');
+            $this->data['onego_action'] = $this->url->link('checkout/cart');
             
-            $this->data['funds'] = $onego->getFundsAvailable();
-            $this->data['use_funds'] = $this->language->get('use_funds');
-            $this->data['no_funds_available'] = $this->language->get('no_funds_available');
-            $this->data['funds_action'] = $this->url->link('checkout/cart');
-            $this->data['onego_buyer'] = $onego->getBuyerName();
+            if ($onego->isTransactionStarted()) {
+                $this->data['onego_applied'] = true;
+                
+                $this->data['transaction'] = $onego->getTransaction();
+                $this->data['cart_products'] = $this->cart->getProducts();
+                $this->data['funds'] = $onego->getFundsAvailable();
+                $this->data['use_funds'] = $this->language->get('use_funds');
+                $this->data['no_funds_available'] = $this->language->get('no_funds_available');
+            } else {
+                $this->data['onego_applied'] = false;
+            }
             
             if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_account.tpl')) {
                 $this->template = $this->config->get('config_template') . '/template/total/onego_account.tpl';
@@ -42,7 +45,7 @@ class ControllerTotalOnego extends Controller {
             }
         } else {
             $this->data['button_onego_login'] = $this->language->get('button_onego_login');
-            $this->data['onego_login'] = $this->url->link('total/onego/issuetoken');
+            $this->data['onego_login'] = $this->url->link('total/onego/login');
             
             if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_account.tpl')) {
                 $this->template = $this->config->get('config_template') . '/template/total/onego.tpl';
@@ -89,6 +92,8 @@ class ControllerTotalOnego extends Controller {
         $onego = $this->getModel();
         $referer = $this->getReferer();
         
+        $req_scope = ModelTotalOnego::SCOPE_RECEIVE_ONLY;
+        
         // login not required if user is already athenticated with OneGo, return
         if ($onego->isUserAuthenticated()) {
             $onego->log('autologin not needed, user already authenticated', ModelTotalOnego::LOG_NOTICE);
@@ -106,12 +111,42 @@ class ControllerTotalOnego extends Controller {
         $onego->saveToSession('oauth_authorize_request', array(
             'request_id'    => $request_id,
             'referer'       => $referer,
-            'scope'         => ModelTotalOnego::SCOPE_RECEIVE_ONLY,
+            'scope'         => $req_scope,
         ));
         $authorize_url = $onego->getOAuthAuthorizationUrl(
             $redirect_uri, 
-            ModelTotalOnego::SCOPE_RECEIVE_ONLY, 
+            $req_scope, 
             true,
+            $request_id
+        );
+        $this->redirect($authorize_url);
+    }
+    
+    public function login($returnpage = false)
+    {
+        $onego = $this->getModel();
+        $returnpage = empty($returnpage) ? $this->getReferer() : $returnpage;
+        
+        $req_scope = ModelTotalOnego::SCOPE_USE_BENEFITS;
+        
+        // login not required if user is already athenticated with OneGo, return
+        if ($onego->isUserAuthenticated() && $onego->userHasScope($req_scope)) {
+            $onego->log('login not needed, user already authenticated and has required scope', ModelTotalOnego::LOG_NOTICE);
+            $this->redirect($returnpage);
+        }
+        
+        // redirect to OneGo authentication page
+        $redirect_uri = $this->url->link('total/onego/authorizationResponse');
+        $request_id = uniqid();
+        $onego->saveToSession('oauth_authorize_request', array(
+            'request_id'    => $request_id,
+            'referer'       => $returnpage,
+            'scope'         => $req_scope,
+        ));
+        $authorize_url = $onego->getOAuthAuthorizationUrl(
+            $redirect_uri, 
+            $req_scope, 
+            null,
             $request_id
         );
         $this->redirect($authorize_url);
@@ -182,10 +217,17 @@ class ControllerTotalOnego extends Controller {
         }
     }
     
+    public function auth2()
+    {
+        $status_page = $this->url->link('total/onego/authStatus');
+        $this->login($status_page);
+    }
+    
     public function authStatus()
     {
         $onego = $this->getModel();
-        $this->data['onego_enabled'] = $onego->isTransactionStarted();
+        $this->data['onego_authenticated'] = $onego->isUserAuthenticated();
+        $this->data['onego_applied'] = $onego->isTransactionStarted();
         $this->data['error'] = $onego->getFromRegistry('auth_error');
         
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_auth_status.tpl')) {
@@ -245,6 +287,7 @@ class ControllerTotalOnego extends Controller {
                 $onego->log('failed to cancel transaction', ModelTotalOnego::LOG_WARNING);
             }
         }
+        $onego->destroyOAuthToken();
         
         if (!ModelTotalOnego::isAjaxRequest()) {
             $this->redirect($this->getReferer());

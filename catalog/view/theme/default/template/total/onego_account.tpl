@@ -6,7 +6,7 @@
         <legend><img src="catalog/view/theme/default/image/onego.png" alt="OneGo benefits" title="OneGo benefits" /></legend>
         
       <div class="onego_funds">
-          <form action="<?php echo $funds_action ?>" method="post" id="onego_account">
+          <form action="<?php echo $onego_action ?>" method="post" id="onego_account">
               <table border="0" width="100%">
                   <tr>
                       <td rowspan="2" align="left" valign="top">
@@ -18,7 +18,7 @@
                       </td>
                       <td align="right">
                           <?php
-                          if (!empty($funds)) {
+                          if (!empty($onego_applied)) {
                               foreach ($funds as $key => $fund) {
                                   $disabled = $fund['amount'] > 0 ? '' : ' disabled="disabled"';
                                   $st = $fund['is_used'] ? ' checked="checked"' : '';
@@ -37,8 +37,10 @@
                   </tr>
                   <tr>
                       <td align="right">
-                          <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="watermark" />
-                          <input type="button" id="onego_giftcard_redeem" value="redeem" />
+                          <?php if (!empty($onego_applied)) { ?>
+                              <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="watermark" />
+                              <input type="button" id="onego_giftcard_redeem" value="redeem" />
+                          <?php } ?>
                       </td>
                   </tr>
               </table>
