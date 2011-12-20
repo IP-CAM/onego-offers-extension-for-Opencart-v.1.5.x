@@ -13,8 +13,6 @@ class ModelTotalOnego extends Model {
     const SHIPPING = 'shipping';
     const AUTH_MESSAGE_AUTHENTICATED = 'onego.widget.user.authenticated';
     const AUTH_MESSAGE_ANONYMOUS = 'onego.widget.user.anonymous';
-    const SCOPE_RECEIVE_ONLY = 'pos.receive-only';
-    const SCOPE_USE_BENEFITS = 'pos.use-benefits';
     
     protected $registrykey = 'onego_extension';
     /*
@@ -30,7 +28,7 @@ class ModelTotalOnego extends Model {
     protected $terminal_id = '1';
     
     protected $oauth_authorize_url  = 'http://mobile-local.dev.onego.com/authorize';
-    protected $oauth_token_url      = 'http://oauth.dev.onego.cloud:8080/oauth/token';
+    protected $oauth_token_url      = 'http://oauth.dev.onego.cloud:8080/oauth';
     
     protected static $current_eshop_cart = false;
     protected static $authagent_listeners = false;
@@ -75,14 +73,7 @@ class ModelTotalOnego extends Model {
      */
     public function getTotal(&$total_data, &$total, &$taxes) {
         // autostart transaction if verified token is available
-        if (!$this->isTransactionStarted() && ($token = $this->getOAuthToken())) 
-        {
-            try {
-                $this->beginTransaction($token);
-            } catch (Exception $e) {
-                // dissmiss failure
-            }
-        }
+        $this->autostartTransaction();
         
         $transaction = $this->getTransaction();
         if ($transaction && !empty($transaction->modifiedCart) 
@@ -329,7 +320,7 @@ class ModelTotalOnego extends Model {
         // initialize OneGo API autoloader to unserialize transaction object from session
         $api = $this->getApi();
         
-        $transaction = $this->getFromSession('transaction');
+        $transaction = $this->getSavedTransaction();
         
         if (empty($transaction)) {
             //$this->log('checked for transaction, not found');
@@ -339,7 +330,7 @@ class ModelTotalOnego extends Model {
                 $this->updateTransactionCart();
                 $this->log('transaction stale, cart updated', self::LOG_NOTICE);
             }
-            return unserialize(serialize($transaction));
+            return $transaction;
         }
     }
     
@@ -369,7 +360,7 @@ class ModelTotalOnego extends Model {
     protected function getTransactionId()
     {
         $transaction = $this->getTransaction(false);
-        return !empty($transaction) ? $transaction->id : false;
+        return !empty($transaction) ? $transaction->getId() : false;
     }
     
     /**
@@ -393,21 +384,49 @@ class ModelTotalOnego extends Model {
      */
     private function initApi()
     {
-        $cfg = new OneGoAPI_Config($this->terminal_id);
-        $cfg->apiUrl = $this->api_url;
+        $cfg = new OneGoAPI_APIConfig($this->terminal_id);
+        $cfg->apiUri = $this->api_url;
         $cfg->currencyCode = $this->getRegistryObj()->get('config')->get('config_currency');
         $api = OneGoAPI_Impl_SimpleAPI::init($cfg);
-        if ($this->getOAuthToken()) {
-            $api->setOAuthToken($this->getOAuthToken());
+        $token = $this->getSavedOAuthToken();
+        if ($token) {
+            $api->setOAuthToken($token);
         }
-        $transaction = $this->getFromSession('transaction');
+        $transaction = $this->getSavedTransaction();
         if ($transaction) {
             $api->setTransaction($transaction);
         }
-        
+
         $this->saveToRegistry('api', $api);
         
         return $api;
+    }
+    
+    /**
+     * Singleton factory for SimpleOAuth
+     *
+     * @return OneGoAPI_Impl_SimpleOAuth Instance of SimpleOAuth
+     */    
+    public function getAuth()
+    {
+        $auth = $this->getFromRegistry('auth');
+        if (empty($auth)) {
+            $auth = $this->initAuth();
+        }
+        return $auth;
+    }
+    
+    /**
+     * Initializer
+     *
+     * @return OneGoAPI_Impl_SimpleOAuth 
+     */
+    private function initAuth()
+    {
+        $cfg = new OneGoAPI_OAuthConfig($this->api_key, $this->api_pass, $this->oauth_authorize_url, $this->oauth_token_url);
+        $auth = OneGoAPI_Impl_SimpleOAuth::init($cfg);
+        $this->saveToRegistry('auth', $auth);
+        return $auth;
     }
     
     /**
@@ -532,24 +551,25 @@ class ModelTotalOnego extends Model {
      * @param string $token
      * @return boolean Operation status 
      */
-    public function beginTransaction($token)
+    public function beginTransaction(OneGoAPI_Impl_OAuthToken $token)
     {
-        throw new Exception('transaction could not be started');
-        
         $api = $this->getApi();
+        $api->setOAuthToken($token);
         
+        $cart = $api->newCart();
+        $cart = $this->collectCartEntries($cart);
+                
         $receiptNumber = $this->generateReceiptNumber();
-        $cart_entries = $this->collectCartEntries();
         try {
-            $this->log('transaction/begin: token='.$token->accessToken.'; cart entries: '.count($cart_entries), self::LOG_NOTICE);
-            $transaction = $api->beginTransaction($token, $receiptNumber, $cart_entries, uniqid());
+            $this->log('transaction/begin: token='.$token->accessToken.'; cart entries: '.count($cart), self::LOG_NOTICE);
+            $transaction = $api->beginTransaction($receiptNumber, $cart, uniqid());
+            $this->saveTransaction($transaction);
             
-            $this->saveToSession('transaction', $transaction);
             // save cart hash to later detect when transaction cart needs to be updated
             $this->saveToSession('cart_hash', $this->getEshopCartHash());
             $this->saveToSession('onego_benefits_applied', false);
-            $transaction = $this->getTransaction();
-            $this->log('transaction started: '.$transaction->id->id);
+            
+            $this->log('transaction started: '.$transaction->getId()->id);
             return true;
         } catch (Exception $e) {
             $this->log('transaction/begin exception: '.$e->getMessage(), self::LOG_ERROR);
@@ -569,13 +589,13 @@ class ModelTotalOnego extends Model {
             try {
                 $this->log('transaction confirm', self::LOG_NOTICE);
                 $api->confirmTransaction($transaction_id);
-                $this->saveToSession('transaction', null);
+                $this->deleteTransaction();
                 $this->saveToSession('verified_token', null);
                 $this->saveToSession('onego_benefits_applied', true);
                 return true;
             } catch (Exception $e) {
                 $this->log('transaction/end/confirm exception: '.$e->getMessage(), self::LOG_ERROR);
-                $this->saveToSession('transaction', null);
+                $this->deleteTransaction();
             }
         }
         return false;
@@ -593,13 +613,13 @@ class ModelTotalOnego extends Model {
             try {
                 $this->log('transaction cancel', self::LOG_NOTICE);
                 $api->cancelTransaction($transaction_id);
-                $this->saveToSession('transaction', null);
+                $this->deleteTransaction();
                 $this->saveToSession('verified_token', null);
                 $this->saveToSession('onego_benefits_applied', false);
                 return true;
             } catch (Exception $e) {
                 $this->log('transaction/end/cancel exception: '.$e->getMessage(), self::LOG_ERROR);
-                $this->saveToSession('transaction', null);
+                $this->deleteTransaction();
             }
         }
         return false;
@@ -617,7 +637,7 @@ class ModelTotalOnego extends Model {
             try {
                 $this->log('transaction cart update', self::LOG_NOTICE);
                 $transaction = $api->updateCart($transaction_id, $this->collectCartEntries());
-                $this->saveToSession('transaction', $transaction);
+                $this->saveTransaction($transaction);
                 $this->saveToSession('cart_hash', $this->getEshopCartHash());
                 return true;
             } catch (Exception $e) {
@@ -650,10 +670,10 @@ class ModelTotalOnego extends Model {
                 foreach ($products_query->rows as $product) {
                     self::$current_eshop_cart[$product['product_id']]['_item_code'] = !empty($product['sku']) ? $product['sku'] : 'PID'.$product['product_id'];
                 }
+                
+                // add shipping as an item
+                $this->addShippingToCart(self::$current_eshop_cart);
             }
-            
-            // add shipping as an item
-            $this->addShippingToCart(self::$current_eshop_cart);
         }
         return self::$current_eshop_cart;
     }
@@ -671,14 +691,13 @@ class ModelTotalOnego extends Model {
      *
      * @return array List of OneGoAPI_DTO_CartEntryDto objects for current cart 
      */
-    public function collectCartEntries()
+    public function collectCartEntries(OneGoAPI_Impl_Cart $cart)
     {
-        $onego_cart = new OneGoAPI_DTO_CartDto();
         foreach ($this->getEshopCart() as $product) {
-            $onego_cart->setEntry($product['key'], $product['_item_code'], $product['price'], 
+            $cart->setEntry($product['key'], $product['_item_code'], $product['price'], 
                     $product['quantity'], $product['total'], $product['name']);
         }
-        return $onego_cart->cartEntries;
+        return $cart;
     }
     
     /**
@@ -809,7 +828,7 @@ class ModelTotalOnego extends Model {
                             $this->log('transaction/monetary-points/spending/cancel', self::LOG_NOTICE);
                             $transaction = $api->cancelSpendingMonetaryPoints($transaction->id);
                         }
-                        $this->saveToSession('transaction', $transaction);
+                        $this->saveTransaction($transaction);
                         break;
                     case self::FUNDS_PREPAID:
                         if ($do_use) {
@@ -819,7 +838,7 @@ class ModelTotalOnego extends Model {
                             $this->log('transaction/prepaid/spending/cancel', self::LOG_NOTICE);
                             $transaction = $api->cancelSpendingPrepaid($transaction->id);
                         }
-                        $this->saveToSession('transaction', $transaction);
+                        $this->saveTransaction($transaction);
                         break;
                 }
                 return true;
@@ -852,7 +871,6 @@ class ModelTotalOnego extends Model {
      */
     public static function getHeaderHtml()
     {
-        return '';
         $onego = self::getInstance();
         return $onego->getJSIncludesHTML()
                 .$onego->getAuthServicesJS()
@@ -1045,9 +1063,9 @@ END;
                 $html .= 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction)).')};'."\r\n";
                 $html .= 'console.dir(transaction);'."\r\n";
             }
+            */
             $html .= 'var onego_session = {\'onego_session\' : $.parseJSON('.json_encode(json_encode($this->session->data[$this->registrykey])).')};'."\r\n";
             $html .= 'console.dir(onego_session);'."\r\n";
-             */
             $html .= '}</script>'."\r\n";
             return $html;
         }
@@ -1136,7 +1154,7 @@ END;
     
     // =================== NEW
     
-    public function getOAuthToken()
+    public function getSavedOAuthToken()
     {
         $token = $this->getFromSession('OAuthToken');
         if (!empty($token)) {
@@ -1145,132 +1163,48 @@ END;
         return $token;
     }
     
-    public function saveOAuthToken(OneGoOAuthToken $token)
+    public function saveOAuthToken(OneGoAPI_Impl_OAuthToken $token)
     {
         $this->saveToSession('OAuthToken', serialize($token));
     }
     
-    public function destroyOAuthToken()
+    public function deleteOAuthToken()
     {
         $this->saveToSession('OAuthToken', null);
         $this->log('OAuth token destroyed');
     }
     
+    public function getSavedTransaction()
+    {
+        $transaction = $this->getFromSession('Transaction');
+        if (!empty($transaction)) {
+            $transaction = unserialize($transaction);
+        }
+        return $transaction;
+    }
+    
+    public function saveTransaction(OneGoAPI_Impl_Transaction $transaction)
+    {
+        $this->saveToSession('Transaction', serialize($transaction));
+    }
+    
+    public function deleteTransaction()
+    {
+        $this->saveToSession('Transaction', null);
+        $this->log('Transaction destroyed');
+    }
+    
     public function isAutologinAttemptExpected()
     {
-        if (($token = $this->getOAuthToken()) && !$token->isExpired()) {
+        if (($token = $this->getSavedOAuthToken()) && !$token->isExpired()) {
             return false;
         }
         return true;
     }
     
-    public function getOAuthAuthorizationUrl($redirect_uri, $scope = null, $autologin = null, $state = null)
+    public function getOAuthRedirectUri()
     {
-        $query_params = array(
-            'client_id'     => $this->api_key,
-            'response_type' => 'code',
-            'redirect_uri'  => $redirect_uri,
-            'scope'         => !empty($scope) ? $scope : null,
-            'state'         => $state,
-            'autologin'     => $autologin ? 'true' : null,
-            'features'      => '3rd-party',
-        );
-        $url = $this->oauth_authorize_url;
-        foreach ($query_params as $key => $val) {
-            if (!empty($val)) {
-                $prefix = strpos($url, '?') ? '&' : '?';
-                $url .= $prefix.$key.'='.urlencode($val);
-            }
-        }
-        return $url;
-    }
-    
-    public function processAuthorizationResponse($response_params, $authorization_request)
-    {
-        if (!empty($response_params['code'])) {
-            // issue token
-            
-            $token = $this->requestOAuthToken($response_params['code'], $authorization_request);
-            
-            // save token
-            $this->saveOAuthToken($token);
-            
-            return true;
-        } else {
-            $error_code = !empty($response_params['error']) ? 
-                $response_params['error'] : 'authorization_response_error';
-            $error_message = !empty($response_params['error_description']) ? 
-                $response_params['error_description'] : '';
-            throw new OneGoOAuthException($error_code, $error_message);
-        }
-    }
-    
-    public function requestOAuthToken($authorization_code, $authorization_request)
-    {
-        $params = array(
-            'grant_type'    => 'authorization_code',
-            'redirect_uri'  => $this->registry->get('url')->link('total/onego/authorizationResponse'),
-            'code'          => $authorization_code,
-        );
-        $arr = array();
-        foreach ($params as $key => $val) {
-            $arr[] = $key.'='.urlencode($val);
-        }
-        $data = implode('&', $arr);
-        
-        if (!function_exists('curl_init')) {
-            throw new Exception('CURL library missing');
-        }
-        if (!function_exists('json_decode')) {
-            throw new Exception('JSON library missing');
-        }
-
-        $ch = curl_init($this->oauth_token_url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Authorization: Basic ' . base64_encode("{$this->api_key}:{$this->api_pass}"),
-            'Content-Type: application/x-www-form-urlencoded;charset=UTF-8'
-        ));
-        //curl_setopt($ch, CURLOPT_HEADER, true); // Display headers
-        //curl_setopt($ch, CURLOPT_VERBOSE, true); // Display communication with server
-        //curl_setopt($ch, CURLINFO_HEADER_OUT, true);
-
-        $response = curl_exec($ch);
-        $details = curl_getinfo($ch);
-        
-        $oauth_response = @json_decode($response);
-        if (!empty($oauth_response->access_token)) {
-            //$token = 
-            
-            
-            
-            
-            
-            $token = new OneGoOAuthToken();
-            $token->accessToken = $oauth_response->access_token;
-            $token->tokenType = $oauth_response->token_type;
-            if (!empty($oauth_response->expires_in)) {
-                $token->tokenExpiresIn = $oauth_response->expires_in;
-            }
-            if (!empty($oauth_response->refresh_token)) {
-                $token->refreshToken = $oauth_response->refresh_token;
-            }
-            if (!empty($oauth_response->scope)) {
-                $token->scope = $oauth_response->scope;
-            } else if (isset($authorization_request['scope'])) {
-                $token->scope = $authorization_request['scope'];
-            }
-            return $token;
-        } else if (!empty($oauth_response->error)) {
-            $error_code = $oauth_response->error;
-            $error_message = !empty($oauth_response->error_description) ?
-                $oauth_response->error_description : '';
-            throw new OneGoOAuthException($error_code, $error_message);
-        } else {
-            throw new OneGoOAuthException(OneGoOAuthException::OAUTH_SERVER_ERROR, 'Internal OAuth server error');
-        }
+        return $this->registry->get('url')->link('total/onego/authorizationResponse');
     }
     
     public function autologinBlockedUntil()
@@ -1287,39 +1221,35 @@ END;
     
     public function isUserAuthenticated()
     {
-        $token = $this->getOAuthToken();
+        $token = $this->getSavedOAuthToken();
         return !empty($token) && !$token->isExpired();
     }
     
     public function userHasScope($scope)
     {
-        $token = $this->getOAuthToken();
+        $token = $this->getSavedOAuthToken();
         return ($token && $token->hasScope($scope));
     }
-}
-
-class OneGoOAuthToken 
-{
-    public $accessToken;
-    public $refreshToken;
-    public $tokenType = 'bearer';
-    public $tokenExpiresIn = 3600;
-    public $tokenIssuedOn;
-    public $scope;
- 
-    public function __construct() {
-        $this->tokenIssuedOn = time();
+    
+    public function autostartTransaction()
+    {
+        if (!$this->isTransactionStarted() && ($token = $this->getSavedOAuthToken()) &&
+            !$this->isEshopCartEmpty()) 
+        {
+            try {
+                return $this->beginTransaction($token);
+            } catch (Exception $e) {
+                // dissmiss failure
+                $this->log('Transaction autostart failed: '.$e->getMessage(), self::LOG_NOTICE);
+            }
+        }
+        return false;
     }
     
-    public function isExpired()
+    public function isEshopCartEmpty()
     {
-        return $this->tokenIssuedOn + $this->tokenExpiresIn < time();
-    }
-    
-    public function hasScope($scope)
-    {
-        $scopes = explode(' ', $this->scope);
-        return in_array($scope, $scopes);
+        $cart = $this->getEshopCart();
+        return empty($cart);
     }
 }
 
