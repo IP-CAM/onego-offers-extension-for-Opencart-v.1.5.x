@@ -218,6 +218,16 @@ OneGo.log = function(msg)
     }
 }
 
+
+OneGo.lib = {
+    setAsLoading: function(element) {
+        element.attr('disabled', true);
+    },
+    unsetAsLoading: function(element) {
+        element.attr('disabled', false);
+    }
+}
+
 // initialize on load
 $(document).ready(function(){
     OneGo.authAgent.init();

@@ -18,18 +18,11 @@
                       </td>
                       <td align="right">
                           <?php
-                          if (!empty($onego_applied)) {
-                              foreach ($funds as $key => $fund) {
-                                  $disabled = $fund['amount'] > 0 ? '' : ' disabled="disabled"';
-                                  $st = $fund['is_used'] ? ' checked="checked"' : '';
-                                  echo '<label for="onego_funds_'.$key.'">'.$fund['title'].'</label> ';
-                                  echo '<input type="hidden" name="use_onego_funds['.$key.']" value="n" />';
-                                  echo '<input type="checkbox" name="use_onego_funds['.$key.']" class="onego_funds" id="onego_funds_'.$key.'" value="y"'.$disabled.$st.' /> ';
-
-                              }
-                              ?>
-
-                              <?php
+                          if (!empty($onego_funds)) {
+                              $disabled = $onego_funds['amount'] > 0 ? '' : ' disabled="disabled"';
+                              $st = $onego_funds['is_used'] ? ' checked="checked"' : '';
+                              echo '<label for="use_onego_funds">'.$onego_funds['title'].'</label> ';
+                              echo '<input type="checkbox" name="use_onego_funds" class="onego_funds" id="use_onego_funds" value="y"'.$disabled.$st.' /> ';
                           }
                           ?>
                       </td>
@@ -55,8 +48,31 @@
 
 <script type="text/javascript">
 $(document).ready(function(){
-    $('input.onego_funds').change(function(e){
-        $('form#onego_account').submit();
+    $('#use_onego_funds').change(function(e){
+        var isChecked = $(this).is(':checked');
+        $.ajax({
+            url: '<?php echo $onego_use_funds_url ?>', 
+            type: 'post',
+            data: { 'use_funds': isChecked },
+            dataType: 'json',
+            beforeSend: function(jqXHR, settings) {
+                OneGo.lib.setAsLoading($('#use_onego_funds'));
+            },
+            complete: function(jqXHR, textStatus) {
+                OneGo.lib.unsetAsLoading($('#use_onego_funds'));
+            },
+            success: function(data, textStatus, jqXHR) {
+                console.dir({'res': data});
+                if (typeof data.error != 'undefined') {
+                    $('#use_onego_funds').attr('checked', !isChecked);
+                } else {
+                    $('#use_onego_funds').attr('checked', data.status == '1');
+                }
+            },
+            error: function(xhr, ajaxOptions, thrownError) {
+                $('#use_onego_funds').attr('checked', !isChecked);
+            }
+        })
     })
     $('#onego_giftcard_redeem').click(function(e){
         $('form#onego_account').submit();

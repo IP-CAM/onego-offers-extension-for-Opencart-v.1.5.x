@@ -19,13 +19,14 @@ class ControllerTotalOnego extends Controller {
             $this->data['onego_disable'] = $this->url->link('total/onego/disable');
             $this->data['onego_update'] = $this->url->link('total/onego/updatebenefits');
             $this->data['onego_action'] = $this->url->link('checkout/cart');
+            $this->data['onego_use_funds_url'] = $this->url->link('total/onego/usefunds');
             
             if ($onego->isTransactionStarted()) {
                 $this->data['onego_applied'] = true;
                 
                 $this->data['transaction'] = $onego->getTransaction();
                 $this->data['cart_products'] = $this->cart->getProducts();
-                $this->data['funds'] = $onego->getFundsAvailable();
+                $this->data['onego_funds'] = $onego->getFundsAvailable();
                 $this->data['use_funds'] = $this->language->get('use_funds');
                 $this->data['no_funds_available'] = $this->language->get('no_funds_available');
             } else {
@@ -49,6 +50,33 @@ class ControllerTotalOnego extends Controller {
         }
 
         $this->response->setOutput($this->render());
+    }
+    
+    public function usefunds()
+    {
+        $onego = $this->getModel();
+        $request = $this->registry->get('request');
+        if ($onego->isTransactionStarted() && !empty($request->post['use_funds'])) {
+            $api = $onego->getApi();
+            $transaction = $onego->getTransaction();
+            $do_use = $request->post['use_funds'] == 'true';
+            try {
+                if ($do_use) {
+                    $onego->log('transaction/prepaid/spend', ModelTotalOnego::LOG_NOTICE);
+                    $response = array('status' => $onego->spendPrepaid() ? 1 : 0);
+                } else {
+                    $onego->log('transaction/prepaid/spending/cancel', ModelTotalOnego::LOG_NOTICE);
+                    $response = array('status' => $onego->cancelSpendingPrepaid() ? 0 : 1);
+                }
+            } catch (Exception $e) {
+                $response = array(
+                    'error'     => $e->getCode(),
+                    'message'   => $e->getMessage(),
+                );
+                $onego->log('funds usage call exception: '.$e->getMessage(), ModelTotalOnego::LOG_ERROR);
+            }
+            $this->response->setOutput(OneGoAPI_JSON::encode($response));
+        }
     }
     
     public function autologin()
@@ -87,7 +115,7 @@ class ControllerTotalOnego extends Controller {
         $returnpage = empty($returnpage) ? $this->getReferer() : $returnpage;
         
         $auth = $onego->getAuth();
-        $reqScope = OneGoAPI_Impl_OneGoOAuth::SCOPE_USE_BENEFITS;
+        $reqScope = array(OneGoAPI_Impl_OneGoOAuth::SCOPE_USE_BENEFITS, OneGoAPI_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY);
         
         // login not required if user is already athenticated with OneGo, return
         if ($onego->isUserAuthenticated() && $onego->userHasScope($req_scope)) {
