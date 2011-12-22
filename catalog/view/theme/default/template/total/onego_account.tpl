@@ -49,30 +49,30 @@
 <script type="text/javascript">
 $(document).ready(function(){
     $('#use_onego_funds').change(function(e){
-        var isChecked = $(this).is(':checked');
-        $.ajax({
-            url: '<?php echo $onego_use_funds_url ?>', 
-            type: 'post',
-            data: { 'use_funds': isChecked },
-            dataType: 'json',
-            beforeSend: function(jqXHR, settings) {
-                OneGo.lib.setAsLoading($('#use_onego_funds'));
-            },
-            complete: function(jqXHR, textStatus) {
-                OneGo.lib.unsetAsLoading($('#use_onego_funds'));
-            },
-            success: function(data, textStatus, jqXHR) {
-                console.dir({'res': data});
+        $('.warning').remove();
+        <?php if (!empty($onego_scope_extended)) { ?>
+        OneGo.opencart.processFundUsage(
+            $(this),
+            function(data, textStatus, jqXHR){
                 if (typeof data.error != 'undefined') {
-                    $('#use_onego_funds').attr('checked', !isChecked);
+                    $('#onego_panel').before('<div class="warning">'+data.message+'</div>');
                 } else {
-                    $('#use_onego_funds').attr('checked', data.status == '1');
+                    location.href = location.href;
                 }
-            },
-            error: function(xhr, ajaxOptions, thrownError) {
-                $('#use_onego_funds').attr('checked', !isChecked);
             }
+        );
+        <?php } else { ?>
+        OneGo.opencart.promptLogin(function(){
+            OneGo.opencart.processFundUsage(
+                $('#use_onego_funds'),
+                function(data, textStatus, jqXHR){
+                    if (typeof data.status != 'undefined') {
+                        location.href = location.href;
+                    }
+                }
+            );
         })
+        <?php } ?>
     })
     $('#onego_giftcard_redeem').click(function(e){
         $('form#onego_account').submit();

@@ -16,10 +16,11 @@ class ControllerTotalOnego extends Controller {
         $onego->autostartTransaction();
         
         if ($onego->isUserAuthenticated()) {
-            $this->data['onego_disable'] = $this->url->link('total/onego/disable');
+            $this->data['onego_disable'] = $this->url->link('total/onego/cancel');
             $this->data['onego_update'] = $this->url->link('total/onego/updatebenefits');
             $this->data['onego_action'] = $this->url->link('checkout/cart');
             $this->data['onego_use_funds_url'] = $this->url->link('total/onego/usefunds');
+            $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
             
             if ($onego->isTransactionStarted()) {
                 $this->data['onego_applied'] = true;
@@ -118,7 +119,7 @@ class ControllerTotalOnego extends Controller {
         $reqScope = array(OneGoAPI_Impl_OneGoOAuth::SCOPE_USE_BENEFITS, OneGoAPI_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY);
         
         // login not required if user is already athenticated with OneGo, return
-        if ($onego->isUserAuthenticated() && $onego->userHasScope($req_scope)) {
+        if ($onego->isUserAuthenticated() && $onego->userHasScope($reqScope)) {
             $onego->log('login not needed, user already authenticated and has required scope', ModelTotalOnego::LOG_NOTICE);
             $this->redirect($returnpage);
         }
@@ -248,7 +249,7 @@ class ControllerTotalOnego extends Controller {
         $this->response->setOutput($this->render());
     }
     
-    public function disable()
+    public function cancel()
     {
         $this->language->load('total/onego');
         $onego = $this->getModel();

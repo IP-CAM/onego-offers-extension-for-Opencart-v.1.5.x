@@ -834,8 +834,6 @@ END;
     {
         $authagent_url = $this->authagent_url;
         $authagent_url_full = $authagent_url.(strpos($authagent_url, '?') ? '&' : '?').'ref='.urlencode(self::selfUrl());
-        $login_url = $this->registry->get('url')->link('total/onego/auth');
-        $logoff_url = $this->registry->get('url')->link('total/onego/disable');
         $authagent_listeners_code = $this->renderAuthAgentListenersCode();
         $autologin_blocked_until = $this->autologinBlockedUntil() ? ($this->autologinBlockedUntil() - time()) * 1000 : 0;
         $html = <<<END
@@ -843,8 +841,6 @@ END;
 OneGo.authAgent.url = '{$authagent_url}';
 OneGo.authAgent.url_full = '{$authagent_url_full}';
 OneGo.authWidget.url = '{$this->authwidget_url}';
-OneGo.authAgent.login_url = '{$login_url}';
-OneGo.authAgent.logoff_url = '{$logoff_url}';
 OneGo.authAgent.autologinBlockedUntil = new Date().getTime() + {$autologin_blocked_until};
 {$authagent_listeners_code}</script>
 
@@ -874,7 +870,7 @@ END;
         } else {
             if ($this->isUserAuthenticated()) {
                 // listen for logoff on widget
-                $url = $this->getRegistryObj()->get('url')->link('total/onego/disable');
+                $url = $this->getRegistryObj()->get('url')->link('total/onego/cancel');
                 $js = "function(){ window.location.href='{$url}'; }";
                 $this->setAuthAgentListener(self::AUTH_MESSAGE_ANONYMOUS, $js);
             } else {
@@ -990,7 +986,7 @@ END;
             $html .= 'console.dir(transaction);'."\r\n";
         }
         if ($token = $this->getSavedOAuthToken()) {
-            $html .= 'var scopes = {\'scopes\' : $.parseJSON('.json_encode(json_encode($token->scopes)).')};'."\r\n";
+            $html .= 'var scopes = {\'token\' : $.parseJSON('.json_encode(json_encode($token)).')};'."\r\n";
             $html .= 'console.dir(scopes);'."\r\n";
         }
         /*
@@ -1217,6 +1213,14 @@ END;
         $transaction = $api->cancelSpendingPrepaid();
         $this->saveTransaction($transaction);
         return !$transaction->getPrepaidSpent();
+    }
+    
+    public function isCurrentScopeSufficient()
+    {
+        $token = $this->getSavedOAuthToken();
+        return $token && 
+                $token->hasScope(OneGoAPI_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY) &&
+                $token->hasScope(OneGoAPI_Impl_OneGoOAuth::SCOPE_USE_BENEFITS);
     }
 }
 
