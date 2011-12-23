@@ -181,7 +181,14 @@ class ControllerTotalOnego extends Controller {
                     // remember token scope(s)
                     $token->setScopes($authorization_request['scope']);
                 }
+                
+                if ($onego->isTransactionStarted()) {
+                    // check if current transaction works with new token
+                    $onego->verifyTransactionWithNewToken($token);
+                }
+                
                 $onego->saveOAuthToken($token);
+                
             } catch (Exception $e) {
                 throw $e;
             }

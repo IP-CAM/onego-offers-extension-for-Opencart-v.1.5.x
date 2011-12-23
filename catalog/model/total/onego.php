@@ -479,23 +479,30 @@ class ModelTotalOnego extends Model
         return date('ymdHis').'_'.substr(uniqid(), 0, 23);
     }
     
+    public function generateExternalId()
+    {
+        return uniqid();
+    }
+    
     /**
      * Starts OneGo transaction with current Opencart's cart items
      *
      * @param string $token
      * @return boolean Operation status 
      */
-    public function beginTransaction(OneGoAPI_Impl_OAuthToken $token)
+    public function beginTransaction(OneGoAPI_Impl_OAuthToken $token, $receiptNumber = false)
     {
         $api = $this->getApi();
         $api->setOAuthToken($token);
         
         $cart = $this->collectCartEntries();
                 
-        $receiptNumber = $this->generateReceiptNumber();
+        if (!$receiptNumber) {
+            $receiptNumber = $this->generateReceiptNumber();
+        }
         try {
             $this->log('transaction/begin: token='.$token->accessToken.'; cart entries: '.count($cart), self::LOG_NOTICE);
-            $transaction = $api->beginTransaction($receiptNumber, $cart, uniqid());
+            $transaction = $api->beginTransaction($receiptNumber, $cart);
             $this->saveTransaction($transaction);
             
             // save cart hash to later detect when transaction cart needs to be updated
@@ -963,7 +970,7 @@ END;
                 $msg = preg_replace('/\'/', '\\\'', $msg);
                 list($usec, $sec) = explode(" ", $row['time']);
                 if (!empty($sec)) {
-                    $msg .= ' ['.date('H:i:s').' / '.$row['pid'].']';
+                    $msg .= ' ['.date('H:i:s', $sec).' / '.$row['pid'].']';
                 }
                 switch ($row['level']) {
                     case self::LOG_INFO:
@@ -1166,7 +1173,7 @@ END;
                 return $this->beginTransaction($token);
             } catch (Exception $e) {
                 // dissmiss failure
-                $this->log('Transaction autostart failed: '.$e->getMessage(), self::LOG_NOTICE);
+                $this->log('Transaction autostart failed: '.$e->getMessage(), self::LOG_ERROR);
             }
         }
         return false;
@@ -1221,6 +1228,50 @@ END;
         return $token && 
                 $token->hasScope(OneGoAPI_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY) &&
                 $token->hasScope(OneGoAPI_Impl_OneGoOAuth::SCOPE_USE_BENEFITS);
+    }
+    
+    /**
+     * Check if new token is valid for current transaction, restart transaction
+     * with new token if not.
+     *
+     * @param OneGoAPI_Impl_OAuthToken $newToken 
+     * @return boolean If transaction was refreshed
+     */
+    public function verifyTransactionWithNewToken(OneGoAPI_Impl_OAuthToken $newToken)
+    {
+        if (!$this->isTransactionStarted()) {
+            return false;
+        }
+        $api = $this->getApi();
+        $transaction = $this->getTransaction();
+        $api->setOAuthToken($newToken);
+        try {
+            $res = $transaction->get();
+            $this->log('Transaction readable with new token', self::LOG_NOTICE);
+        } catch (Exception $e) {
+            $this->log('Transaction does not accept token: '.$e->getMessage(), self::LOG_NOTICE);
+            
+            // getting transaction has failed, restart
+            $receiptNumber = $transaction->getReceiptNumber();
+            
+            $api->setOAuthToken($this->getSavedOAuthToken());
+            try {
+                // cancel current transaction
+                $transaction->cancel();
+                $this->log('Transaction canceled.', self::LOG_NOTICE);
+            } catch (Exception $e) {
+                $this->log('Transaction cancel failed: '.$e->getMessage(), self::LOG_ERROR);
+            }
+            
+            $api->setOAuthToken($newToken);
+            try {
+                // start new
+                $this->beginTransaction($newToken, $receiptNumber);
+                return true;
+            } catch (Exception $e) {
+                $this->log('Transaction start failed: '.$e->getMessage(), self::LOG_ERROR);
+            }
+        }
     }
 }
 

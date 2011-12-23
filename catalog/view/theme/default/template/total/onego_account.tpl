@@ -11,7 +11,7 @@
                   <tr>
                       <td rowspan="2" align="left" valign="top">
                           <div id="onego_authwidget_container">
-                              <img src="catalog/view/theme/default/image/loading.gif" /> Checking OneGo user identity... <a href="<?php echo $onego_disable; ?>" id="onego_logout">Wish to log out?</a>
+                              <img src="catalog/view/theme/default/image/loading.gif" /> <!--Checking OneGo user identity... <a href="<?php echo $onego_disable; ?>" id="onego_logout">Wish to log out?</a>-->
                           </div>
                           <a href="<?php echo $onego_disable; ?>" id="onego_logout" style="color: silver;">[logoff]</a>
                           <a href="<?php echo $onego_update ?>" style="color: silver;">[upd]</a>
@@ -50,28 +50,37 @@
 $(document).ready(function(){
     $('#use_onego_funds').change(function(e){
         $('.warning').remove();
-        <?php if (!empty($onego_scope_extended)) { ?>
+        <?php if (!empty($onego_scope_extended)) { 
+            // user has sufficient scope, do not prompt login
+            ?>
         OneGo.opencart.processFundUsage(
             $(this),
             function(data, textStatus, jqXHR){
                 if (typeof data.error != 'undefined') {
-                    $('#onego_panel').before('<div class="warning">'+data.message+'</div>');
+                    OneGo.opencart.flashWarningBefore($('#onego_panel'), data.message);
                 } else {
                     location.href = location.href;
                 }
             }
         );
-        <?php } else { ?>
-        OneGo.opencart.promptLogin(function(){
-            OneGo.opencart.processFundUsage(
-                $('#use_onego_funds'),
-                function(data, textStatus, jqXHR){
-                    if (typeof data.status != 'undefined') {
-                        location.href = location.href;
+        <?php } else { 
+            // scope insufficient, prompt login before
+            ?>
+        OneGo.opencart.promptLogin(
+            function(){
+                OneGo.opencart.processFundUsage(
+                    $('#use_onego_funds'),
+                    function(data, textStatus, jqXHR){
+                        if (typeof data.status != 'undefined') {
+                            location.href = location.href;
+                        }
                     }
-                }
-            );
-        })
+                );
+            },
+            function(){
+                $('#use_onego_funds').attr('checked', !$('#use_onego_funds').attr('checked'));
+            }
+        )
         <?php } ?>
     })
     $('#onego_giftcard_redeem').click(function(e){

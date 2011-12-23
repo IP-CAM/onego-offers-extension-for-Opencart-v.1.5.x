@@ -141,6 +141,7 @@ OneGo.authWidget = {
 }
 
 OneGo.opencart = {
+    loginPromptSuccess: false,
     processLoginDynamic: function(){
         console.info('OneGo.authAgent.processLoginDynamic');
         OneGo.authAgent.autologin(OneGo.opencart.reloadCheckoutOrderInfo);
@@ -196,7 +197,7 @@ OneGo.opencart = {
         $.ajax({
             url: $('base').attr('href') + 'index.php?route=total/onego/usefunds', 
             type: 'post',
-            data: { 'use_funds': isChecked },
+            data: {'use_funds': isChecked},
             dataType: 'json',
             beforeSend: function(jqXHR, settings) {
                 OneGo.lib.setAsLoading(checkboxElement);
@@ -233,7 +234,8 @@ OneGo.opencart = {
             setTimeout("$('#"+elemId+"').fadeOut()", duration);
         }
     },
-    promptLogin: function(onClosed){
+    promptLogin: function(onSuccess, onCancel, onClose){
+        OneGo.opencart.loginPromptSuccess = false;
         $.fancybox({
             'width': 500,
             'height': 380,
@@ -244,11 +246,22 @@ OneGo.opencart = {
             'type': 'iframe',
             'href': OneGo.config.loginUri,
             'onClosed': function() {
-                if (onClosed) {
-                    onClosed();
+                if (OneGo.opencart.loginPromptSuccess) {
+                    OneGo.opencart.reloadWidget();
+                    if (onSuccess) {
+                        onSuccess();
+                    }
+                } else if (onCancel) {
+                    onCancel();
+                }
+                if (onClose) {
+                    onClose();
                 }
             }
         });
+    },
+    reloadWidget: function(){
+        $('.onego_widget iframe').attr('src', $('.onego_widget iframe').attr('src'));
     }
 }
 

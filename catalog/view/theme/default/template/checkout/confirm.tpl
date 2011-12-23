@@ -24,16 +24,21 @@ $('#use_onego_funds').unbind('change').change(function(e) {
         }
     );
     <?php } else { ?>
-    OneGo.opencart.promptLogin(function(){
-        OneGo.opencart.processFundUsage(
-            $('#use_onego_funds'),
-            function(data, textStatus, jqXHR){
-                if (typeof data.status != 'undefined') {
-                    OneGo.opencart.reloadCheckoutOrderInfo();
+    OneGo.opencart.promptLogin(
+        function(){
+            OneGo.opencart.processFundUsage(
+                $('#use_onego_funds'),
+                function(data, textStatus, jqXHR){
+                    if (typeof data.status != 'undefined') {
+                        OneGo.opencart.reloadCheckoutOrderInfo();
+                    }
                 }
-            }
-        );
-    })
+            );
+        },
+        function(){
+            $('#use_onego_funds').attr('checked', !$('#use_onego_funds').attr('checked'));
+        }
+    )
     <?php } ?>
 });
 $('#onego_agree').unbind().change(function(e){
@@ -119,7 +124,7 @@ $(document).ready(function(){
                       <tr>
                           <td align="left" rowspan="2">
                               <div id="onego_authwidget_container">
-                                  <img src="catalog/view/theme/default/image/loading.gif" /> Checking OneGo user identity... <a href="<?php echo $onego_disable; ?>" id="onego_logout">Wish to log out?</a>
+                                  <img src="catalog/view/theme/default/image/loading.gif" /> <!--Checking OneGo user identity... <a href="<?php echo $onego_disable; ?>" id="onego_logout">Wish to log out?</a>-->
                               </div>
                           </td>
                           <td align="right">

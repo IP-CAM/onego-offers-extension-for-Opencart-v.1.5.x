@@ -4,10 +4,11 @@
 <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
 <link rel="stylesheet" type="text/css" href="catalog/view/theme/default/stylesheet/stylesheet.css" />
 <script type="text/javascript" src="catalog/view/javascript/jquery/jquery-1.6.1.min.js"></script>
-<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>
+<!--<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>-->
 <script type="text/javascript">
 function closeFancybox()
 {
+    parent.OneGo.opencart.loginPromptSuccess = true;
     parent.$.fancybox.close();
 }
 
