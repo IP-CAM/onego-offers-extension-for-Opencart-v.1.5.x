@@ -21,6 +21,7 @@ class ControllerTotalOnego extends Controller {
             $this->data['onego_action'] = $this->url->link('checkout/cart');
             $this->data['onego_use_funds_url'] = $this->url->link('total/onego/usefunds');
             $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
+            $this->data['checkoutUri'] = $this->url->link('checkout/checkout');
             
             if ($onego->isTransactionStarted()) {
                 $this->data['onego_applied'] = true;
@@ -364,6 +365,18 @@ class ControllerTotalOnego extends Controller {
     {
         $this->template = 'default/template/total/onego_giftcard.tpl';
         $this->response->setOutput($this->render());
+    }
+    
+    public function requireLogin()
+    {
+        $this->language->load('total/onego');
+        $this->data['button_onego_login'] = $this->language->get('button_onego_login');
+        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/checkout/onego_require_login.tpl')) {
+            $this->template = $this->config->get('config_template') . '/template/checkout/onego_require_login.tpl';
+        } else {
+            $this->template = 'default/template/checkout/onego_require_login.tpl';
+        }
+        $this->render();
     }
     
     

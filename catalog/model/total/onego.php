@@ -101,9 +101,10 @@ class ModelTotalOnego extends Model
             
             // cart discount
             $discount = $transaction->getTotalDiscount();
-            if (!empty($discount) && !empty($discount->amount->visible) 
-                    && ($discount->amount->visible != $shipping_discount)) // TEMPORARY FIX
-            {
+            $discountAmount = !empty($discount) && !empty($discount->amount->visible) ?
+                (float) $discount->amount->visible : null;
+            if (!empty($discountAmount) && ($discountAmount != $shipping_discount)) {
+                // (TEMPORARY FIX)
                 $discount_visible = $discount->amount->visible;
                 if (!empty($discount->percent)) {
                     $title = sprintf($this->language->get('onego_cart_discount_percents'), 
