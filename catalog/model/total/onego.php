@@ -101,22 +101,21 @@ class ModelTotalOnego extends Model
             
             // cart discount
             $discount = $transaction->getTotalDiscount();
-            $discountAmount = !empty($discount) && !empty($discount->amount->visible) ?
-                (float) $discount->amount->visible : null;
+            $discountAmount = !empty($discount) ? $discount->getAmount() : null;
             if (!empty($discountAmount) && ($discountAmount != $shipping_discount)) {
                 // (TEMPORARY FIX)
-                $discount_visible = $discount->amount->visible;
-                if (!empty($discount->percent)) {
+                $discountPercents = $discount->getPercents();
+                if (!empty($discountPercents)) {
                     $title = sprintf($this->language->get('onego_cart_discount_percents'), 
-                            round($discount->percent, 2));
+                            round($discountPercents, 2));
                 } else {
                     $title = $this->language->get('onego_cart_discount');
                 }
                 $total_data[] = array(
                     'code' => 'onego',
                     'title' => $title,
-                    'text' => $this->currency->format(-$discount_visible),
-                    'value' => -$discount_visible,
+                    'text' => $this->currency->format(-$discountAmount),
+                    'value' => -$discountAmount,
                     'sort_order' => $this->config->get('onego_sort_order').'a'
                 );
                 $modified = true;
@@ -136,13 +135,12 @@ class ModelTotalOnego extends Model
             
             
             // funds received
-            $received = $transaction->getPrepaidReceived();
-            $amount = isset($received->amount->visible) ? $received->amount->visible : 0;
-            if (!empty($received) && $amount) {
+            $received = $transaction->getPrepaidAmountReceived();
+            if (!empty($received)) {
                 $receivables = array(
                     'code' => 'onego',
                     'title' => $this->language->get('funds_receivable'),
-                    'text' => $this->currency->format($amount),
+                    'text' => $this->currency->format($received),
                     'value' => 0,
                     'sort_order' => 1000,//$this->config->get('onego_sort_order').'x'
                 );
@@ -1196,7 +1194,7 @@ END;
         $discount = null;
         foreach ($cart->getEntries() as $cartEntry) {
             if ($this->isShippingItem($cartEntry) && $cartEntry->getDiscount()) {
-                $discount += $cartEntry->getDiscount()->amount->visible;
+                $discount += $cartEntry->getDiscount()->getAmount();
             }
         }
         return $discount;
