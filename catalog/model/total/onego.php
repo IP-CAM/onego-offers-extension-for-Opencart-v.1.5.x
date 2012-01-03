@@ -1,5 +1,6 @@
 <?php
-require_once DIR_ROOT.'../php-api/src/OneGoAPI/init.php';
+define('DIR_ONEGO', DIR_SYSTEM.'library/onego/');
+require_once DIR_ONEGO.'php-api/src/OneGoAPI/init.php';
 
 class ModelTotalOnego extends Model 
 {
@@ -1219,19 +1220,9 @@ class OneGoConfig
     private $onegoConfig;
     private $config;
     
-    public $api_key = 'a53rdpm3y760ftusta8ou5vbu5dgqinojypt';
-    protected $api_pass = '4f63vgdi1fwh6nemrg86cllo24ii95plkk6r';
-    protected $api_url = 'http://api.dev.onego.com/pos/v1/';
-    protected $authagent_url = 'http://authwidget.dev.onego.com/agent';
-    protected $authwidget_url = 'http://authwidget.dev.onego.com';
-    protected $terminal_id = '1';
-    
-    protected $oauth_authorize_url  = 'http://mobile-local.dev.onego.com/authorize';
-    protected $oauth_token_url      = 'http://oauth.dev.onego.cloud:8080/oauth';
-    
     private function __construct(Config $config)
     {
-        require_once DIR_SYSTEM.'library/onego/config.inc.php';
+        require_once DIR_ONEGO.'config.inc.php';
         $this->onegoConfig = $oneGoConfig;
         $this->config = $config;
     }
