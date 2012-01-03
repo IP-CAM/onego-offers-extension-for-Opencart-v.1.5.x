@@ -7,23 +7,11 @@ class ModelTotalOnego extends Model
     const LOG_NOTICE = 1;
     const LOG_WARNING = 2;
     const LOG_ERROR = 3;
-    const FUNDS_PREPAID = 'pp';
+    
     const AUTH_MESSAGE_AUTHENTICATED = 'onego.widget.user.authenticated';
     const AUTH_MESSAGE_ANONYMOUS = 'onego.widget.user.anonymous';
     
-    const SHIPPING = 'shipping';
-    const ITEM_CODE_PREFIX = 'ESHOPITEM';
-    
     protected $registrykey = 'onego_extension';
-    protected $api_key = 'a53rdpm3y760ftusta8ou5vbu5dgqinojypt';
-    protected $api_pass = '4f63vgdi1fwh6nemrg86cllo24ii95plkk6r';
-    protected $api_url = 'http://api.dev.onego.com/pos/v1/';
-    protected $authagent_url = 'http://authwidget.dev.onego.com/agent';
-    protected $authwidget_url = 'http://authwidget.dev.onego.com';
-    protected $terminal_id = '1';
-    
-    protected $oauth_authorize_url  = 'http://mobile-local.dev.onego.com/authorize';
-    protected $oauth_token_url      = 'http://oauth.dev.onego.cloud:8080/oauth';
     
     protected static $current_eshop_cart = false;
     protected static $authagent_listeners = false;
@@ -50,13 +38,9 @@ class ModelTotalOnego extends Model
         return new self($registry);
     }
     
-    public function getConfig($key = false)
+    public function getConfig($key)
     {
-        $config = array(
-            'client_id'     => $this->api_key,
-            'client_secret' => $this->api_pass,
-            
-        );
+        return OneGoConfig::getInstance()->get($key);
     }
 
     /**
@@ -331,8 +315,8 @@ class ModelTotalOnego extends Model
      */
     private function initApi()
     {
-        $cfg = new OneGoAPI_APIConfig($this->terminal_id);
-        $cfg->apiUri = $this->api_url;
+        $cfg = new OneGoAPI_APIConfig($this->getConfig('terminalId'), $this->getConfig('transactionTTL'));
+        $cfg->apiUri = $this->getConfig('apiURI');
         $cfg->currencyCode = $this->getRegistryObj()->get('config')->get('config_currency');
         $api = OneGoAPI_Impl_SimpleAPI::init($cfg);
         $token = $this->getSavedOAuthToken();
@@ -370,7 +354,8 @@ class ModelTotalOnego extends Model
      */
     private function initAuth()
     {
-        $cfg = new OneGoAPI_OAuthConfig($this->api_key, $this->api_pass, $this->oauth_authorize_url, $this->oauth_token_url);
+        $cfg = new OneGoAPI_OAuthConfig($this->getConfig('clientId'), $this->getConfig('clientSecret'), 
+                $this->getConfig('authorizationURI'), $this->getConfig('oAuthURI'));
         $auth = OneGoAPI_Impl_SimpleOAuth::init($cfg);
         $this->saveToRegistry('auth', $auth);
         return $auth;
@@ -524,10 +509,10 @@ class ModelTotalOnego extends Model
     public function confirmTransaction()
     {
         $api = $this->getApi();
-        if ($transaction_id = $this->getTransactionId()) {
+        if ($transaction = $this->getTransaction()) {
             try {
                 $this->log('transaction confirm', self::LOG_NOTICE);
-                $api->confirmTransaction($transaction_id);
+                $transaction->confirm();
                 $this->deleteTransaction();
                 $this->saveToSession('onego_benefits_applied', true);
                 return true;
@@ -547,10 +532,10 @@ class ModelTotalOnego extends Model
     public function cancelTransaction()
     {
         $api = $this->getApi();
-        if ($transaction_id = $this->getTransactionId()) {
+        if ($transaction = $this->getTransaction()) {
             try {
                 $this->log('transaction cancel', self::LOG_NOTICE);
-                $api->cancelTransaction($transaction_id);
+                $transaction->cancel();
                 $this->deleteTransaction();
                 $this->saveToSession('onego_benefits_applied', false);
                 return true;
@@ -607,7 +592,10 @@ class ModelTotalOnego extends Model
                 $ids = implode(',', array_keys(self::$current_eshop_cart));
                 $products_query = $this->db->query("SELECT product_id, sku, upc FROM ".DB_PREFIX."product p WHERE product_id IN ({$ids})");
                 foreach ($products_query->rows as $product) {
-                    self::$current_eshop_cart[$product['product_id']]['_item_code'] = !empty($product['sku']) ? $product['sku'] : self::ITEM_CODE_PREFIX.$product['product_id'];
+                    self::$current_eshop_cart[$product['product_id']]['_item_code'] = 
+                        !empty($product['sku']) ? 
+                            $product['sku'] : 
+                            $this->getConfig('cartItemCodePrefix').$product['product_id'];
                 }
                 
                 // add shipping as an item
@@ -657,8 +645,8 @@ class ModelTotalOnego extends Model
             $shipping->getTotal($total_data, $total, $taxes);
             if ($total > 0) {
                 return array(
-                    'key'           => self::SHIPPING,
-                    '_item_code'    => self::SHIPPING,
+                    'key'           => $this->getConfig('shippingCode'),
+                    '_item_code'    => $this->getConfig('shippingCode'),
                     'price'         => $total,
                     'quantity'      => 1,
                     'total'         => $total,
@@ -719,23 +707,6 @@ class ModelTotalOnego extends Model
         return isset($funds['amount']) ? $funds['amount'] : false;
     }
     
-    /**
-     * Call corresponding API methods to update funds usage, for changed usage only
-     *
-     * @param array $usage list of $fundtype => $is_used values, where $is_used is 'y' or 'n'
-     */
-    public function processFundsUsage($usage)
-    {
-        $funds_available = $this->getFundsAvailable();
-        foreach ($usage as $fundtype => $use) {
-            if (isset($funds_available[$fundtype]) 
-                    && ((bool) $funds_available[$fundtype]['is_used'] != (bool) ($use == 'y'))) 
-            {
-                $this->useFunds($fundtype, $use == 'y');
-            }
-        }
-    }
-    
     public function processGiftCard($cardno)
     {
         if ($cardno != '1111') {
@@ -748,49 +719,11 @@ class ModelTotalOnego extends Model
     }
     
     /**
-     * Call API method for using/cancel using of fund type; uses max amount of funds available to user
-     *
-     * @param string $fundtype
-     * @param boolean $do_use
-     * @return boolean status 
-     */
-    private function useFunds($fundtype, $do_use = true)
-    {
-        $api = $this->getApi();
-        if ($this->isTransactionStarted()) {
-            $transaction = $this->getTransaction();
-            try {
-                switch ($fundtype) {
-                    case self::FUNDS_PREPAID:
-                        if ($do_use) {
-                            $this->log('transaction/prepaid/spend', self::LOG_NOTICE);
-                            $transaction = $api->spendPrepaid($this->getFundsAmountAvailable($fundtype));
-                        } else {
-                            $this->log('transaction/prepaid/spending/cancel', self::LOG_NOTICE);
-                            $transaction = $api->cancelSpendingPrepaid($transaction->id);
-                        }
-                        $this->saveTransaction($transaction);
-                        break;
-                }
-                return true;
-            } catch (Exception $e) {
-                $this->log('funds usage call exception: '.$e->getMessage(), self::LOG_ERROR);
-            }
-        }
-        return false;
-    }
-    
-    /**
      * Process all POST data in HTTP request, related to this module
      */
     protected function processActions()
     {
-        // OneGo funds usage
-        if (!empty($this->request->post['use_onego_funds'])) {
-            $this->processFundsUsage($this->request->post['use_onego_funds']);
-            $this->request->post['use_onego_funds'] = null;
-        }
-        // OneGo funds usage
+        // OneGo gift card
         if (!empty($this->request->post['onego_giftcard']) && ($this->request->post['onego_giftcard'] != 'Gift Card Number')) {
             $this->processGiftCard($this->request->post['onego_giftcard']);
             $this->request->post['onego_giftcard'] = null;
@@ -838,7 +771,7 @@ END;
     
     public function getAuthServicesJS()
     {
-        $authagent_url = $this->authagent_url;
+        $authagent_url = $this->getConfig('authAgentURI');
         $authagent_url_full = $authagent_url.(strpos($authagent_url, '?') ? '&' : '?').'ref='.urlencode(self::selfUrl());
         $authagent_listeners_code = $this->renderAuthAgentListenersCode();
         $autologin_blocked_until = $this->autologinBlockedUntil() ? ($this->autologinBlockedUntil() - time()) * 1000 : 0;
@@ -846,7 +779,7 @@ END;
 <script type="text/javascript">
 OneGo.authAgent.url = '{$authagent_url}';
 OneGo.authAgent.url_full = '{$authagent_url_full}';
-OneGo.authWidget.url = '{$this->authwidget_url}';
+OneGo.authWidget.url = '{$this->getConfig('authWidgetURI')}';
 OneGo.authAgent.autologinBlockedUntil = new Date().getTime() + {$autologin_blocked_until};
 {$authagent_listeners_code}</script>
 
@@ -1202,21 +1135,27 @@ END;
     
     public function isShippingItem(OneGoAPI_DTO_CartEntryDto $transactionCartEntry)
     {
-        return in_array($transactionCartEntry->itemCode, array(self::SHIPPING));
+        return in_array($transactionCartEntry->itemCode, array($this->getConfig('shippingCode')));
     }
     
     public function spendPrepaid()
     {
-        $api = $this->getApi();
-        $transaction = $api->spendPrepaid($this->getFundsAmountAvailable());
+        $transaction = $this->getTransaction();
+        if (empty($transaction) || !$transaction->isStarted()) {
+            $this->throwError('Transaction not started');
+        }
+        $transaction->spendPrepaid($this->getFundsAmountAvailable());
         $this->saveTransaction($transaction);
         return $transaction->getPrepaidSpent();
     }
     
     public function cancelSpendingPrepaid()
     {
-        $api = $this->getApi();
-        $transaction = $api->cancelSpendingPrepaid();
+        $transaction = $this->getTransaction();
+        if (empty($transaction) || !$transaction->isStarted()) {
+            $this->throwError('Transaction not started');
+        }
+        $transaction->cancelSpendingPrepaid();
         $this->saveTransaction($transaction);
         return !$transaction->getPrepaidSpent();
     }
@@ -1271,6 +1210,52 @@ END;
                 $this->log('Transaction start failed: '.$e->getMessage(), self::LOG_ERROR);
             }
         }
+    }
+}
+
+class OneGoConfig
+{
+    private static $instance;
+    private $onegoConfig;
+    private $config;
+    
+    public $api_key = 'a53rdpm3y760ftusta8ou5vbu5dgqinojypt';
+    protected $api_pass = '4f63vgdi1fwh6nemrg86cllo24ii95plkk6r';
+    protected $api_url = 'http://api.dev.onego.com/pos/v1/';
+    protected $authagent_url = 'http://authwidget.dev.onego.com/agent';
+    protected $authwidget_url = 'http://authwidget.dev.onego.com';
+    protected $terminal_id = '1';
+    
+    protected $oauth_authorize_url  = 'http://mobile-local.dev.onego.com/authorize';
+    protected $oauth_token_url      = 'http://oauth.dev.onego.cloud:8080/oauth';
+    
+    private function __construct(Config $config)
+    {
+        require_once DIR_SYSTEM.'library/onego/config.inc.php';
+        $this->onegoConfig = $oneGoConfig;
+        $this->config = $config;
+    }
+    
+    public static function getInstance()
+    {
+        global $registry;
+        if (empty(self::$instance)) {
+            $config = $registry->get('config');
+            self::$instance = new self($config);
+        }
+        return self::$instance;
+    }
+    
+    public function get($key)
+    {
+        $val = $this->config->get('onego_'.$key);
+        if (!is_null($val)) {
+            return $val;
+        }
+        if (isset($this->onegoConfig[$key])) {
+            return $this->onegoConfig[$key];
+        }
+        return null;
     }
 }
 

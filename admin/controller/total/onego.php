@@ -26,7 +26,7 @@ class ControllerTotalOnego extends Controller {
 
         $this->data['entry_status'] = $this->language->get('entry_status');
         $this->data['entry_sort_order'] = $this->language->get('entry_sort_order');
-
+        
         $this->data['button_save'] = $this->language->get('button_save');
         $this->data['button_cancel'] = $this->language->get('button_cancel');
 
@@ -71,6 +71,23 @@ class ControllerTotalOnego extends Controller {
         } else {
             $this->data['onego_sort_order'] = $this->config->get('onego_sort_order');
         }
+        
+        $config_fields = array('clientId', 'clientSecret', 'terminalId', 'transactionTTL',
+            'shippingCode');
+        $fields = array();
+        foreach ($config_fields as $field) {
+            $help_key = 'entry_help_'.$field;
+            $help = $this->language->get($help_key);
+            $row = array(
+                'title' => $this->language->get('entry_'.$field),
+                'value' => isset($this->request->post['onego_'.$field]) ?
+                    $this->request->post['onego_'.$field] : $this->getConfigValue($field),
+                'help'  => $help == $help_key ? '' : $help,
+            );
+            $fields[$field] = $row;
+        }
+        $this->data['onego_config_fields'] = $fields;
+        
 
         $this->template = 'total/onego.tpl';
         $this->children = array(
@@ -85,14 +102,37 @@ class ControllerTotalOnego extends Controller {
         if (!$this->user->hasPermission('modify', 'total/onego')) {
             $this->error['warning'] = $this->language->get('error_permission');
         }
-
-        if (!$this->error) {
-            return true;
-        } else {
-            return false;
+        
+        // cleanup
+        $this->request->post['onego_clientId'] = trim($this->request->post['onego_clientId']);
+        $this->request->post['onego_clientSecret'] = trim($this->request->post['onego_clientSecret']);
+        $this->request->post['onego_terminalId'] = trim($this->request->post['onego_terminalId']);
+        
+        // validate
+        if (empty($this->request->post['onego_clientId']) || 
+            empty($this->request->post['onego_clientSecret']) ||
+            empty($this->request->post['onego_terminalId'])) 
+        {
+            $this->error['warning'] = $this->language->get('error_missing_required_fields');
         }
+
+        return $this->error ? false : true;
+    }
+    
+    private function getConfigValue($key)
+    {
+        global $oneGoConfig;
+        if (!isset($oneGoConfig)) {
+            require_once DIR_SYSTEM.'library/onego/config.inc.php';
+        }
+        
+        $val = $this->config->get('onego_'.$key);
+        if (!is_null($val)) {
+            return $val;
+        } else if (isset($oneGoConfig[$key])) {
+            return $oneGoConfig[$key];
+        }
+        return false;
     }
 
 }
-
-?>

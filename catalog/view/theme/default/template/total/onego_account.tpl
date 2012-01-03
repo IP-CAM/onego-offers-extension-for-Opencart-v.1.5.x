@@ -86,23 +86,5 @@ $(document).ready(function(){
     $('#onego_giftcard_redeem').click(function(e){
         $('form#onego_account').submit();
     })
-    <?php if (empty($onego_scope_extended)) { ?>
-    $('a.button').click(function(e){
-        var uri = $(this).attr('href');
-        if (uri == '<?php echo $checkoutUri ?>') {
-            var btn = $(this);
-            e.preventDefault();
-            OneGo.opencart.promptLogin(
-                function() { 
-                    location.href = uri;
-                },
-                function() {
-                    e.preventDefault();
-                }
-            );
-        }
-        
-    })    
-    <?php } ?>
 })
 </script>

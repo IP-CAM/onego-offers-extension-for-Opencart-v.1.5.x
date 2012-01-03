@@ -58,26 +58,27 @@ class ControllerTotalOnego extends Controller {
     {
         $onego = $this->getModel();
         $request = $this->registry->get('request');
-        if ($onego->isTransactionStarted() && !empty($request->post['use_funds'])) {
-            $api = $onego->getApi();
+        if (!empty($request->post['use_funds'])) {
             $transaction = $onego->getTransaction();
-            $do_use = $request->post['use_funds'] == 'true';
-            try {
-                if ($do_use) {
-                    $onego->log('transaction/prepaid/spend', ModelTotalOnego::LOG_NOTICE);
-                    $response = array('status' => $onego->spendPrepaid() ? 1 : 0);
-                } else {
-                    $onego->log('transaction/prepaid/spending/cancel', ModelTotalOnego::LOG_NOTICE);
-                    $response = array('status' => $onego->cancelSpendingPrepaid() ? 0 : 1);
+            if ($transaction->isStarted()) {
+                $do_use = $request->post['use_funds'] == 'true';
+                try {
+                    if ($do_use) {
+                        $onego->log('transaction/prepaid/spend', ModelTotalOnego::LOG_NOTICE);
+                        $response = array('status' => $onego->spendPrepaid() ? 1 : 0);
+                    } else {
+                        $onego->log('transaction/prepaid/spending/cancel', ModelTotalOnego::LOG_NOTICE);
+                        $response = array('status' => $onego->cancelSpendingPrepaid() ? 0 : 1);
+                    }
+                } catch (Exception $e) {
+                    $response = array(
+                        'error'     => $e->getCode(),
+                        'message'   => $e->getMessage(),
+                    );
+                    $onego->log('funds usage call exception: '.$e->getMessage(), ModelTotalOnego::LOG_ERROR);
                 }
-            } catch (Exception $e) {
-                $response = array(
-                    'error'     => $e->getCode(),
-                    'message'   => $e->getMessage(),
-                );
-                $onego->log('funds usage call exception: '.$e->getMessage(), ModelTotalOnego::LOG_ERROR);
+                $this->response->setOutput(OneGoAPI_JSON::encode($response));
             }
-            $this->response->setOutput(OneGoAPI_JSON::encode($response));
         }
     }
     

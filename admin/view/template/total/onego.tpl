@@ -16,6 +16,15 @@
     <div class="content">
       <form action="<?php echo $action; ?>" method="post" enctype="multipart/form-data" id="form">
         <table class="form">
+          <?php foreach ($onego_config_fields as $field => $row) { ?>
+          <tr>
+            <td><?php echo $row['title']; ?></td>
+            <td><input type="text" name="onego_<?php echo $field ?>" value="<?php echo $row['value']; ?>" /></td>
+            <td style="color: gray;"><?php echo $row['help'] ?></td>
+          </tr>
+              <?php 
+          } 
+          ?>
           <tr>
             <td><?php echo $entry_status; ?></td>
             <td><select name="onego_status">
@@ -27,10 +36,12 @@
                 <option value="0" selected="selected"><?php echo $text_disabled; ?></option>
                 <?php } ?>
               </select></td>
+              <td></td>
           </tr>
           <tr>
             <td><?php echo $entry_sort_order; ?></td>
             <td><input type="text" name="onego_sort_order" value="<?php echo $onego_sort_order; ?>" size="1" /></td>
+            <td></td>
           </tr>
         </table>
       </form>

@@ -376,10 +376,6 @@ class ControllerCheckoutConfirm extends Controller {
                     $this->data['use_funds'] = $this->language->get('use_funds');
                     $this->data['no_funds_available'] = $this->language->get('no_funds_available');                    
                 }
-                
-                if (!$onego->isCurrentScopeSufficient()) {
-                    $this->data['payment'] = $this->getChild('total/onego/requireLogin');
-                }
             } else {
                 $this->data['onego_login_url'] = $this->url->link('total/onego/auth2');
                 $this->data['onego_authstatus_url'] = $this->url->link('total/onego/authStatus');
