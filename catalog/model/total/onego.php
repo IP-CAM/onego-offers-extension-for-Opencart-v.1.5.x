@@ -737,22 +737,24 @@ class ModelTotalOnego extends Model
     public static function getHeaderHtml()
     {
         $onego = self::getInstance();
-        return $onego->getJSIncludesHTML()
-                .$onego->getAuthServicesJS()
-                .$onego->getHtmlDecoratorJS()
-                .$onego->getDebugLogJS();
+        return $onego->getAssetsIncludesCode()
+                .$onego->getAuthServicesCode()
+                .$onego->getWidgetSlideoutCode()
+                .$onego->getDebugLogCode();
     }
     
-    public function getJSIncludesHTML()
+    public function getAssetsIncludesCode()
     {
-        return '<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>'."\n";
+        return 
+            '<link rel="stylesheet" type="text/css" href="catalog/view/theme/'.$this->config->get('config_template').'/stylesheet/onego.css" />'."\n".
+            '<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>'."\n";
     }
     
     /**
      *
      * @return string HTML/JC code to modify page contents 
      */
-    public function getHtmlDecoratorJS()
+    public function getHtmlDecoratorCode()
     {
         $this->load->language('total/onego');
         $javascript = '';
@@ -770,7 +772,22 @@ class ModelTotalOnego extends Model
 END;
     }
     
-    public function getAuthServicesJS()
+    public function getWidgetSlideoutCode()
+    {
+        if ($this->getConfig('widgetShow') == 'Y') {
+            return <<<END
+<script type="text/javascript">
+$(document).ready(function(){
+    OneGo.widget.load();
+});
+</script>
+
+END;
+        }
+        return '';
+    }
+    
+    public function getAuthServicesCode()
     {
         $authagent_url = $this->getConfig('authAgentURI');
         $authagent_url_full = $authagent_url.(strpos($authagent_url, '?') ? '&' : '?').'ref='.urlencode(self::selfUrl());
@@ -889,7 +906,7 @@ END;
     /**
      * Output HTML/JS code required to display log entries in Firebug's console
      */
-    public function getDebugLogJS()
+    public function getDebugLogCode()
     {
         $log = $this->getLog(true);
         $html = '';
@@ -924,7 +941,9 @@ END;
         if ($transaction = $this->getTransaction(false)) {
             $html .= 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction->getTransactionDto())).')};'."\r\n";
             $html .= 'console.dir(transaction);'."\r\n";
-        }
+            $html .= 'var transactionTtl = {\'expires\' : $.parseJSON('.json_encode(json_encode(date('Y-m-d H:i:s', time() + $transaction->getTtl()))).')};'."\r\n";
+            $html .= 'console.dir(transactionTtl);'."\r\n";
+        }        
         if ($token = $this->getSavedOAuthToken()) {
             $html .= 'var scopes = {\'token\' : $.parseJSON('.json_encode(json_encode($token)).')};'."\r\n";
             $html .= 'console.dir(scopes);'."\r\n";

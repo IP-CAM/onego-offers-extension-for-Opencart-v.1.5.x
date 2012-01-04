@@ -1586,27 +1586,3 @@ a.button:hover span {
 .banner div img {
 	margin-bottom: 20px;
 }
-
-/* onego tweaks */
-#column-right {
-	width: 250px;
-}
-#column-right + #content {
-	margin-right: 265px;
-}
-input.watermark {
-    color: gray;
-}
-input.watermark.focused {
-    color: black;
-}
-#onego_authwidget_container {
-    width: 350px;
-    height: 35px;
-}
-#onego_panel {
-    border: 1px solid #D8DEE1; 
-    margin: 0px 20px; 
-    border-radius: 5px;
-    background-color: #F0F0F0;
-}

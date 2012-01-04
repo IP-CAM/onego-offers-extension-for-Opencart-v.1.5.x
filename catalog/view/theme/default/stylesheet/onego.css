@@ -1,0 +1,45 @@
+#column-right {
+	width: 250px;
+}
+#column-right + #content {
+	margin-right: 265px;
+}
+input.watermark {
+    color: gray;
+}
+input.watermark.focused {
+    color: black;
+}
+#onego_authwidget_container {
+    width: 350px;
+    height: 35px;
+}
+#onego_panel {
+    border: 1px solid #D8DEE1; 
+    margin: 0px 20px; 
+    border-radius: 5px;
+    background-color: #F0F0F0;
+}
+
+#onego_widget_container {
+    position: absolute; 
+    left: -450px; 
+    top: 0pt; 
+    width: 480px;
+    z-index: 999;
+    padding-bottom: 5px;
+}
+
+#onego_widget_container .onego_widget_handle {
+    margin-top: 15px;
+    float: right;
+    width: 30px;
+}
+#onego_widget_container .onego_widget_handle .hide {
+    display: none;
+}
+#onego_widget_container .onego_widget {
+    margin-right: 30px;
+    width: 450px;
+    overflow: hidden;
+}

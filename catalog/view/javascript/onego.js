@@ -3,7 +3,8 @@ var OneGo = {
         debug: true,
         loginUri: $('base').attr('href') + 'index.php?route=total/onego/auth2',
         autologinUri: $('base').attr('href') + 'index.php?route=total/onego/autologin',
-        logoffUri: $('base').attr('href') + 'index.php?route=total/onego/cancel'
+        logoffUri: $('base').attr('href') + 'index.php?route=total/onego/cancel',
+        widgetUri: $('base').attr('href') + 'index.php?route=total/onego/widget'
     }
 }
 OneGo.XDC = function(){
@@ -137,6 +138,58 @@ OneGo.authWidget = {
             $('#onego_authwidget_container').append('<iframe id="onego_authwidget" name="onego_hidden_iframe" src="'+OneGo.authWidget.url+'" width="100%" height="100%" frameborder="0" allowtransparency="true" style="display: none;"></iframe>');
             $('#onego_authwidget').load(function(e){$('#onego_authwidget_loading').fadeOut('fast', function(){$('#onego_authwidget').fadeIn('fast');});})
         }
+    }
+}
+
+OneGo.widget = {
+    load: function() {
+        $('body').append('<div id="onego_widget_container"></div>');
+        $('#onego_widget_container').load(OneGo.config.widgetUri, OneGo.widget.onLoad);
+    },
+    getWidth: function() {
+        return $('#onego_widget_container iframe').outerWidth();
+        return $('#onego_widget_container .onego_widget>div').outerWidth();
+    },
+    show: function() {
+        $('#onego_widget_container').animate(
+            {left: 0},
+            200,
+            function() {
+                $('#onego_widget_container .onego_widget_handle .show').hide();
+                $('#onego_widget_container .onego_widget_handle .hide').show();
+            }
+        );
+    },
+    hide: function() {
+        $('#onego_widget_container').animate(
+            {left: 0 - OneGo.widget.getWidth()},
+            200,
+            function() {
+                $('#onego_widget_container .onego_widget_handle .show').show();
+                $('#onego_widget_container .onego_widget_handle .hide').hide();
+            }
+        );
+    },
+    setTopOffset: function(offset) {
+        $('#onego_widget_container').css('top', offset);
+    },
+    freeze: function() {
+        $('#onego_widget_container').css('position', 'fixed');
+    },
+    onLoad: function() {
+        if (!$('#onego_widget_container iframe').length) {
+            setTimeout(OneGo.widget.onLoad, 50);
+            return false;
+        }
+        OneGo.widget.updateWidth();
+        $('#onego_widget_container iframe').load(OneGo.widget.onComplete);
+    },
+    onComplete: function() { },
+    updateWidth: function() {
+        var w = OneGo.widget.getWidth();
+        $('#onego_widget_container').css('width', w + $('#onego_widget_container .onego_widget_handle').outerWidth());
+        $('#onego_widget_container .onego_widget').css('width', w);
+        $('#onego_widget_container').css('left', 0-w);
     }
 }
 
