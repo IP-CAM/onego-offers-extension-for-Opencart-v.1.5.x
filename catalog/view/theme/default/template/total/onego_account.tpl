@@ -11,19 +11,17 @@
                   <tr>
                       <td rowspan="2" align="left" valign="top">
                           <div id="onego_authwidget_container">
-                              <img src="catalog/view/theme/default/image/loading.gif" /> <!--Checking OneGo user identity... <a href="<?php echo $onego_disable; ?>" id="onego_logout">Wish to log out?</a>-->
+                              <img src="catalog/view/theme/default/image/loading.gif" />
                           </div>
                           <script type="text/javascript">
-                              OneGo.plugins.authWidget({
-                                  'font-color': '#FAFAFA',
-                                  'font-size': '16px',
-                                  'font': 'trebuchet ms',
-                                  'width': 250,
-                                  'height': 50
+                              OneGo.plugins.authWidget('onego_authwidget_container', {
+                                  'text-color': 'black',
+                                  'link-color': '#38B0E3',
+                                  'font-size': '12px',
+                                  'font': 'arial',
+                                  'height': 35
                               });
-                              </script>
-                          <a href="<?php echo $onego_disable; ?>" id="onego_logout" style="color: silver;">[logoff]</a>
-                          <a href="<?php echo $onego_update ?>" style="color: silver;">[upd]</a>
+                          </script>
                       </td>
                       <td align="right">
                           <?php

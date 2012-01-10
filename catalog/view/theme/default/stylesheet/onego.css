@@ -31,7 +31,7 @@ input.onego_watermark.focused {
 }
 
 #onego_widget_container .onego_widget_handle {
-    margin-top: 15px;
+    margin-top: 35px;
     float: right;
     width: 30px;
     background: transparent url(../image/onego_handle.png) no-repeat center center;
@@ -57,4 +57,7 @@ input.onego_watermark.focused {
     margin-right: 30px;
     width: 450px;
     overflow: hidden;
+}
+.onego_plugin {
+    display: none;
 }

@@ -88,11 +88,6 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
         }
     });
 });
-
-$(document).ready(function(){
-    OneGo.decorator.apply();
-    OneGo.authWidget.init();
-})
 //-->
 </script>
 
@@ -124,8 +119,17 @@ $(document).ready(function(){
                       <tr>
                           <td align="left" rowspan="2">
                               <div id="onego_authwidget_container">
-                                  <img src="catalog/view/theme/default/image/loading.gif" /> <!--Checking OneGo user identity... <a href="<?php echo $onego_disable; ?>" id="onego_logout">Wish to log out?</a>-->
+                                  <img src="catalog/view/theme/default/image/loading.gif" />
                               </div>
+                              <script type="text/javascript">
+                                  OneGo.plugins.authWidget('onego_authwidget_container', {
+                                      'text-color': 'black',
+                                      'link-color': '#38B0E3',
+                                      'font-size': '12px',
+                                      'font': 'arial',
+                                      'height': 35
+                                  });
+                              </script>
                           </td>
                           <td align="right">
                               <?php

@@ -737,47 +737,30 @@ class ModelTotalOnego extends Model
     public static function getHeaderHtml()
     {
         $onego = self::getInstance();
-        return $onego->getInitCode()
-                .$onego->getAuthServicesCode()
+        return $onego->getInitHeaderCode()
                 .$onego->getWidgetSlideoutCode()
                 .$onego->getDebugLogCode();
     }
     
-    public function getInitCode()
+    public function getInitHeaderCode()
     {
         $pluginsURI = $this->getConfig('pluginsURI');
-        return 
-            '<link rel="stylesheet" type="text/css" href="catalog/view/theme/'.$this->config->get('config_template').'/stylesheet/onego.css" />'."\n".
-            '<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>'."\n".
-            '<script type="text/javascript">'."\n".
-            "OneGo.plugins.setURI('{$pluginsURI}');\n".
-            '</script>';
-    }
-    
-    /**
-     *
-     * @return string HTML/JC code to modify page contents 
-     */
-    /*
-    public function getHtmlDecoratorCode()
-    {
-        $this->load->language('total/onego');
-        $javascript = '';
-        if ($receivables = $this->getFromRegistry('receivables')) {
-            list($receivables_from, $receivables_to) = each($receivables);
-            $receivables_from = self::escapeJs($receivables_from);
-            $receivables_to = self::escapeJs($receivables_to);
-            $javascript .= 'OneGo.decorator.placeholders[\''.$receivables_from.'\'] = \''.$receivables_to.'\''."\r\n";
-        }
-        return <<<END
+        $html = <<<END
+<link rel="stylesheet" type="text/css" href="catalog/view/theme/{$this->config->get('config_template')}/stylesheet/onego.css" />
+<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>
 <script type="text/javascript">
-{$javascript}
-</script>
+OneGo.plugins.setURI('{$pluginsURI}');
 
 END;
+        // autologin attempts are blocked
+        if ($this->autologinBlockedUntil()) {
+            $autologinBlockedFor = ($this->autologinBlockedUntil() - time()) * 1000;
+            $html .= "OneGo.opencart.blockAutologin({$autologinBlockedFor});\n";
+        }
+        $html .= $this->renderAuthAgentListenersCode();
+        $html .= "</script>\n";
+        return $html;
     }
-     * 
-     */
     
     public function getWidgetSlideoutCode()
     {
@@ -794,49 +777,29 @@ END;
         return '';
     }
     
-    public function getAuthServicesCode()
-    {
-        $authagent_listeners_code = $this->renderAuthAgentListenersCode();
-        $autologin_blocked_until = $this->autologinBlockedUntil() ? ($this->autologinBlockedUntil() - time()) * 1000 : 0;
-        $html = <<<END
-<script type="text/javascript">
-OneGo.authAgent.autologinBlockedUntil = new Date().getTime() + {$autologin_blocked_until};
-{$authagent_listeners_code}</script>
-
-END;
-        return $html;
-    }
-    
     public function setDefaultAuthAgentListeners()
     {
         if (!empty($this->request->request['route']) && ($this->request->request['route'] == 'checkout/checkout')) {
-            // widget listeners specific for checkout page only
+            // widget listeners specific for checkout page only (AJAX used)
             if ($this->isUserAuthenticated()) {
                 // listen for logoff on widget
                 $this->setAuthAgentListener(self::AUTH_MESSAGE_ANONYMOUS, 
-                        'function(){
-                            OneGo.opencart.processLogoffDynamic();
-                         }'
+                        'OneGo.opencart.processLogoffDynamic'
                 );
             } else {
                 // listen for login on widget
                 $this->setAuthAgentListener(self::AUTH_MESSAGE_AUTHENTICATED, 
-                        'function(){ 
-                            OneGo.opencart.processLoginDynamic();
-                         }'
+                        'OneGo.opencart.processLoginDynamic'
                 );
             }
         } else {
+            // listeners for simple pages
             if ($this->isUserAuthenticated()) {
                 // listen for logoff on widget
-                $url = $this->getRegistryObj()->get('url')->link('total/onego/cancel');
-                $js = "function(){ window.location.href='{$url}'; }";
-                $this->setAuthAgentListener(self::AUTH_MESSAGE_ANONYMOUS, $js);
+                $this->setAuthAgentListener(self::AUTH_MESSAGE_ANONYMOUS, 'OneGo.opencart.processLogoff');
             } else {
                 // listen for login on widget
-                $url = $this->getRegistryObj()->get('url')->link('total/onego/autologin');
-                $js = "function(){ if (OneGo.authAgent.isAutologinAllowed()) window.location.href='{$url}'; }";
-                $this->setAuthAgentListener(self::AUTH_MESSAGE_AUTHENTICATED, $js);
+                $this->setAuthAgentListener(self::AUTH_MESSAGE_AUTHENTICATED, 'OneGo.opencart.processAutoLogin');
             }
         }
     }
@@ -857,7 +820,7 @@ END;
         $code = '';
         foreach (self::$authagent_listeners as $message => $js) {
             if (!empty($js)) {
-                $code .= 'OneGo.authAgent.setListener(\''.$message.'\', '.$js.");\r\n";
+                $code .= 'OneGo.plugins.authAgent.setListener(\''.$message.'\', '.$js.");\r\n";
             }
         }
         return $code;

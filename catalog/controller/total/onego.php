@@ -16,8 +16,6 @@ class ControllerTotalOnego extends Controller {
         $onego->autostartTransaction();
         
         if ($onego->isUserAuthenticated()) {
-            $this->data['onego_disable'] = $this->url->link('total/onego/cancel');
-            $this->data['onego_update'] = $this->url->link('total/onego/updatebenefits');
             $this->data['onego_action'] = $this->url->link('checkout/cart');
             $this->data['onego_use_funds_url'] = $this->url->link('total/onego/usefunds');
             $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
@@ -278,7 +276,7 @@ class ControllerTotalOnego extends Controller {
         }
     }
     
-    public function updatebenefits()
+    public function update()
     {
         $onego = $this->getModel();
         $referer = $this->getReferer();

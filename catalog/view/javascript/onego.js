@@ -64,117 +64,131 @@ OneGo.XDC = function(){
     };
 }();
 
-OneGo.authAgent = {
-    getURI: function(){
-        return OneGo.plugins.getURI()+'/authagent?ref='+encodeURIComponent(document.location.href);
-    },
-    getHost: function(){
-        return this.getURI().replace(/^([a-z]+:\/\/[^\/]+)(.*)$/i, "\$1");
-    },
-    handlers: {},
-    autologinBlockedUntil: false,
-    init: function() {
-        $('body').append('<iframe id="onego_authagent" name="onego_authagent" src="'+this.getURI()+'" width="0" height="0" frameborder="0"></iframe>');
-        OneGo.authAgent.initListeners();
-    },
-    initListeners: function(){
+OneGo.plugins = function() {
+    var URI = '';
+    var initQueue = [];
+    var initialized = false;
+    
+    return {
+        setURI: function(uri){
+            URI = uri.replace(/\/$/, '');
+        },
+        getURI: function(){
+            return URI;
+        },
+        addToInitQueue: function(callback) {
+            if (initialized) {
+                callback();
+            } else {
+                initQueue.push(callback);
+            }
+        },
+        initialize: function() {
+            for (var k in initQueue) {
+                initQueue[k]();
+                delete initQueue[k];
+            }
+            initialized = true;
+        }
+    }
+}();
+
+$(document).ready(function(){
+    OneGo.plugins.initialize();
+});
+
+OneGo.plugins.authAgent = function()
+{
+    var handlers = {};
+    
+    function initialize()
+    {
+        $('body').append('<iframe id="onego_plugin_authagent" name="onego_plugin_authagent" src="'+getURI()+'" width="0" height="0" frameborder="0" class="onego_plugin"></iframe>');
+        initListeners();
+    }
+    OneGo.plugins.addToInitQueue(initialize);
+    
+    function initListeners()
+    {
         OneGo.XDC.receiveMessage(function(authWidgetMessage){
             var str = [];
-            for (var msg in OneGo.authAgent.handlers) {
+            for (var msg in handlers) {
                 str.push(msg);
             }
             OneGo.log('Message received from OneGo authWidget: '+authWidgetMessage.data+' / listening for: '+str.join('; '));
             
-            for (var msg in OneGo.authAgent.handlers) {
-                if ((msg == authWidgetMessage.data) && OneGo.authAgent.handlers[msg]) {
-                    OneGo.authAgent.handlers[msg]();
+            for (var msg in handlers) {
+                if ((msg == authWidgetMessage.data) && handlers[msg]) {
+                    handlers[msg]();
                 }
             }
-        }, this.getHost());
-    },
-    autologin: function(callback) {
-        if (OneGo.authAgent.isAutologinAllowed()) {
-            $('iframe#onego_autologin').remove();
-            $(document.body).append('<iframe id="onego_autologin" name="onego_autologin" width="0" height="0" frameborder="0" src="'+OneGo.config.autologinUri+'"></iframe>');
-            $('iframe#onego_autologin').load(function(){
-                callback();
-                $('iframe#onego_autologin').remove();
-            });
-        }
-    },
-    logoff: function(callback){
-        $.ajax({
-            url: OneGo.config.logoffUri, 
-            type: 'post',
-            data: null,
-            dataType: 'json',
-            complete: function() {
-                callback();
-            }
-        });
-    },
-    setListener: function(message, callback) {
-        if (typeof callback == 'undefined' || !callback) {
-            delete OneGo.authAgent.handlers[message];
-        } else {
-            OneGo.authAgent.handlers[message] = callback;
-        }
-    },
-    isAutologinAllowed: function() {
-        var blockedTill = new Date(OneGo.authAgent.autologinBlockedUntil).getTime();
-        var now = new Date().getTime();
-        if (blockedTill > now) {
-            OneGo.log('Autologin blocked for '+((blockedTill - now)/1000)+' more seconds');
-            return false;
-        }
-        return true;
+        }, getHost());
     }
-}
-OneGo.authWidget = {
-    getURI: function(){
-        return OneGo.plugins.getURI()+'/authwidget';
-    },
-    init: function() {
-        if ($('#onego_authwidget_container').length) {
-            $('#onego_authwidget_container').html('<div id="onego_authwidget_loading">'+$('#onego_authwidget_container').html()+'</div>');
-            $('#onego_authwidget_container').append('<iframe id="onego_authwidget" name="onego_hidden_iframe" src="'+this.getURI()+'" width="100%" height="100%" frameborder="0" allowtransparency="true" style="display: none;"></iframe>');
-            $('#onego_authwidget').load(function(e){$('#onego_authwidget_loading').hide('fast', function(){$('#onego_authwidget').show('fast');});})
-        }
-    }
-}
-
-OneGo.plugins = new function() {
-    var URI = '';
-    var initQueue = [];
-    this.setURI = function(uri){
-        this.URI = uri.replace(/\/$/, '');
-    },
-    this.getURI = function(){
-        return this.URI;
-    }
-    this.addToInitQueue = function(callback) {
-        initQueue.push(callback);
-    },
-    this.initialize = function() {
-        for (var k in initQueue) {
-            initQueue[k]();
-        }
-    }
-}
-OneGo.plugins.authWidget = function(params) {
     
-    /*
-    (function(initParams){
-        console.dir(initParams)
-    }(params));
-    */
-   
-    /*
-    this.getURI = function(){
-        return OneGo.plugins.getURI()+'/authwidget';
+    function getHost()
+    {
+        return getURI().replace(/^([a-z]+:\/\/[^\/]+)(.*)$/i, "\$1");
     }
-    */
-   //console.dir(this)
+    
+    function getURI()
+    {
+        return OneGo.plugins.getURI()+'/authagent?ref='+encodeURIComponent(document.location.href);
+    }
+    
+    return {
+        setListener: function(message, callback) {
+            handlers[message] = callback;
+        },
+        unsetListener: function(message) {
+            delete handlers[message];
+        }
+    }
+}();
+
+OneGo.plugins.authWidget = function(elementId, initParams) {
+    
+    initParams = initParams || {};
+    var params = {
+        'tc':   initParams['text-color'] || false,
+        'lc':   initParams['link-color'] || false,
+        'fo':   initParams['font'] || false,
+        'ts':   initParams['font-size'] || false,
+        'wi':   initParams['width'] || false,
+        'he':   initParams['height'] || false
+    }
+    
+    var w = params.wi ? params.wi+'px' : $('#'+elementId).outerWidth();
+    var h = params.he ? params.he+'px' : '40px';
+    var plugin = $('<div class="onego_plugin" width="'+w+'" height="'+h+'"></div>');
+    if ($('#'+elementId).length) {
+        $('#'+elementId).append(plugin);
+        OneGo.plugins.addToInitQueue(initialize);
+    }
+    
+    function getURI() 
+    {
+        var uri = OneGo.plugins.getURI()+'/authwidget';
+        var query = [];
+        for (var k in params) {
+            if (params[k]) {
+                query.push(k+'='+escape(params[k]));
+            }
+        }        
+        return uri + (query.length ? '?' + query.join('&') : '');
+    }
+    
+    function initialize()
+    {
+        var iframe = $('<iframe src="'+getURI()
+            +'" width="'+w+'" height="'+h
+            +'" frameborder="0" allowtransparency="true"></iframe>'
+        );
+        plugin.append(iframe);
+        iframe.load(function(e){
+            $('#'+elementId).html('').append(plugin);
+            plugin.show();
+        });
+    }
 }
 
 OneGo.widget = {
@@ -263,17 +277,25 @@ OneGo.opencart = {
     loginPromptSuccess: false,
     processLoginDynamic: function(){
         console.info('OneGo.authAgent.processLoginDynamic');
-        OneGo.authAgent.autologin(OneGo.opencart.reloadCheckoutOrderInfo);
+        OneGo.opencart.autologin(OneGo.opencart.reloadCheckoutOrderInfo);
         // listen for widget logoff
         OneGo.authAgent.setListener('onego.widget.user.authenticated', false);
         OneGo.authAgent.setListener('onego.widget.user.anonymous', OneGo.opencart.processLogoffDynamic);
     },
     processLogoffDynamic: function(){
         console.info('OneGo.authAgent.processLogoffDynamic');
-        OneGo.authAgent.logoff(OneGo.opencart.reloadCheckoutOrderInfo);
+        OneGo.opencart.logoff(OneGo.opencart.reloadCheckoutOrderInfo);
         // listen for widget login
         OneGo.authAgent.setListener('onego.widget.user.anonymous', false);
         OneGo.authAgent.setListener('onego.widget.user.authenticated', OneGo.opencart.processLoginDynamic);
+    },
+    processAutoLogin: function(){
+        if (OneGo.opencart.isAutologinAllowed()) {
+            window.location.href = OneGo.config.autologinUri;
+        }
+    },
+    processLogoff: function(){
+        window.location.href = OneGo.config.logoffUri;
     },
     reloadCheckoutOrderInfo: function(){
         if ($('#confirm .checkout-content').length && $('#confirm .checkout-content').is(':visible')) {
@@ -381,29 +403,46 @@ OneGo.opencart = {
     },
     reloadWidget: function(){
         $('.onego_widget iframe').attr('src', $('.onego_widget iframe').attr('src'));
-    }
-}
-
-/*
-OneGo.decorator = {
-    placeholders: {},
-    init: function() {
-        OneGo.decorator.apply();
     },
-    apply: function() {
-        OneGo.decorator.replacePlaceholdersIn('div.cart-total td, #confirm .checkout-product td');
+    autologin: function(callback) {
+        if (OneGo.opencart.isAutologinAllowed()) {
+            $('iframe#onego_autologin').remove();
+            $(document.body).append('<iframe id="onego_autologin" name="onego_autologin" width="0" height="0" frameborder="0" src="'+OneGo.config.autologinUri+'"></iframe>');
+            $('iframe#onego_autologin').load(function(){
+                callback();
+                $('iframe#onego_autologin').remove();
+            });
+        }
     },
-    replacePlaceholdersIn: function(element) {
-        $(element).each(function(){
-            for (var k in OneGo.decorator.placeholders) {
-                if ($(this).html() == k) {
-                    $(this).html(OneGo.decorator.placeholders[k]);
-                }
+    isAutologinAllowed: function() {
+        if (!OneGo.opencart.autologinBlockedUntil) {
+            return true;
+        }
+        var blockedTill = new Date(OneGo.opencart.autologinBlockedUntil).getTime();
+        var now = new Date().getTime();
+        if (blockedTill > now) {
+            OneGo.log('Autologin blocked for '+((blockedTill - now)/1000)+' more seconds');
+            return false;
+        }
+        return true;
+    },
+    autologinBlockedUntil: false,
+    blockAutologin: function(seconds)
+    {
+        OneGo.opencart.autologinBlockedUntil = new Date().getTime() + seconds;
+    },
+    logoff: function(callback){
+        $.ajax({
+            url: OneGo.config.logoffUri, 
+            type: 'post',
+            data: null,
+            dataType: 'json',
+            complete: function() {
+                callback();
             }
         });
     }
 }
-*/
 
 OneGo.log = function(msg)
 {
@@ -419,15 +458,14 @@ OneGo.lib = {
     },
     unsetAsLoading: function(element) {
         element.attr('disabled', false);
+    },
+    generateUniqueId: function(){
+        return "id" + Math.random() * Math.pow(10, 17) + Math.random() * Math.pow(10, 17) + Math.random() * Math.pow(10, 17) + Math.random() * Math.pow(10, 17);
     }
 }
 
 // initialize on load
 $(document).ready(function(){
-    OneGo.authAgent.init();
-    OneGo.authWidget.init();
-    //OneGo.decorator.init();
-    
     $('input.watermark').focus(function(){
         $(this).addClass('focused');
         $(this).val('');
