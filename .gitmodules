@@ -1,0 +1,3 @@
+[submodule "system/library/onego/php-api"]
+	path = system/library/onego/php-api
+	url = gitosis@git.onego.com:public/php-api.git
