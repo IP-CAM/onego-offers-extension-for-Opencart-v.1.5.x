@@ -737,23 +737,28 @@ class ModelTotalOnego extends Model
     public static function getHeaderHtml()
     {
         $onego = self::getInstance();
-        return $onego->getAssetsIncludesCode()
+        return $onego->getInitCode()
                 .$onego->getAuthServicesCode()
                 .$onego->getWidgetSlideoutCode()
                 .$onego->getDebugLogCode();
     }
     
-    public function getAssetsIncludesCode()
+    public function getInitCode()
     {
+        $pluginsURI = $this->getConfig('pluginsURI');
         return 
             '<link rel="stylesheet" type="text/css" href="catalog/view/theme/'.$this->config->get('config_template').'/stylesheet/onego.css" />'."\n".
-            '<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>'."\n";
+            '<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>'."\n".
+            '<script type="text/javascript">'."\n".
+            "OneGo.plugins.setURI('{$pluginsURI}');\n".
+            '</script>';
     }
     
     /**
      *
      * @return string HTML/JC code to modify page contents 
      */
+    /*
     public function getHtmlDecoratorCode()
     {
         $this->load->language('total/onego');
@@ -771,6 +776,8 @@ class ModelTotalOnego extends Model
 
 END;
     }
+     * 
+     */
     
     public function getWidgetSlideoutCode()
     {
@@ -789,15 +796,10 @@ END;
     
     public function getAuthServicesCode()
     {
-        $authagent_url = $this->getConfig('authAgentURI');
-        $authagent_url_full = $authagent_url.(strpos($authagent_url, '?') ? '&' : '?').'ref='.urlencode(self::selfUrl());
         $authagent_listeners_code = $this->renderAuthAgentListenersCode();
         $autologin_blocked_until = $this->autologinBlockedUntil() ? ($this->autologinBlockedUntil() - time()) * 1000 : 0;
         $html = <<<END
 <script type="text/javascript">
-OneGo.authAgent.url = '{$authagent_url}';
-OneGo.authAgent.url_full = '{$authagent_url_full}';
-OneGo.authWidget.url = '{$this->getConfig('authWidgetURI')}';
 OneGo.authAgent.autologinBlockedUntil = new Date().getTime() + {$autologin_blocked_until};
 {$authagent_listeners_code}</script>
 

@@ -111,7 +111,7 @@ $(document).ready(function(){
             </li>
             <li>
                 I wish to redeem my Gift Card:
-                <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="watermark" value="Gift Card Number" />
+                <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="Gift Card Number" />
                 <input type="button" value="Redeem" onclick="OneGo.opencart.redeemGiftCardAnonymous();" />
             </li>
         </ul>
@@ -147,7 +147,7 @@ $(document).ready(function(){
                       <tr>
                           <td align="right" valign="top">
                               <?php if (!empty($onego_applied)) { ?>
-                                  <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="watermark" />
+                                  <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="onego_watermark" />
                                   <input type="button" id="onego_giftcard_redeem" value="redeem" />
                               <?php } ?>
                           </td>

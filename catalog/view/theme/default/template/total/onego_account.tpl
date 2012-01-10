@@ -13,6 +13,15 @@
                           <div id="onego_authwidget_container">
                               <img src="catalog/view/theme/default/image/loading.gif" /> <!--Checking OneGo user identity... <a href="<?php echo $onego_disable; ?>" id="onego_logout">Wish to log out?</a>-->
                           </div>
+                          <script type="text/javascript">
+                              OneGo.plugins.authWidget({
+                                  'font-color': '#FAFAFA',
+                                  'font-size': '16px',
+                                  'font': 'trebuchet ms',
+                                  'width': 250,
+                                  'height': 50
+                              });
+                              </script>
                           <a href="<?php echo $onego_disable; ?>" id="onego_logout" style="color: silver;">[logoff]</a>
                           <a href="<?php echo $onego_update ?>" style="color: silver;">[upd]</a>
                       </td>
@@ -31,7 +40,7 @@
                   <tr>
                       <td align="right">
                           <?php if (!empty($onego_applied)) { ?>
-                              <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="watermark" />
+                              <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="onego_watermark" />
                               <input type="button" id="onego_giftcard_redeem" value="redeem" />
                           <?php } ?>
                       </td>

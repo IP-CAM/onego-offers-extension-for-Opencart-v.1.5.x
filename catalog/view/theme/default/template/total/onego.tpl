@@ -12,7 +12,7 @@
               </td>
               <td width="45%" align="center">
                   <div style="padding-bottom: 5px;">Got a gift card?</div>
-                  <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="watermark" value="Gift Card Number" />
+                  <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="Gift Card Number" />
                   <a href="javascript:OneGo.opencart.redeemGiftCardAnonymous();" class="button"><span>Redeem</span></a>
               </td>
           </tr>

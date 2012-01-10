@@ -19,11 +19,8 @@ $oneGoConfig['authorizationURI'] = 'http://mobile-local.dev.onego.com/authorize'
 // OneGo OAuth service URL address
 $oneGoConfig['oAuthURI'] = 'http://oauth.dev.onego.cloud:8080/oauth';
 
-// authAgent URL address
-$oneGoConfig['authAgentURI'] = 'http://authwidget.dev.onego.com/agent';
-
-// authWidget URL address
-$oneGoConfig['authWidgetURI'] = 'http://authwidget.dev.onego.com';
+// OneGo plugins URL address
+$oneGoConfig['pluginsURI'] = 'http://plugins.dev.onego.com/';
 
 $oneGoConfig['widgetShow'] = 'Y';
 $oneGoConfig['widgetTopOffset'] = '50';

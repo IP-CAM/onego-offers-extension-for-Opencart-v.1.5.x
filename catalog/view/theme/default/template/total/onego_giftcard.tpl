@@ -18,7 +18,7 @@
     <div style="margin-left: 15px; color: gray;">
         Let OneGo know your email and all gift card funds not used in this transaction will be kept for you.<br />
         You can register later to use those funds and receive other great benefits.<br />
-        <input type="text" class="watermark" value="Your e-mail address" style="margin-top: 3px; width: 300px;" />
+        <input type="text" class="onego_watermark" value="Your e-mail address" style="margin-top: 3px; width: 300px;" />
         <input type="button" value="Share e-mail" style="margin-top: 3px;" />
     </div>
 </li>
