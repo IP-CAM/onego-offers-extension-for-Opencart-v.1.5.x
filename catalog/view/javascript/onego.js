@@ -4,8 +4,7 @@ var OneGo = {
         loginUri: $('base').attr('href') + 'index.php?route=total/onego/auth2',
         autologinUri: $('base').attr('href') + 'index.php?route=total/onego/autologin',
         logoffUri: $('base').attr('href') + 'index.php?route=total/onego/cancel',
-        widgetUri: $('base').attr('href') + 'index.php?route=total/onego/widget',
-        
+        widgetUri: $('base').attr('href') + 'index.php?route=total/onego/widget'        
     }
 }
 
@@ -222,6 +221,8 @@ OneGo.plugins.widget = (function(){
         timeoutId;
     var container = $('<div id="onego_widget_container"></div>');
     
+    var customOnShowCallback, customOnHideCallback, customOnLoadCompleteCallback;
+    
     function initialize() 
     {
         container.css('top', topOffset);
@@ -240,7 +241,7 @@ OneGo.plugins.widget = (function(){
         }
         updateWidth();
         $('iframe', container).load(onCompleteCallback);
-        $('iframe, .onego_widget_handle div', container)
+        $('.onego_widget, .onego_widget_handle div', container)
             .mouseover(hoverOn)
             .mouseout(hoverOff);
     }
@@ -248,26 +249,25 @@ OneGo.plugins.widget = (function(){
     function onCompleteCallback() 
     {
         loads++;
-        if (loads == 2) {
+        if (loads == 2 && !isLoaded) {
             isLoaded = true;
-            if ($('.onego_widget_handle .onego_widget_loading', container).is(':visible')) {
-                $('.onego_widget_handle .onego_widget_loading', container).hide();
-                $('.onego_widget_handle .onego_widget_show', container).show();
+            if (customOnLoadCompleteCallback) {
+                customOnLoadCompleteCallback(container);
             }
         }
     }
     
-    function getIframeWidth()
+    function getIframeWidthDiff()
     {
-        return $('iframe', container).outerWidth();
+        return $('iframe', container).outerWidth() - $('.onego_widget', container).width();
     }
     
     function updateWidth() 
     {
-        var w = getIframeWidth();
-        container.css('width', w + $('.onego_widget_handle', container).outerWidth());
-        $('.onego_widget', container).css('width', w);
-        container.css('left', 0-w);
+        var diff = getIframeWidthDiff();
+        container.css('width', container.outerWidth() + diff);
+        $('.onego_widget', container).css('width', $('.onego_widget', container).width() + diff);
+        container.css('left', 0 - $('.onego_widget', container).outerWidth());
     }
     
     function hoverOn()
@@ -290,8 +290,9 @@ OneGo.plugins.widget = (function(){
                 { left: 0 },
                 200,
                 function() {
-                    $('.onego_widget_handle .onego_widget_show', container).hide();
-                    $('.onego_widget_handle .onego_widget_hide', container).show();
+                    if (customOnShowCallback) {
+                        customOnShowCallback(container);
+                    }
                     isShown = true;
                 }
             );
@@ -302,11 +303,12 @@ OneGo.plugins.widget = (function(){
     {
         if (isShown) {
             container.animate(
-                { left: 0 - getIframeWidth() },
+                { left: 0 - $('.onego_widget', container).outerWidth() },
                 200,
                 function() {
-                    $('.onego_widget_handle .onego_widget_show', container).show();
-                    $('.onego_widget_handle .onego_widget_hide', container).hide();
+                    if (customOnHideCallback) {
+                        customOnHideCallback(container);
+                    }
                     isShown = false;
                 }
             );
@@ -318,6 +320,15 @@ OneGo.plugins.widget = (function(){
             topOffset = top_offset || 0;
             isFrozen = is_frozen || false;
             OneGo.plugins.addToInitQueue(initialize);
+        },
+        onShow: function(callback) {
+            customOnShowCallback = callback;
+        },
+        onHide: function(callback) {
+            customOnHideCallback = callback;
+        },
+        onLoadComplete: function(callback) {
+            customOnLoadCompleteCallback = callback;
         }
     }
     
@@ -520,10 +531,20 @@ OneGo.log = function(msg, level)
 
 OneGo.lib = {
     setAsLoading: function(element) {
-        element.attr('disabled', true);
+        var curtain = $('<div class="onego_loading"><div></div></div>')
+        curtain.css('width', element.outerWidth());
+        curtain.css('height', element.outerHeight());
+        //element.attr('disabled', true);
+        element.hide();
+        element.after(curtain);
+        
     },
     unsetAsLoading: function(element) {
-        element.attr('disabled', false);
+        //element.attr('disabled', false);
+        element.show();
+        if (element.next().hasClass('onego_loading')) {
+            element.next().remove();
+        }
     }
 }
 

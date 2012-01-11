@@ -93,75 +93,77 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
 
 
 <div id="onego_controls" style="margin-bottom: 10px;">
-    <fieldset id="onego_panel">
-        <legend><img src="catalog/view/theme/default/image/onego.png" alt="OneGo benefits" title="OneGo benefits" /></legend>
-        <?php if (empty($onego_authenticated)) { ?>
-        <ul style="margin: 0px; padding: 0px 20px;">
-            <li>
-                I already have my OneGo account - <a href="<?php echo $onego_login_url ?>" class="button" id="onego_login"><span>Apply my benefits</span></a>
-            </li>
-            <li>
-                I wish to receive OneGo rewards for the purchase and I agree that my e-mail address is exposed to OneGo: 
-                <input type="checkbox" id="onego_agree" value="y" <?php echo !empty($onego_agreed) ? 'checked="checked"' : '' ?> />
-            </li>
-            <li>
-                I wish to redeem my Gift Card:
-                <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="Gift Card Number" />
-                <input type="button" value="Redeem" onclick="OneGo.opencart.redeemGiftCardAnonymous();" />
-            </li>
-        </ul>
+    <div id="onego_panel">
+          <div id="onego_panel_label"></div>
+          <div id="onego_panel_content">
+            <?php if (empty($onego_authenticated)) { ?>
+            <ul style="margin: 0px; padding: 0px 20px;">
+                <li>
+                    I already have my OneGo account - <a href="<?php echo $onego_login_url ?>" class="button" id="onego_login"><span>Apply my benefits</span></a>
+                </li>
+                <li>
+                    I wish to receive OneGo rewards for the purchase and I agree that my e-mail address is exposed to OneGo: 
+                    <input type="checkbox" id="onego_agree" value="y" <?php echo !empty($onego_agreed) ? 'checked="checked"' : '' ?> />
+                </li>
+                <li>
+                    I wish to redeem my Gift Card:
+                    <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="Gift Card Number" />
+                    <input type="button" value="Redeem" onclick="OneGo.opencart.redeemGiftCardAnonymous();" />
+                </li>
+            </ul>
 
-        <?php } else { ?>
+            <?php } else { ?>
 
-          <div class="onego_funds">
-              <form action="<?php echo $onego_action ?>" method="post" id="onego_account">
-                  <table border="0" width="100%">
-                      <tr>
-                          <td align="left" rowspan="2">
-                              <div id="onego_authwidget_container">
-                                  <img src="catalog/view/theme/default/image/loading.gif" />
-                              </div>
-                              <script type="text/javascript">
-                                  OneGo.plugins.authWidget('onego_authwidget_container', {
-                                      'text-color': 'black',
-                                      'link-color': '#38B0E3',
-                                      'font-size': '12px',
-                                      'font': 'arial',
-                                      'height': 35
-                                  });
-                              </script>
-                          </td>
-                          <td align="right">
-                              <?php
-                              if (!empty($onego_applied)) {
-                                  if (!empty($onego_funds)) {
-                                      $status = $onego_funds['amount'] > 0 ? '' : ' disabled="disabled"';
-                                      $status .= $onego_funds['is_used'] ? ' checked="checked"' : '';
-                                      echo '<label for="use_onego_funds">'.$onego_funds['title'].'</label> ';
-                                      echo '<input type="checkbox" name="use_onego_funds" class="onego_funds" id="use_onego_funds" value="y"'.$status.' /> ';
-                                  } else {
-                                      ?>
-                                  <em><?php echo $no_funds_available; ?></em>
-                                      <?php
+              <div class="onego_funds">
+                  <form action="<?php echo $onego_action ?>" method="post" id="onego_account">
+                      <table border="0" width="100%">
+                          <tr>
+                              <td align="left" rowspan="2">
+                                  <div id="onego_authwidget_container">
+                                      <img src="catalog/view/theme/default/image/loading.gif" />
+                                  </div>
+                                  <script type="text/javascript">
+                                      OneGo.plugins.authWidget('onego_authwidget_container', {
+                                          'text-color': 'black',
+                                          'link-color': '#38B0E3',
+                                          'font-size': '12px',
+                                          'font': 'arial',
+                                          'height': 35
+                                      });
+                                  </script>
+                              </td>
+                              <td align="right">
+                                  <?php
+                                  if (!empty($onego_applied)) {
+                                      if (!empty($onego_funds)) {
+                                          $status = $onego_funds['amount'] > 0 ? '' : ' disabled="disabled"';
+                                          $status .= $onego_funds['is_used'] ? ' checked="checked"' : '';
+                                          echo '<label for="use_onego_funds">'.$onego_funds['title'].'</label> ';
+                                          echo '<input type="checkbox" name="use_onego_funds" class="onego_funds" id="use_onego_funds" value="y"'.$status.' /> ';
+                                      } else {
+                                          ?>
+                                      <em><?php echo $no_funds_available; ?></em>
+                                          <?php
+                                      }
                                   }
-                              }
-                              ?>
-                          </td>
-                      </tr>
-                      <tr>
-                          <td align="right" valign="top">
-                              <?php if (!empty($onego_applied)) { ?>
-                                  <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="onego_watermark" />
-                                  <input type="button" id="onego_giftcard_redeem" value="redeem" />
-                              <?php } ?>
-                          </td>
-                      </tr>
-                  </table>
-              </form>
-          </div>
+                                  ?>
+                              </td>
+                          </tr>
+                          <tr>
+                              <td align="right" valign="top">
+                                  <?php if (!empty($onego_applied)) { ?>
+                                      <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="onego_watermark" />
+                                      <input type="button" id="onego_giftcard_redeem" value="redeem" />
+                                  <?php } ?>
+                              </td>
+                          </tr>
+                      </table>
+                  </form>
+              </div>
 
-        <?php } ?>
-    </fieldset>
+            <?php } ?>
+          </div>
+    </div>
 </div>
 
 

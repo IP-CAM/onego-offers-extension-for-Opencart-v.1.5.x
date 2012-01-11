@@ -6,3 +6,20 @@
 <div class="onego_widget">
     <?php echo $widgetCode; ?>
 </div>
+
+<script type="text/javascript">
+OneGo.plugins.widget.onLoadComplete(function(container){
+    if ($('.onego_widget_handle .onego_widget_loading', container).is(':visible')) {
+        $('.onego_widget_handle .onego_widget_loading', container).hide();
+        $('.onego_widget_handle .onego_widget_show', container).show();
+    }
+});
+OneGo.plugins.widget.onShow(function(container){
+    $('.onego_widget_handle .onego_widget_show', container).hide();
+    $('.onego_widget_handle .onego_widget_hide', container).show();
+});
+OneGo.plugins.widget.onHide(function(container){
+    $('.onego_widget_handle .onego_widget_show', container).show();
+    $('.onego_widget_handle .onego_widget_hide', container).hide();
+});
+</script>
