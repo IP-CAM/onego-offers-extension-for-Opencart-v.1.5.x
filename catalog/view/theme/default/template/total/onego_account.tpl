@@ -14,7 +14,7 @@
                               <img src="catalog/view/theme/default/image/loading.gif" />
                           </div>
                           <script type="text/javascript">
-                              OneGo.plugins.authWidget('onego_authwidget_container', {
+                              var authwidget = OneGo.plugins.authWidget('onego_authwidget_container', {
                                   'text-color': 'black',
                                   'link-color': '#38B0E3',
                                   'font-size': '12px',

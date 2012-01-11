@@ -738,7 +738,6 @@ class ModelTotalOnego extends Model
     {
         $onego = self::getInstance();
         return $onego->getInitHeaderCode()
-                .$onego->getWidgetSlideoutCode()
                 .$onego->getDebugLogCode();
     }
     
@@ -757,24 +756,24 @@ END;
             $autologinBlockedFor = ($this->autologinBlockedUntil() - time()) * 1000;
             $html .= "OneGo.opencart.blockAutologin({$autologinBlockedFor});\n";
         }
+        
+        // authAgent plugin listeners
         $html .= $this->renderAuthAgentListenersCode();
+        
+        // widget plugin
+        if ($this->getConfig('widgetShow') == 'Y') {
+            $topOffset = (int) $this->getConfig('widgetTopOffset');
+            $isFrozen = ($this->getConfig('widgetFrozen') == 'Y') ? 'true' : 'false';
+            $html .= "OneGo.plugins.widget.init({$topOffset}, {$isFrozen});\n";
+        }
+        
+        // enable debugging
+        if ($this->getConfig('debugModeOn')) {
+            $html .= "OneGo.config.debug = true;\n";
+        }
+        
         $html .= "</script>\n";
         return $html;
-    }
-    
-    public function getWidgetSlideoutCode()
-    {
-        if ($this->getConfig('widgetShow') == 'Y') {
-            return <<<END
-<script type="text/javascript">
-$(document).ready(function(){
-    OneGo.widget.load();
-});
-</script>
-
-END;
-        }
-        return '';
     }
     
     public function setDefaultAuthAgentListeners()
@@ -839,15 +838,17 @@ END;
      */
     public function log($str, $level = self::LOG_INFO, $max_length = 25)
     {
-        $log = $this->getLog();
-        $log[] = array(
-            'time'      => microtime(),
-            'pid'       => getmypid().' / '.implode(' / ', self::debugBacktrace()),
-            'message'   => $str,
-            'level'     => $level,
-        );
-        $log = array_slice($log, -$max_length); // keep log small
-        $this->saveToSession('log', $log);
+        if ($this->getConfig('debugModeOn')) {
+            $log = $this->getLog();
+            $log[] = array(
+                'time'      => microtime(),
+                'pid'       => getmypid().' / '.implode(' / ', self::debugBacktrace()),
+                'message'   => $str,
+                'level'     => $level,
+            );
+            $log = array_slice($log, -$max_length); // keep log small
+            $this->saveToSession('log', $log);
+        }
     }
     
     /**
@@ -875,49 +876,51 @@ END;
     {
         $log = $this->getLog(true);
         $html = '';
-        $html .= '<script type="text/javascript">';
-        $html .= 'if (typeof console != \'undefined\') { '."\r\n";
-        if (!empty($log)) {
-            
-            foreach ($log as $row) {
-                $msg = 'OneGo: '.$row['message'];
-                $msg = preg_replace('/[\r\n]+/', ' ', $msg);
-                $msg = preg_replace('/\'/', '\\\'', $msg);
-                list($usec, $sec) = explode(" ", $row['time']);
-                if (!empty($sec)) {
-                    $msg .= ' ['.date('H:i:s', $sec).' / '.$row['pid'].']';
+        if ($this->getConfig('debugModeOn')) {
+            $html .= '<script type="text/javascript">';
+            $html .= 'if (typeof console != \'undefined\') { '."\r\n";
+            if (!empty($log)) {
+
+                foreach ($log as $row) {
+                    $msg = 'OneGo: '.$row['message'];
+                    $msg = preg_replace('/[\r\n]+/', ' ', $msg);
+                    $msg = preg_replace('/\'/', '\\\'', $msg);
+                    list($usec, $sec) = explode(" ", $row['time']);
+                    if (!empty($sec)) {
+                        $msg .= ' ['.date('H:i:s', $sec).' / '.$row['pid'].']';
+                    }
+                    switch ($row['level']) {
+                        case self::LOG_INFO:
+                            $html .= 'console.log(\''.$msg.'\');';
+                            break;
+                        case self::LOG_NOTICE:
+                            $html .= 'console.info(\''.$msg.'\');';
+                            break;
+                        case self::LOG_WARNING:
+                            $html .= 'console.warn(\''.$msg.'\');';
+                            break;
+                        default:
+                            $html .= 'console.error(\''.$msg.'\');';
+                    }
+                    $html .= "\r\n";
                 }
-                switch ($row['level']) {
-                    case self::LOG_INFO:
-                        $html .= 'console.log(\''.$msg.'\');';
-                        break;
-                    case self::LOG_NOTICE:
-                        $html .= 'console.info(\''.$msg.'\');';
-                        break;
-                    case self::LOG_WARNING:
-                        $html .= 'console.warn(\''.$msg.'\');';
-                        break;
-                    default:
-                        $html .= 'console.error(\''.$msg.'\');';
-                }
-                $html .= "\r\n";
             }
+            if ($transaction = $this->getTransaction(false)) {
+                $html .= 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction->getTransactionDto())).')};'."\r\n";
+                $html .= 'console.dir(transaction);'."\r\n";
+                $html .= 'var transactionTtl = {\'expires\' : $.parseJSON('.json_encode(json_encode(date('Y-m-d H:i:s', time() + $transaction->getTtl()))).')};'."\r\n";
+                $html .= 'console.dir(transactionTtl);'."\r\n";
+            }        
+            if ($token = $this->getSavedOAuthToken()) {
+                $html .= 'var scopes = {\'token\' : $.parseJSON('.json_encode(json_encode($token)).')};'."\r\n";
+                $html .= 'console.dir(scopes);'."\r\n";
+            }
+            /*
+            $html .= 'var onego_session = {\'onego_session\' : $.parseJSON('.json_encode(json_encode($this->session->data[$this->registrykey])).')};'."\r\n";
+            $html .= 'console.dir(onego_session);'."\r\n";
+            */
+            $html .= '}</script>'."\r\n";
         }
-        if ($transaction = $this->getTransaction(false)) {
-            $html .= 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction->getTransactionDto())).')};'."\r\n";
-            $html .= 'console.dir(transaction);'."\r\n";
-            $html .= 'var transactionTtl = {\'expires\' : $.parseJSON('.json_encode(json_encode(date('Y-m-d H:i:s', time() + $transaction->getTtl()))).')};'."\r\n";
-            $html .= 'console.dir(transactionTtl);'."\r\n";
-        }        
-        if ($token = $this->getSavedOAuthToken()) {
-            $html .= 'var scopes = {\'token\' : $.parseJSON('.json_encode(json_encode($token)).')};'."\r\n";
-            $html .= 'console.dir(scopes);'."\r\n";
-        }
-        /*
-        $html .= 'var onego_session = {\'onego_session\' : $.parseJSON('.json_encode(json_encode($this->session->data[$this->registrykey])).')};'."\r\n";
-        $html .= 'console.dir(onego_session);'."\r\n";
-        */
-        $html .= '}</script>'."\r\n";
         return $html;
     }
     

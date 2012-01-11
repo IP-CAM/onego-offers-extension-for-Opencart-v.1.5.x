@@ -384,8 +384,6 @@ class ControllerTotalOnego extends Controller {
         
         $onego = $this->getModel();
         $this->data['widgetCode'] = html_entity_decode($onego->getConfig('widgetCode'));
-        $this->data['widgetTopOffset'] = (int) $onego->getConfig('widgetTopOffset');
-        $this->data['widgetFrozen'] = $onego->getConfig('widgetFrozen') == 'Y';
         $this->data['widget_show'] = $this->language->get('widget_handle_show');
         $this->data['widget_hide'] = $this->language->get('widget_handle_hide');
         

@@ -6,10 +6,3 @@
 <div class="onego_widget">
     <?php echo $widgetCode; ?>
 </div>
-
-<script type="text/javascript">
-OneGo.widget.setTopOffset(<?php echo $widgetTopOffset ?>);
-<?php if (!empty($widgetFrozen)) { ?>
-OneGo.widget.freeze();
-<?php } ?>
-</script>
