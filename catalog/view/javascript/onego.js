@@ -1,7 +1,7 @@
 var OneGo = {
     config: {
         debug: false,
-        loginUri: $('base').attr('href') + 'index.php?route=total/onego/auth2',
+        loginUri: $('base').attr('href') + 'index.php?route=total/onego/loginDialog',
         autologinUri: $('base').attr('href') + 'index.php?route=total/onego/autologin',
         logoffUri: $('base').attr('href') + 'index.php?route=total/onego/cancel',
         widgetUri: $('base').attr('href') + 'index.php?route=total/onego/widget'        
@@ -397,7 +397,7 @@ OneGo.opencart = {
     processFundUsage: function(checkboxElement, onSuccess, onError){
         var isChecked = checkboxElement.is(':checked');
         $.ajax({
-            url: $('base').attr('href') + 'index.php?route=total/onego/usefunds', 
+            url: $('base').attr('href') + 'index.php?route=total/onego/useFunds', 
             type: 'post',
             data: {'use_funds': isChecked},
             dataType: 'json',

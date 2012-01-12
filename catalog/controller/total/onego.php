@@ -17,7 +17,7 @@ class ControllerTotalOnego extends Controller {
         
         if ($onego->isUserAuthenticated()) {
             $this->data['onego_action'] = $this->url->link('checkout/cart');
-            $this->data['onego_use_funds_url'] = $this->url->link('total/onego/usefunds');
+            $this->data['onego_use_funds_url'] = $this->url->link('total/onego/useFunds');
             $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
             $this->data['checkoutUri'] = $this->url->link('checkout/checkout');
             
@@ -52,7 +52,7 @@ class ControllerTotalOnego extends Controller {
         $this->response->setOutput($this->render());
     }
     
-    public function usefunds()
+    public function useFunds()
     {
         $onego = $this->getModel();
         $request = $this->registry->get('request');
@@ -202,40 +202,7 @@ class ControllerTotalOnego extends Controller {
         }
     }
     
-    /* DEPRECATED */
-    public function auth()
-    {
-        $onego = $this->getModel();
-        $status_page = $this->url->link('total/onego/authStatus');
-        
-        // login not required if user is already athenticated with OneGo, return
-        if ($onego->isTransactionStarted()) {
-            $onego->log('auth not needed, transaction is already started', ModelTotalOnego::LOG_NOTICE);
-            $this->redirect($status_page);
-        }
-        
-        // redirect to OneGo authentication page
-        $api = $onego->getApi();
-        try {
-            $onego->log('issueEshopToken call', ModelTotalOnego::LOG_NOTICE);
-            $res = $api->issueEshopToken('saulius@megarage.com', $this->url->link('total/onego/verifytoken'));
-        } catch (Exception $e) {
-            //$onego->throwError('failed OneGo authentication: '.$e->getMessage());
-            $onego->saveToRegistry('auth_error', $e->getMessage());
-            $this->redirect($status_page);
-        }
-        
-        if (!empty($res->token) && !empty($res->authUrl)) {
-            $onego->saveToSession('referer', $status_page);
-            $onego->saveToSession('eshop_token', $res->token);
-            $this->redirect($onego->fixAuthUrl($res->authUrl));
-        } else {
-            $onego->saveToRegistry('auth_error', $e->getMessage());
-            $this->redirect($status_page);
-        }
-    }
-    
-    public function auth2()
+    public function loginDialog()
     {
         $status_page = $this->url->link('total/onego/authStatus');
         $this->login($status_page);
@@ -364,18 +331,6 @@ class ControllerTotalOnego extends Controller {
     {
         $this->template = 'default/template/total/onego_giftcard.tpl';
         $this->response->setOutput($this->render());
-    }
-    
-    public function requireLogin()
-    {
-        $this->language->load('total/onego');
-        $this->data['button_onego_login'] = $this->language->get('button_onego_login');
-        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/checkout/onego_require_login.tpl')) {
-            $this->template = $this->config->get('config_template') . '/template/checkout/onego_require_login.tpl';
-        } else {
-            $this->template = 'default/template/checkout/onego_require_login.tpl';
-        }
-        $this->render();
     }
     
     public function widget()

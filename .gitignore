@@ -6,3 +6,4 @@ image/cache/*
 vqmod/vqcache/*
 /nbproject/*
 /.gitk-tmp.64643/
+.DS_Store

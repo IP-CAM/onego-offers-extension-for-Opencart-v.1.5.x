@@ -363,7 +363,7 @@ class ControllerCheckoutConfirm extends Controller {
             $this->load->model('total/onego');
             $this->language->load('total/onego');
             $onego = $this->model_total_onego;
-            $this->data['onego_use_funds_url'] = $this->url->link('total/onego/usefunds');
+            $this->data['onego_use_funds_url'] = $this->url->link('total/onego/useFunds');
             $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
             if ($onego->isUserAuthenticated()) {
                 $this->data['onego_authenticated'] = true;
@@ -377,8 +377,7 @@ class ControllerCheckoutConfirm extends Controller {
                     $this->data['no_funds_available'] = $this->language->get('no_funds_available');                    
                 }
             } else {
-                $this->data['onego_login_url'] = $this->url->link('total/onego/auth2');
-                $this->data['onego_authstatus_url'] = $this->url->link('total/onego/authStatus');
+                $this->data['onego_login_url'] = $this->url->link('total/onego/login');
                 $this->data['onego_agreed'] = $onego->getFromSession('onego_agreed');
             }
 

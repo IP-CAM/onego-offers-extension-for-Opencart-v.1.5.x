@@ -24,6 +24,7 @@ class ModelTotalOnego extends Model
      */
     public function __construct($registry) {
         parent::__construct($registry);
+        // TO DO: deprecated, move to AJAX action handling
         $this->processActions();
     }
     
@@ -194,6 +195,7 @@ class ModelTotalOnego extends Model
         
     }
     
+    // TO DO: deprecate
     public function saveOrderDetails($order_id, $benefits_applied = true)
     {
         $last_order = $this->getFromSession('last_order');
@@ -616,6 +618,7 @@ class ModelTotalOnego extends Model
     }
     
     /**
+     * Collect opencart cart entries into OneGoAPI_Impl_Cart object
      *
      * @return OneGoAPI_Impl_Cart
      */
@@ -631,7 +634,7 @@ class ModelTotalOnego extends Model
     
     /**
      *
-     * @return array Data for including shipping as a cart item
+     * @return array Shipping data for including as a cart item
      */
     protected function getShippingAsItem()
     {
@@ -708,6 +711,7 @@ class ModelTotalOnego extends Model
         return isset($funds['amount']) ? $funds['amount'] : false;
     }
     
+    // TO DO
     public function processGiftCard($cardno)
     {
         if ($cardno != '1111') {
@@ -722,6 +726,7 @@ class ModelTotalOnego extends Model
     /**
      * Process all POST data in HTTP request, related to this module
      */
+    // TO DO: deprecate
     protected function processActions()
     {
         // OneGo gift card
@@ -1244,6 +1249,7 @@ class OneGoConfig
     }
 }
 
+// TO DO: update
 class OneGoOAuthException extends Exception
 {
     const OAUTH_SERVER_ERROR = 'server_error';
