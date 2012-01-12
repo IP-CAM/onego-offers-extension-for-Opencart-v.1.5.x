@@ -188,7 +188,7 @@ OneGo.plugins.authWidget = function(elementId, initParams)
         );
         plugin.append(iframe);
         iframe.load(function(e){
-            $('#'+elementId).html('').append(plugin);
+            $('#'+elementId).html(plugin);
             plugin.show();
         });
     }
@@ -404,10 +404,10 @@ OneGo.opencart = {
             beforeSend: function(jqXHR, settings) {
                 OneGo.lib.setAsLoading(checkboxElement);
             },
-            complete: function(jqXHR, textStatus) {
-                OneGo.lib.unsetAsLoading(checkboxElement);
-            },
             success: function(data, textStatus, jqXHR) {
+                if (!onSuccess) {
+                    OneGo.lib.unsetAsLoading(checkboxElement);
+                }
                 if (typeof data.error != 'undefined') {
                     checkboxElement.attr('checked', !checkboxElement.is(':checked'));
                 } else {
@@ -418,6 +418,7 @@ OneGo.opencart = {
                 }
             },
             error: function(xhr, ajaxOptions, thrownError) {
+                OneGo.lib.unsetAsLoading(checkboxElement);
                 checkboxElement.attr('checked', !isChecked);
                 if (onError) {
                     onError(xhr, ajaxOptions, thrownError);

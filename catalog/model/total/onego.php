@@ -744,13 +744,9 @@ class ModelTotalOnego extends Model
     public function getInitHeaderCode()
     {
         $pluginsURI = $this->getConfig('pluginsURI');
-        $html = <<<END
-<link rel="stylesheet" type="text/css" href="catalog/view/theme/{$this->config->get('config_template')}/stylesheet/onego.css" />
-<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>
-<script type="text/javascript">
-OneGo.plugins.setURI('{$pluginsURI}');
-
-END;
+        
+        $html = '';
+        
         // autologin attempts are blocked
         if ($this->autologinBlockedUntil()) {
             $autologinBlockedFor = ($this->autologinBlockedUntil() - time()) * 1000;
@@ -772,13 +768,22 @@ END;
             $html .= "OneGo.config.debug = true;\n";
         }
         
-        $html .= "</script>\n";
+        $html = <<<END
+<link rel="stylesheet" type="text/css" href="catalog/view/theme/{$this->config->get('config_template')}/stylesheet/onego.css" />
+<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>
+<script type="text/javascript">
+OneGo.plugins.setURI('{$pluginsURI}');
+{$html}</script>
+
+END;
         return $html;
     }
     
     public function setDefaultAuthAgentListeners()
     {
-        if (!empty($this->request->request['route']) && ($this->request->request['route'] == 'checkout/checkout')) {
+        if (!empty($this->request->request['route']) && 
+                ($this->request->request['route'] == 'checkout/checkout')) 
+        {
             // widget listeners specific for checkout page only (AJAX used)
             if ($this->isUserAuthenticated()) {
                 // listen for logoff on widget
@@ -795,10 +800,12 @@ END;
             // listeners for simple pages
             if ($this->isUserAuthenticated()) {
                 // listen for logoff on widget
-                $this->setAuthAgentListener(self::AUTH_MESSAGE_ANONYMOUS, 'OneGo.opencart.processLogoff');
+                $this->setAuthAgentListener(self::AUTH_MESSAGE_ANONYMOUS, 
+                        'OneGo.opencart.processLogoff');
             } else {
                 // listen for login on widget
-                $this->setAuthAgentListener(self::AUTH_MESSAGE_AUTHENTICATED, 'OneGo.opencart.processAutoLogin');
+                $this->setAuthAgentListener(self::AUTH_MESSAGE_AUTHENTICATED, 
+                        'OneGo.opencart.processAutoLogin');
             }
         }
     }
