@@ -18,6 +18,7 @@ $('#use_onego_funds').unbind('change').change(function(e) {
         function(data, textStatus, jqXHR){
             if (typeof data.error != 'undefined') {
                 OneGo.opencart.flashWarningBefore($('#onego_panel'), data.message);
+                OneGo.lib.unsetAsLoading($('#use_onego_funds'));
             } else {
                 OneGo.opencart.reloadCheckoutOrderInfo();
             }

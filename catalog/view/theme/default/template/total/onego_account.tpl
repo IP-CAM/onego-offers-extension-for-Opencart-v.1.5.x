@@ -63,6 +63,7 @@ $(document).ready(function(){
             function(data, textStatus, jqXHR){
                 if (typeof data.error != 'undefined') {
                     OneGo.opencart.flashWarningBefore($('#onego_panel'), data.message);
+                    OneGo.lib.unsetAsLoading($('#use_onego_funds'));
                 } else {
                     location.href = location.href;
                 }
