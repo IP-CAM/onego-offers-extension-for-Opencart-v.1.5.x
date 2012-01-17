@@ -16,7 +16,9 @@ $('#use_onego_funds').unbind('change').change(function(e) {
     OneGo.opencart.processFundUsage(
         $(this),
         function(data, textStatus, jqXHR){
-            if (typeof data.error != 'undefined') {
+            if (data.error && data.error == 'OneGoAuthenticationRequiredException') {
+                OneGo.opencart.reloadCheckoutOrderInfo();
+            } else if (data.error) {
                 OneGo.opencart.flashWarningBefore($('#onego_panel'), data.message);
                 OneGo.lib.unsetAsLoading($('#use_onego_funds'));
             } else {
@@ -32,6 +34,7 @@ $('#use_onego_funds').unbind('change').change(function(e) {
                 function(data, textStatus, jqXHR){
                     if (typeof data.status != 'undefined') {
                         OneGo.opencart.reloadCheckoutOrderInfo();
+                        OneGo.opencart.reloadWidget();
                     }
                 }
             );

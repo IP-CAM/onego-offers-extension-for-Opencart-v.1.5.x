@@ -40,14 +40,14 @@ input.onego_watermark.focused {
     position: absolute; 
     left: -462px;
     top: 0pt; 
-    width: 492px;
+    width: 500px;
     z-index: 999;
 }
 
 #onego_widget_container .onego_widget_handle {
     margin-top: 35px;
     float: right;
-    width: 30px;
+    width: 38px;
     background: transparent url(../image/onego_handle.png) no-repeat center center;
 }
 #onego_widget_container .onego_widget_handle .onego_widget_hide,
@@ -68,7 +68,7 @@ input.onego_watermark.focused {
     padding: 11px 8px 64px 6px;
 }
 #onego_widget_container .onego_widget {
-    margin-right: 30px;
+    margin-right: 38px;
     width: 450px;
     overflow: hidden;
     -moz-border-radius-topright: 10px;

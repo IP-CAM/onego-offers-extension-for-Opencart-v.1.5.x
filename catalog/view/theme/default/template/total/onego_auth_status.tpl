@@ -8,13 +8,16 @@
 <script type="text/javascript">
 function closeFancybox()
 {
-    parent.OneGo.opencart.loginPromptSuccess = true;
-    parent.$.fancybox.close();
+    window.parent.$.fancybox.close();
 }
 
 var status = {
     authenticated: <?php echo (!empty($onego_authenticated) ? 'true' : 'false') ?>
 }
+<?php if (!empty($onego_authenticated)) { ?>
+window.parent.OneGo.opencart.loginPromptSuccess = true;
+<?php } ?>    
+
 </script>
 <style>
 html {
@@ -24,32 +27,24 @@ html {
 </head>
 <body>
         
-<?php if (!empty($error)) { ?>
+<?php if (!empty($onego_error)) { ?>
 <div class="error">
-    <?php echo $error ?>
+    <?php echo $onego_error ?>
 </div>
-<?php } ?>
-
-
-<?php if (!empty($onego_authenticated)) { ?>
-
-OneGo user authenticated
-
 <script type="text/javascript">
-closeFancybox();
+window.parent.OneGo.opencart.flashWarningBefore(window.parent.$('#onego_panel'), '<?php echo str_replace('\'', '\\\'', $onego_error) ?>');
 </script>
-
 <?php } else { ?>
-
-Not authenticated
-
+Authorization successful.
 <?php } ?>
 
 <div style="text-align: center;">
     <a href="#" class="button" onclick="closeFancybox();"><span>Close</span></a>
 </div>
 
-
+<script type="text/javascript">
+closeFancybox();
+</script>
 
 </body>
 </html>

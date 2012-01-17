@@ -37,3 +37,9 @@ $_['widget_handle_hide'] = 'Hide OneGo widget';
 // Error
 $_['benefits_applied']  = 'Success: Your OneGo benefits applied.';
 $_['error_coupon']  = 'Warning: Coupon is either invalid, expired or reached it\'s usage limit!';
+
+$_['error_authorization_access_denied'] = 'Access to your OneGo account denied';
+$_['error_authorization_temporarily_unavailable'] = 'Your OneGo account is temporarily unavailable, please try again later.';
+$_['error_authorization_failed'] = 'We\'re sorry, OneGo server is not accessible right now. Please try again later.';
+$_['error_api_call_failed'] = 'We\'re sorry, OneGo server is not accessible right now. Please try again later.';
+$_['error_authentication_expired'] = 'Your OneGo session has expired, please login again.';

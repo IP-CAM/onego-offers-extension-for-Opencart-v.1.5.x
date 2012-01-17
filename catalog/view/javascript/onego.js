@@ -427,11 +427,12 @@ OneGo.opencart = {
         })
     },
     flashWarningBefore: function(element, message, duration) {
+        $('.onego_warning').remove();
         if (typeof duration == 'undefined') {
             duration = 3000;
         }
         var elemId = 'onegowarning' + Math.floor(Math.random() * 100000000);
-        var warning = '<div id="'+elemId+'" class="warning">'+message+'</div>';
+        var warning = '<div id="'+elemId+'" class="warning onego_warning">'+message+'</div>';
         element.before(warning);
         if (duration) {
             setTimeout("$('#"+elemId+"').fadeOut()", duration);
@@ -450,7 +451,6 @@ OneGo.opencart = {
             'href': OneGo.config.loginUri,
             'onClosed': function() {
                 if (OneGo.opencart.loginPromptSuccess) {
-                    OneGo.opencart.reloadWidget();
                     if (onSuccess) {
                         onSuccess();
                     }

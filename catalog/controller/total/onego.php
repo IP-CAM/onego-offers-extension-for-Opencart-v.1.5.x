@@ -13,7 +13,14 @@ class ControllerTotalOnego extends Controller {
         }
 
         $onego = $this->getModel();
-        $onego->autostartTransaction();
+        
+        try {
+            $onego->refreshTransaction();
+        } catch (OneGoAuthenticationRequiredException $e) {
+            // ignore
+        } catch (OneGoAPICallFailedException $e) {
+            // ignore
+        }
         
         if ($onego->isUserAuthenticated()) {
             $this->data['onego_action'] = $this->url->link('checkout/cart');
@@ -24,7 +31,6 @@ class ControllerTotalOnego extends Controller {
             if ($onego->isTransactionStarted()) {
                 $this->data['onego_applied'] = true;
                 
-                $this->data['transaction'] = $onego->getTransaction();
                 $this->data['cart_products'] = $this->cart->getProducts();
                 $this->data['onego_funds'] = $onego->getFundsAvailable();
                 $this->data['use_funds'] = $this->language->get('use_funds');
@@ -55,10 +61,28 @@ class ControllerTotalOnego extends Controller {
     public function useFunds()
     {
         $onego = $this->getModel();
+        $this->language->load('total/onego');
         $request = $this->registry->get('request');
         if (!empty($request->post['use_funds'])) {
-            $transaction = $onego->getTransaction();
-            if ($transaction->isStarted()) {
+            $response = false;
+            
+            try {
+                $transaction = $onego->refreshTransaction();
+            } catch (OneGoAuthenticationRequiredException $e) {
+                $errorMessage = $this->language->get('error_authentication_expired');
+                $response = array(
+                    'error' => get_class($e),
+                    'message' => $errorMessage,
+                );
+            } catch (OneGoAPICallFailedException $e) {
+                $errorMessage = $this->language->get('error_api_call_failed');
+                $response = array(
+                    'error' => get_class($e),
+                    'message' => $errorMessage,
+                );
+            }
+            
+            if (empty($response) && $onego->isTransactionStarted()) {
                 $do_use = $request->post['use_funds'] == 'true';
                 try {
                     if ($do_use) {
@@ -75,8 +99,8 @@ class ControllerTotalOnego extends Controller {
                     );
                     $onego->log('funds usage call exception: '.$e->getMessage(), ModelTotalOnego::LOG_ERROR);
                 }
-                $this->response->setOutput(OneGoAPI_JSON::encode($response));
             }
+            $this->response->setOutput(OneGoAPI_JSON::encode($response));
         }
     }
     
@@ -101,10 +125,12 @@ class ControllerTotalOnego extends Controller {
         
         // redirect to OneGo authentication page
         $requestId = uniqid();
+        // remember request parameters
         $onego->saveToSession('oauth_authorize_request', array(
             'request_id'    => $requestId,
             'referer'       => $referer,
             'scope'         => $reqScope,
+            'silent'        => true,
         ));
         $authorizeUrl = $auth->getAuthorizationUrl($onego->getOAuthRedirectUri(), $reqScope, $requestId, true);
         $this->redirect($authorizeUrl);
@@ -130,6 +156,7 @@ class ControllerTotalOnego extends Controller {
             'request_id'    => $requestId,
             'referer'       => $returnpage,
             'scope'         => $reqScope,
+            'silent'        => false,
         ));
         $authorizeUrl = $auth->getAuthorizationUrl($onego->getOAuthRedirectUri(), $reqScope, $requestId);
         $this->redirect($authorizeUrl);
@@ -137,83 +164,50 @@ class ControllerTotalOnego extends Controller {
     
     public function authorizationResponse()
     {
+        $this->language->load('total/onego');
         $onego = $this->getModel();
         $request = $this->registry->get('request');
         $auth_request = $onego->getFromSession('oauth_authorize_request');
+        $autologinBlockTtl = 30;
+        $errorMessage = false;
+        $onego->saveToSession('authorizationSuccess', false);
         try {
             $this->processAuthorizationResponse($request->get, $auth_request);
+            $onego->saveToSession('authorizationSuccess', true);
             $onego->log('authorization success', ModelTotalOnego::LOG_INFO);
-        } catch (OneGoOAuthException $e) {
-            switch ($e->getCode()) {
-                case (OneGoOAuthException::OAUTH_ACCESS_DENIED):
-                case (OneGoOAuthException::OAUTH_BAD_LOGIN_ATTEMPT):
-                case (OneGoOAuthException::OAUTH_INVALID_REQUEST):
-                case (OneGoOAuthException::OAUTH_INVALID_SCOPE):
-                case (OneGoOAuthException::OAUTH_TEMPORARILY_UNAVAILABLE):
-                case (OneGoOAuthException::OAUTH_UNAUTHORIZED_CLIENT):
-                case (OneGoOAuthException::OAUTH_UNSUPPORTED_RESPONSE_TYPE):
-                case (OneGoOAuthException::OAUTH_USER_ERROR):
-                case (OneGoOAuthException::OAUTH_SERVER_ERROR):
-                default:
-                    $this->session->data['error'] = $e->getMessage();
-                    $onego->blockAutologin(30);
-            }
-            $onego->log('authorization failed: '.$e->getMessage(), ModelTotalOnego::LOG_ERROR);
+        } catch (OneGoAPI_OAuthAccessDeniedException $e) {
+            $errorMessage = $this->language->get('error_authorization_access_denied');
+        } catch (OneGoAPI_OAuthTemporarilyUnavailableException $e) {
+            $errorMessage = $this->language->get('error_authorization_temporarily_unavailable');
+            $onego->blockAutologin($autologinBlockTtl);
         } catch (Exception $e) {
-            $this->session->data['error'] = $e->getMessage();
-            $onego->blockAutologin(30);
-            $onego->log('authorization failed: '.$e->getMessage(), ModelTotalOnego::LOG_ERROR);
+            $errorMessage = $this->language->get('error_authorization_failed');
+            $onego->blockAutologin($autologinBlockTtl);
+            $onego->logCritical('authorization failed', $e);
         }
+        
+        if (!empty($errorMessage) && empty($auth_request['silent'])) {
+            $this->setGlobalErrorMessage($errorMessage);
+        }
+        
         $referer = !empty($auth_request['referer']) ? $auth_request['referer'] : $this->getDefaultReferer();
         $this->redirect($referer);
-    }
-    
-    private function processAuthorizationResponse($response_params, $authorization_request)
-    {
-        $onego = $this->getModel();
-        if (!empty($response_params['code'])) {
-            // issue token
-            try {
-                $auth = $onego->getAuth();
-                $redirectUri = $onego->getOAuthRedirectUri();
-                $token = $auth->requestAccessToken($response_params['code'], $redirectUri);
-                if (isset($authorization_request['scope'])) {
-                    // remember token scope(s)
-                    $token->setScopes($authorization_request['scope']);
-                }
-                
-                if ($onego->isTransactionStarted()) {
-                    // check if current transaction works with new token
-                    $onego->verifyTransactionWithNewToken($token);
-                }
-                
-                $onego->saveOAuthToken($token);
-                
-            } catch (Exception $e) {
-                throw $e;
-            }
-            return true;
-        } else {
-            $error_code = !empty($response_params['error']) ? 
-                $response_params['error'] : 'authorization_response_error';
-            $error_message = !empty($response_params['error_description']) ? 
-                $response_params['error_description'] : '';
-            throw new OneGoOAuthException($error_code, $error_message);
-        }
     }
     
     public function loginDialog()
     {
         $status_page = $this->url->link('total/onego/authStatus');
+        
         $this->login($status_page);
     }
     
     public function authStatus()
     {
         $onego = $this->getModel();
-        $this->data['onego_authenticated'] = $onego->isUserAuthenticated();
-        $this->data['onego_applied'] = $onego->isTransactionStarted();
-        $this->data['error'] = $onego->getFromRegistry('auth_error');
+        $authorizationSuccessful = $onego->getFromSession('authorizationSuccess');
+        $this->data['onego_authenticated'] = $authorizationSuccessful;
+        $this->data['onego_error'] = $authorizationSuccessful ?
+                false : $this->takeoverGlobalErrorMessage();
         
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_auth_status.tpl')) {
             $this->template = $this->config->get('config_template') . '/template/total/onego_auth_status.tpl';
@@ -248,10 +242,10 @@ class ControllerTotalOnego extends Controller {
         $onego = $this->getModel();
         $referer = $this->getReferer();
         
-        if ($onego->isTransactionStarted()) {
+        try {
             $onego->updateTransactionCart();
-        } else {
-            $onego->log('transaction update impossible, transaction not started', ModelTotalOnego::LOG_WARNING);
+        } catch (Exception $e) {
+            
         }
         
         $this->redirect($referer);
@@ -352,6 +346,10 @@ class ControllerTotalOnego extends Controller {
     
     
     // === service methods
+    /**
+     *
+     * @return ModelTotalOnego
+     */
     protected function getModel()
     {
         if (empty($this->model_total_onego)) {
@@ -369,5 +367,56 @@ class ControllerTotalOnego extends Controller {
     protected function getDefaultReferer()
     {
         return $this->url->link('checkout/cart');
+    }
+    
+    protected function setGlobalErrorMessage($error)
+    {
+        $this->session->data['error'] = $error;
+    }
+    
+    protected function takeoverGlobalErrorMessage()
+    {
+        if (!isset($this->session->data['error'])) {
+            return false;
+        }
+        $message = $this->session->data['error'];
+        unset($this->session->data['error']);
+        return $message;
+    }
+    
+    private function processAuthorizationResponse($response_params, $authorization_request)
+    {
+        $onego = $this->getModel();
+        if (!empty($response_params['code'])) {
+            // issue token
+            try {
+                $auth = $onego->getAuth();
+                $redirectUri = $onego->getOAuthRedirectUri();
+                $token = $auth->requestAccessToken($response_params['code'], $redirectUri);
+                if (isset($authorization_request['scope'])) {
+                    // remember token scope(s)
+                    $token->setScopes($authorization_request['scope']);
+                }
+                
+                if ($onego->isTransactionStarted()) {
+                    // check if current transaction works with the new token, restart if not
+                    $onego->verifyTransactionWithNewToken($token);
+                }
+                
+                $onego->saveOAuthToken($token);
+                
+            } catch (Exception $e) {
+                throw $e;
+            }
+            return true;
+        } else {
+            // transform response to OneGoAPI_OAuthException
+            $error_code = !empty($response_params['error']) ? 
+                $response_params['error'] : '';
+            $error_message = !empty($response_params['error_description']) ? 
+                $response_params['error_description'] : '';
+            $errorDto = OneGoAPI_Impl_Transform::transform('OneGoAPI_DTO_OAuthErrorDto', (object) $response_params);
+            throw OneGoAPI_Exception::fromError($errorDto);
+        }
     }
 }

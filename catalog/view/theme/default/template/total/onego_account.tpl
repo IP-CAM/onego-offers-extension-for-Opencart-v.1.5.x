@@ -55,13 +55,15 @@
 $(document).ready(function(){
     $('#use_onego_funds').change(function(e){
         $('.warning').remove();
-        <?php if (!empty($onego_scope_extended)) { 
-            // user has sufficient scope, do not prompt login
-            ?>
+        <?php if (!empty($onego_scope_extended)) { ?>
         OneGo.opencart.processFundUsage(
             $(this),
             function(data, textStatus, jqXHR){
-                if (typeof data.error != 'undefined') {
+                if (data.error && data.error == 'OneGoAuthenticationRequiredException') {
+                    OneGo.lib.unsetAsLoading($('#use_onego_funds'));
+                    cancelUseFundsCheck();
+                    promptLoginForFundsUse();
+                } else if (data.error) {
                     OneGo.opencart.flashWarningBefore($('#onego_panel'), data.message);
                     OneGo.lib.unsetAsLoading($('#use_onego_funds'));
                 } else {
@@ -69,28 +71,34 @@ $(document).ready(function(){
                 }
             }
         );
-        <?php } else { 
-            // scope insufficient, prompt login before
-            ?>
-        OneGo.opencart.promptLogin(
-            function(){
-                OneGo.opencart.processFundUsage(
-                    $('#use_onego_funds'),
-                    function(data, textStatus, jqXHR){
-                        if (typeof data.status != 'undefined') {
-                            location.href = location.href;
-                        }
-                    }
-                );
-            },
-            function(){
-                $('#use_onego_funds').attr('checked', !$('#use_onego_funds').attr('checked'));
-            }
-        )
+        <?php } else { ?>
+        promptLoginForFundsUse();
         <?php } ?>
     })
     $('#onego_giftcard_redeem').click(function(e){
         $('form#onego_account').submit();
     })
 })
+
+function promptLoginForFundsUse()
+{
+    OneGo.opencart.promptLogin(
+        function(){
+            OneGo.opencart.processFundUsage(
+                $('#use_onego_funds'),
+                function(data, textStatus, jqXHR){
+                    if (typeof data.status != 'undefined') {
+                        location.href = location.href;
+                    }
+                }
+            );
+        },
+        cancelUseFundsCheck
+    )
+}
+
+function cancelUseFundsCheck()
+{
+    $('#use_onego_funds').attr('checked', !$('#use_onego_funds').attr('checked'));
+}
 </script>

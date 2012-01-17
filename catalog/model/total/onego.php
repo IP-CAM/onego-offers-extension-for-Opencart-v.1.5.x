@@ -54,9 +54,9 @@ class ModelTotalOnego extends Model
      */
     public function getTotal(&$total_data, &$total, &$taxes) {
         // autostart transaction if verified token is available
-        $this->autostartTransaction();
+        //$this->autostartTransaction();
         
-        $transaction = $this->getTransaction();
+        $transaction = $this->getTransaction(true);
         if ($transaction && $transaction->isStarted()) {
             $this->load->language('total/onego');
             
@@ -246,9 +246,9 @@ class ModelTotalOnego extends Model
      * Return current OneGo transaction object from session; autoupdate if required
      *
      * @param boolean $autoupdate Whether to update transaction if it is stale
-     * @return OneGoAPI_DTO_TransactionDto
+     * @return OneGoAPI_Impl_Transaction
      */
-    public function getTransaction($autoupdate = true)
+    public function getTransaction($autoupdate = false)
     {
         // initialize OneGo API autoloader to unserialize transaction object from session
         $api = $this->getApi();
@@ -293,7 +293,7 @@ class ModelTotalOnego extends Model
      */
     protected function getTransactionId()
     {
-        $transaction = $this->getTransaction(false);
+        $transaction = $this->getTransaction();
         return !empty($transaction) ? $transaction->getId() : false;
     }
     
@@ -557,13 +557,12 @@ class ModelTotalOnego extends Model
      */
     public function updateTransactionCart()
     {
-        $api = $this->getApi();
-        $transaction = $this->getTransaction(false);
-        if ($transaction->isStarted()) {
+        if ($this->isTransactionStarted()) {
+            $api = $this->getApi();
+            $this->log('transaction cart update', self::LOG_NOTICE);
+            $cart = $api->newCart();
             try {
-                $this->log('transaction cart update', self::LOG_NOTICE);
-                $cart = $api->newCart();
-                $transaction = $transaction->updateCart($this->collectCartEntries());
+                $transaction = $this->getTransaction()->updateCart($this->collectCartEntries());
                 $this->saveTransaction($transaction);
                 $this->saveToSession('cart_hash', $this->getEshopCartHash());
                 return true;
@@ -863,6 +862,26 @@ END;
         }
     }
     
+    public function writeLog($str)
+    {
+        // write critical errors to log file
+        $fh = fopen(DIR_LOGS.'onego_error.log', 'a');
+        if ($fh) {
+            $ln = date('Y-m-d H:i:s').' '.$str.' => '.implode(' / ', self::debugBacktrace());
+            fwrite($fh, $ln."\n");
+            fclose($fh);
+        }
+    }
+    
+    public function logCritical($errorStr, $exception = null)
+    {
+        if (!empty($exception) && is_a($exception, 'Exception')) {
+            $errorStr = $errorStr.' :: '.get_class($exception).' :: '.$exception->getMessage();
+        }
+        $this->log($errorStr, self::LOG_ERROR);
+        $this->writeLog($errorStr);
+    }
+    
     /**
      * Returns list of messages saved in log
      *
@@ -917,7 +936,7 @@ END;
                     $html .= "\r\n";
                 }
             }
-            if ($transaction = $this->getTransaction(false)) {
+            if ($transaction = $this->getTransaction()) {
                 $html .= 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction->getTransactionDto())).')};'."\r\n";
                 $html .= 'console.dir(transaction);'."\r\n";
                 $html .= 'var transactionTtl = {\'expires\' : $.parseJSON('.json_encode(json_encode(date('Y-m-d H:i:s', time() + $transaction->getTtl()))).')};'."\r\n";
@@ -1019,6 +1038,10 @@ END;
     
     // =================== NEW
     
+    /**
+     *
+     * @return OneGoAPI_Impl_OAuthToken 
+     */
     public function getSavedOAuthToken()
     {
         $token = $this->getFromSession('OAuthToken');
@@ -1119,7 +1142,7 @@ END;
     
     public function getShippingDiscount()
     {
-        $transaction = $this->getTransaction(false);
+        $transaction = $this->getTransaction();
         if (!$transaction) {
             return null;
         }
@@ -1211,6 +1234,72 @@ END;
             }
         }
     }
+    
+    public function refreshTransaction()
+    {
+if ($this->isAjaxRequest()) {
+    //throw new OneGoAuthenticationRequiredException('simulating fail');
+    //throw new OneGoAPICallFailedException('simulating fail');
+}
+        
+        // refresh token if expired
+        $token = $this->getSavedOAuthToken();
+        if ($token) {
+            if ($token->isExpired() && !empty($token->refreshToken)) {
+                try {
+                    $auth = $this->getAuth();
+                    $token = $auth->refreshAccessToken($token->refreshToken);
+                    $this->saveOAuthToken($token);
+                    
+                    $tokenRefreshed = true;
+                    $this->log('OAuth token refreshed', self::LOG_NOTICE);
+                } catch (OneGoAPI_Exception $e) {
+                    $this->log('OAuth token refresh failed: ['.get_class($e).'] '.$e->getMessage(), self::LOG_ERROR);
+                    throw new OneGoAPICallFailedException('OAuth token refresh failed', null, $e);
+                }
+            }
+        } else {
+            throw new OneGoAuthenticationRequiredException();
+        }
+        
+        // start transaction if not started and token available,
+        // refresh transaction if expired
+        $transaction = $this->getTransaction();
+        if ($this->isTransactionStarted()) {
+            // memorize transaction state to restore on restart
+            $prepaidSpent = $transaction->getPrepaidSpent();
+            $this->log('prepaid spent: '.$prepaidSpent);
+        }
+        
+        if ($transaction && $transaction->isExpired()) {
+            $res = $this->cancelTransaction();
+            $transactionCanceled = true;
+        }
+        
+        $transaction = $this->getTransaction();
+        
+        $action = !empty($transactionCanceled) ? 'restart' : 'autostart';
+        if (!$this->isTransactionStarted()) {
+            try {
+                $this->beginTransaction($token);
+                $transactionAutostarted = true;
+                
+                // return transaction state to previous
+                if (!empty($prepaidSpent)) {
+                    $this->spendPrepaid();
+                }
+            } catch (OneGoAPI_Exception $e) {
+                throw new OneGoAPICallFailedException("Transaction {$action} failed", null, $e);
+            }
+        }
+        
+        // update transaction cart if outdated
+        if (empty($transactionAutostarted) && $this->isTransactionStale()) {
+            $this->updateTransactionCart();
+        }
+        
+        return $this->getTransaction();
+    }
 }
 
 class OneGoConfig
@@ -1249,21 +1338,6 @@ class OneGoConfig
     }
 }
 
-// TO DO: update
-class OneGoOAuthException extends Exception
-{
-    const OAUTH_SERVER_ERROR = 'server_error';
-    const OAUTH_INVALID_REQUEST = 'invalid_request';
-    const OAUTH_INVALID_SCOPE = 'invalid_scope';
-    const OAUTH_ACCESS_DENIED = 'access_denied';
-    const OAUTH_UNAUTHORIZED_CLIENT = 'unauthorized_client';
-    const OAUTH_UNSUPPORTED_RESPONSE_TYPE = 'unsupported_response_type';
-    const OAUTH_TEMPORARILY_UNAVAILABLE = 'temporarily_unavailable';
-    const OAUTH_BAD_LOGIN_ATTEMPT = 'bad_login_attempt';
-    const OAUTH_USER_ERROR = 'user_error';
-    
-    public function __construct($code, $message) {
-        $this->code     = $code;
-        $this->message  = $message;
-    }
-}
+class OneGoException extends Exception {}
+class OneGoAuthenticationRequiredException extends OneGoException {}
+class OneGoAPICallFailedException extends OneGoException {}
