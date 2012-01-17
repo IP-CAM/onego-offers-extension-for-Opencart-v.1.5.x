@@ -1236,12 +1236,7 @@ END;
     }
     
     public function refreshTransaction()
-    {
-if ($this->isAjaxRequest()) {
-    //throw new OneGoAuthenticationRequiredException('simulating fail');
-    //throw new OneGoAPICallFailedException('simulating fail');
-}
-        
+    {        
         // refresh token if expired
         $token = $this->getSavedOAuthToken();
         if ($token) {
