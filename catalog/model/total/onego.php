@@ -53,13 +53,130 @@ class ModelTotalOnego extends Model
      * @param array $taxes 
      */
     public function getTotal(&$total_data, &$total, &$taxes) {
-        // autostart transaction if verified token is available
-        //$this->autostartTransaction();
+        try {
+            $transaction = $this->refreshTransaction();
+        } catch (OneGoAuthenticationRequiredException $e) {
+            // ignore
+        } catch (OneGoAPICallFailedException $e) {
+            // ignore
+        }
         
-        $transaction = $this->getTransaction(true);
-        if ($transaction && $transaction->isStarted()) {
-            $this->load->language('total/onego');
+        $this->load->language('total/onego');
+        
+        if ($this->isTransactionStarted() || $this->hasAgreedToDiscloseEmail()) {
+            $initial_total = $total;
+
+            // items discounts
+            // TODO
+
+            // shipping discounts
+            $free_shipping = false;
+            $shipping_discount = $this->getShippingDiscount();
+            if ($shipping_discount > 0) {
+                $total -= $shipping_discount;
+                $total_data[] = array(
+                    'code' => 'onego',
+                    'title' => $this->language->get('text_shipping_discount'),
+                    'text' => $this->currency->format(-$shipping_discount),
+                    'value' => $shipping_discount,
+                    'sort_order' => $this->config->get('onego_sort_order').'y'
+                );
+            }
+            if ($shipping_discount && isset($this->session->data['shipping_method'])) {
+                $opencart_shipping_cost = $this->session->data['shipping_method']['cost'];
+                if ($opencart_shipping_cost - $shipping_discount == 0) {
+                    $free_shipping = true;
+                }
+            }
+
+            // cart discount
+            $discount = $this->getTotalDiscount();
+            $discountAmount = !empty($discount) ? $discount->getAmount() : null;
+            if (!empty($discountAmount) && ($discountAmount != $shipping_discount)) {
+                // (TEMPORARY FIX)
+                $discountPercents = $discount->getPercents();
+                if (!empty($discountPercents)) {
+                    $title = sprintf($this->language->get('onego_cart_discount_percents'), 
+                            round($discountPercents, 2));
+                } else {
+                    $title = $this->language->get('onego_cart_discount');
+                }
+                $total_data[] = array(
+                    'code' => 'onego',
+                    'title' => $title,
+                    'text' => $this->currency->format(-$discountAmount),
+                    'value' => -$discountAmount,
+                    'sort_order' => $this->config->get('onego_sort_order').'a'
+                );
+                $modified = true;
+            }
             
+            // funds spent
+            $spent = $this->getPrepaidSpent();
+            if (!empty($spent)) {
+                $total_data[] = array(
+                    'code' => 'onego',
+                    'title' => $this->language->get('prepaid_spent'),
+                    'text' => $this->currency->format(-$spent),
+                    'value' => 0,
+                    'sort_order' => $this->config->get('onego_sort_order').'p'
+                );
+            }
+        
+            // funds received
+            $received = $this->getPrepaidReceivedAmount();
+            if (!empty($received)) {
+                $receivables = array(
+                    'code' => 'onego',
+                    'title' => $this->language->get('funds_receivable'),
+                    'text' => $this->currency->format($received),
+                    'value' => 0,
+                    'sort_order' => 1000,
+                );
+                $total_data[] = $receivables;
+            }
+            
+            // onego subtotal
+            $onego_discount = 0;
+            $cashAmount = $this->getCashAmount();
+            if ($initial_total != $cashAmount) {
+                $onego_discount = $this->getOriginalAmount() - $cashAmount;
+                $total -= $onego_discount;
+            }
+            
+            // decrease taxes if discount was applied
+            if ($onego_discount) {
+                // decrease taxes to be applied for products
+                foreach ($this->cart->getProducts() as $product) {
+                    if ($product['tax_class_id']) {
+                        // discount part for this product
+                        $discount = $onego_discount * ($product['total'] / $initial_total);
+                        $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
+                        foreach ($tax_rates as $tax_rate) {
+                            if ($tax_rate['type'] == 'P') {
+                                $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                            }
+                        }
+                    }
+                }
+                // decrease taxes to be applied for shipping
+                if ($free_shipping && isset($this->session->data['shipping_method'])) {
+                    if (!empty($this->session->data['shipping_method']['tax_class_id'])) {
+                        // tax rates that will be applied (or were already) to shipping
+                        $tax_rates = $this->tax->getRates($this->session->data['shipping_method']['cost'], $this->session->data['shipping_method']['tax_class_id']);
+                        // subtract them
+                        foreach ($tax_rates as $tax_rate) {
+                            $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                        }
+                    }
+                }
+            }
+        }
+        
+        
+        
+        
+        if (false and $this->isTransactionStarted()) {
             $initial_total = $total;
             
             // items discounts
@@ -119,20 +236,6 @@ class ModelTotalOnego extends Model
                 );
             }
             
-            
-            // funds received
-            $received = $transaction->getPrepaidAmountReceived();
-            if (!empty($received)) {
-                $receivables = array(
-                    'code' => 'onego',
-                    'title' => $this->language->get('funds_receivable'),
-                    'text' => $this->currency->format($received),
-                    'value' => 0,
-                    'sort_order' => 1000,//$this->config->get('onego_sort_order').'x'
-                );
-                $total_data[] = $receivables;
-            }
-            
             // onego subtotal
             $onego_discount = 0;
             $cashAmount = $transaction->getCashAmount();
@@ -184,15 +287,11 @@ class ModelTotalOnego extends Model
             $api = $this->getApi();
             try {
                 $this->confirmTransaction();
-                $this->log('benefits applied');
                 $this->saveOrderDetails($order_info['order_id'], true);
             } catch (Exception $e) {
                 $this->throwError($e->getMessage());
             }
-        }
-        // save order details to apply OneGo benefits later if user choses so
-        $this->log('confirm() called, params: '.count(func_get_args()), self::LOG_NOTICE);
-        
+        }        
     }
     
     // TO DO: deprecate
@@ -215,7 +314,7 @@ class ModelTotalOnego extends Model
     public function isAnonymousRewardsApplied()
     {
         $last_order = $this->getFromSession('last_order');
-        if ($this->getFromSession('onego_agreed') && !$last_order['benefits_applied']) {
+        if ($this->hasAgreedToDiscloseEmail() && !$last_order['benefits_applied']) {
             // apply rewards - To DO
             
             // fake
@@ -229,7 +328,7 @@ class ModelTotalOnego extends Model
     public function isOnegoBenefitsApplyable()
     {
         $last_order = $this->getFromSession('last_order');
-        return !$this->getFromSession('onego_agreed') && !$last_order['benefits_applied'];
+        return !$this->hasAgreedToDiscloseEmail() && !$last_order['benefits_applied'];
     }
     
     /**
@@ -243,29 +342,14 @@ class ModelTotalOnego extends Model
     }
     
     /**
-     * Return current OneGo transaction object from session; autoupdate if required
+     * Return current OneGo transaction object from session
      *
      * @param boolean $autoupdate Whether to update transaction if it is stale
      * @return OneGoAPI_Impl_Transaction
      */
-    public function getTransaction($autoupdate = false)
+    public function getTransaction()
     {
-        // initialize OneGo API autoloader to unserialize transaction object from session
-        $api = $this->getApi();
-        
-        //$transaction = $this->getSavedTransaction();
-        $transaction = $api->getTransaction();
-        
-        if (empty($transaction)) {
-            //$this->log('checked for transaction, not found');
-            return false;
-        } else {
-            if ($autoupdate && $this->isTransactionStale()) {
-                $this->updateTransactionCart();
-                $this->log('transaction stale, cart updated', self::LOG_NOTICE);
-            }
-            return $transaction;
-        }
+        return $this->getApi()->getTransaction();
     }
     
     /**
@@ -318,7 +402,12 @@ class ModelTotalOnego extends Model
      */
     private function initApi()
     {
-        $cfg = new OneGoAPI_APIConfig($this->getConfig('terminalId'), $this->getConfig('transactionTTL'));
+        $cfg = new OneGoAPI_APIConfig(
+                $this->getConfig('clientId'),
+                $this->getConfig('clientSecret'), 
+                $this->getConfig('terminalId'), 
+                $this->getConfig('transactionTTL')
+        );
         $cfg->apiUri = $this->getConfig('apiURI');
         $cfg->currencyCode = $this->getRegistryObj()->get('config')->get('config_currency');
         $api = OneGoAPI_Impl_SimpleAPI::init($cfg);
@@ -357,8 +446,12 @@ class ModelTotalOnego extends Model
      */
     private function initAuth()
     {
-        $cfg = new OneGoAPI_OAuthConfig($this->getConfig('clientId'), $this->getConfig('clientSecret'), 
-                $this->getConfig('authorizationURI'), $this->getConfig('oAuthURI'));
+        $cfg = new OneGoAPI_OAuthConfig(
+                $this->getConfig('clientId'), 
+                $this->getConfig('clientSecret'), 
+                $this->getConfig('authorizationURI'), 
+                $this->getConfig('oAuthURI')
+        );
         $auth = OneGoAPI_Impl_SimpleOAuth::init($cfg);
         $this->saveToRegistry('auth', $auth);
         return $auth;
@@ -437,10 +530,7 @@ class ModelTotalOnego extends Model
     {
         $session = $this->getSession();
         $onego_data = isset($session->data[$this->registrykey]) ? $session->data[$this->registrykey] : array();
-        if (empty($onego_data)) {
-            $onego_data = array();
-        }
-        $onego_data[$key] = $val;
+        $onego_data[$key] = serialize($val);
         $session->data[$this->registrykey] = $onego_data;
     }
     
@@ -454,7 +544,8 @@ class ModelTotalOnego extends Model
     {
         $session = $this->getSession();
         $onego_data = isset($session->data[$this->registrykey]) ? $session->data[$this->registrykey] : array();
-        return isset($onego_data[$key]) ? $onego_data[$key] : null;
+        $data = isset($onego_data[$key]) ? unserialize($onego_data[$key]) : null;
+        return $data;
     }
     
     /**
@@ -488,7 +579,6 @@ class ModelTotalOnego extends Model
             $receiptNumber = $this->generateReceiptNumber();
         }
         try {
-            $this->log('transaction/begin: token='.$token->accessToken.'; cart entries: '.count($cart), self::LOG_NOTICE);
             $transaction = $api->beginTransaction($receiptNumber, $cart);
             $this->saveTransaction($transaction);
             
@@ -496,10 +586,10 @@ class ModelTotalOnego extends Model
             $this->saveToSession('cart_hash', $this->getEshopCartHash());
             $this->saveToSession('onego_benefits_applied', false);
             
-            $this->log('transaction started: '.$transaction->getId()->id);
+            $this->log('transaction started with '.count($cart).' cart entries', self::LOG_NOTICE);
             return true;
         } catch (Exception $e) {
-            $this->log('transaction/begin exception: '.$e->getMessage(), self::LOG_ERROR);
+            $this->log('Begin transaction failed: '.$e->getMessage(), self::LOG_ERROR);
             throw $e;
         }
     }
@@ -514,13 +604,13 @@ class ModelTotalOnego extends Model
         $api = $this->getApi();
         if ($transaction = $this->getTransaction()) {
             try {
-                $this->log('transaction confirm', self::LOG_NOTICE);
+                $this->log('Transaction confirm', self::LOG_NOTICE);
                 $transaction->confirm();
                 $this->deleteTransaction();
                 $this->saveToSession('onego_benefits_applied', true);
                 return true;
             } catch (Exception $e) {
-                $this->log('transaction/end/confirm exception: '.$e->getMessage(), self::LOG_ERROR);
+                $this->log('Transaction confirm failed: '.$e->getMessage(), self::LOG_ERROR);
                 $this->deleteTransaction();
             }
         }
@@ -537,13 +627,13 @@ class ModelTotalOnego extends Model
         $api = $this->getApi();
         if ($transaction = $this->getTransaction()) {
             try {
-                $this->log('transaction cancel', self::LOG_NOTICE);
                 $transaction->cancel();
                 $this->deleteTransaction();
                 $this->saveToSession('onego_benefits_applied', false);
+                $this->log('Transaction canceled', self::LOG_NOTICE);
                 return true;
             } catch (Exception $e) {
-                $this->log('transaction/end/cancel exception: '.$e->getMessage(), self::LOG_ERROR);
+                $this->log('Transaction cancel failed: '.$e->getMessage(), self::LOG_ERROR);
                 $this->deleteTransaction();
             }
         }
@@ -559,15 +649,15 @@ class ModelTotalOnego extends Model
     {
         if ($this->isTransactionStarted()) {
             $api = $this->getApi();
-            $this->log('transaction cart update', self::LOG_NOTICE);
             $cart = $api->newCart();
             try {
                 $transaction = $this->getTransaction()->updateCart($this->collectCartEntries());
+                $this->log('Transaction cart updated', self::LOG_NOTICE);
                 $this->saveTransaction($transaction);
                 $this->saveToSession('cart_hash', $this->getEshopCartHash());
                 return true;
             } catch (Exception $e) {
-                $this->log('transaction cart update exception: '.$e->getMessage(), self::LOG_ERROR);
+                $this->log('Transaction cart update failed: '.$e->getMessage(), self::LOG_ERROR);
             }
         }
         return false;
@@ -673,7 +763,7 @@ class ModelTotalOnego extends Model
     
     /**
      *
-     * @return array List of funds owned by buyer, as set in transaction's buyerInfo property 
+     * @return array Prepaid available to buyer
      */
     public function getFundsAvailable()
     {
@@ -741,8 +831,7 @@ class ModelTotalOnego extends Model
     public static function getHeaderHtml()
     {
         $onego = self::getInstance();
-        return $onego->getInitHeaderCode()
-                .$onego->getDebugLogCode();
+        return $onego->getInitHeaderCode().$onego->getDebugLogCode();
     }
     
     public function getInitHeaderCode()
@@ -782,6 +871,7 @@ OneGo.plugins.setURI('{$pluginsURI}');
 END;
         return $html;
     }
+    
     
     public function setDefaultAuthAgentListeners()
     {
@@ -853,7 +943,8 @@ END;
             $log = $this->getLog();
             $log[] = array(
                 'time'      => microtime(),
-                'pid'       => getmypid().' / '.implode(' / ', self::debugBacktrace()),
+                'pid'       => getmypid(),
+                'backtrace' => implode(' / ', self::debugBacktrace()),
                 'message'   => $str,
                 'level'     => $level,
             );
@@ -918,7 +1009,10 @@ END;
                     $msg = preg_replace('/\'/', '\\\'', $msg);
                     list($usec, $sec) = explode(" ", $row['time']);
                     if (!empty($sec)) {
-                        $msg .= ' ['.date('H:i:s', $sec).' / '.$row['pid'].']';
+                        $msg .= ' ['.date('H:i:s', $sec).']';
+                    }
+                    if ($row['level'] == self::LOG_ERROR) {
+                        $msg .= ' :: '.$row['pid'].' / '.$row['backtrace'];
                     }
                     switch ($row['level']) {
                         case self::LOG_INFO:
@@ -1045,15 +1139,12 @@ END;
     public function getSavedOAuthToken()
     {
         $token = $this->getFromSession('OAuthToken');
-        if (!empty($token)) {
-            $token = unserialize($token);
-        }
         return $token;
     }
     
     public function saveOAuthToken(OneGoAPI_Impl_OAuthToken $token)
     {
-        $this->saveToSession('OAuthToken', serialize($token));
+        $this->saveToSession('OAuthToken', $token);
     }
     
     public function deleteOAuthToken()
@@ -1065,15 +1156,12 @@ END;
     public function getSavedTransaction()
     {
         $transaction = $this->getFromSession('Transaction');
-        if (!empty($transaction)) {
-            $transaction = unserialize($transaction);
-        }
         return $transaction;
     }
     
     public function saveTransaction(OneGoAPI_Impl_Transaction $transaction)
     {
-        $this->saveToSession('Transaction', serialize($transaction));
+        $this->saveToSession('Transaction', $transaction);
     }
     
     public function deleteTransaction()
@@ -1104,7 +1192,7 @@ END;
     public function blockAutologin($period = 60) // seconds
     {
         $this->saveToSession('autologinBlocked', time() + $period);
-        $this->log('Autologin blocked until '.date('Y-m-d H:i:s', time() + $period), self::LOG_NOTICE);
+        $this->log('Autologin blocked until '.date('Y-m-d H:i:s', time() + $period));
     }
     
     public function isUserAuthenticated()
@@ -1119,34 +1207,9 @@ END;
         return ($token && $token->hasScope($scope));
     }
     
-    public function autostartTransaction()
-    {
-        if (!$this->isTransactionStarted() && ($token = $this->getSavedOAuthToken()) &&
-            !$this->isEshopCartEmpty()) 
-        {
-            try {
-                return $this->beginTransaction($token);
-            } catch (Exception $e) {
-                // dissmiss failure
-                $this->log('Transaction autostart failed: '.$e->getMessage(), self::LOG_ERROR);
-            }
-        }
-        return false;
-    }
-    
-    public function isEshopCartEmpty()
-    {
-        $cart = $this->getEshopCart();
-        return empty($cart);
-    }
-    
     public function getShippingDiscount()
     {
-        $transaction = $this->getTransaction();
-        if (!$transaction) {
-            return null;
-        }
-        $cart = $transaction->getCart();
+        $cart = $this->getModifiedCart();
         $discount = null;
         foreach ($cart->getEntries() as $cartEntry) {
             if ($this->isShippingItem($cartEntry) && $cartEntry->getDiscount()) {
@@ -1165,22 +1228,34 @@ END;
     {
         $transaction = $this->getTransaction();
         if (empty($transaction) || !$transaction->isStarted()) {
-            $this->throwError('Transaction not started');
+            return false;
         }
-        $transaction->spendPrepaid($this->getFundsAmountAvailable());
-        $this->saveTransaction($transaction);
-        return $transaction->getPrepaidSpent();
+        try {
+            $transaction->spendPrepaid($this->getFundsAmountAvailable());
+            $this->log('Spent prepaid: '.$this->getFundsAmountAvailable(), self::LOG_NOTICE);
+            $this->saveTransaction($transaction);
+            return true;
+        } catch (OneGoAPI_Exception $e) {
+            $this->log('Spend prepaid failed: '.$e->getMessage(), self::LOG_ERROR);
+        }
+        return false;
     }
     
     public function cancelSpendingPrepaid()
     {
         $transaction = $this->getTransaction();
         if (empty($transaction) || !$transaction->isStarted()) {
-            $this->throwError('Transaction not started');
+            return false;
         }
-        $transaction->cancelSpendingPrepaid();
-        $this->saveTransaction($transaction);
-        return !$transaction->getPrepaidSpent();
+        try {
+            $transaction->cancelSpendingPrepaid();
+            $this->log('Spend prepaid canceled', self::LOG_NOTICE);
+            $this->saveTransaction($transaction);
+            return true;
+        } catch (OneGoAPI_Exception $e) {
+            $this->log('Cancel spending prepaid failed: '.$e->getMessage(), self::LOG_ERROR);
+        }
+        return false;
     }
     
     public function isCurrentScopeSufficient()
@@ -1236,7 +1311,15 @@ END;
     }
     
     public function refreshTransaction()
-    {        
+    {
+        if ($this->isTransactionStarted()) {
+            // unset anonymous awards
+            $this->deleteAnonymousModifiedCart();
+        } else if ($this->hasAgreedToDiscloseEmail()) {
+            // update anonymous awards if needed
+            $this->getAnonymousModifiedCart();
+        }        
+        
         // refresh token if expired
         $token = $this->getSavedOAuthToken();
         if ($token) {
@@ -1263,7 +1346,6 @@ END;
         if ($this->isTransactionStarted()) {
             // memorize transaction state to restore on restart
             $prepaidSpent = $transaction->getPrepaidSpent();
-            $this->log('prepaid spent: '.$prepaidSpent);
         }
         
         if ($transaction && $transaction->isExpired()) {
@@ -1294,6 +1376,122 @@ END;
         }
         
         return $this->getTransaction();
+    }
+    
+    public function getPrepaidReceivedAmount()
+    {
+        $cart = $this->getModifiedCart();
+        if ($cart && ($prepaidReceived = $cart->getPrepaidReceived())) {
+            return $prepaidReceived->getAmount()->visible;
+        }
+        return false;
+    }
+    
+    public function getTotalDiscount()
+    {
+        $cart = $this->getModifiedCart();
+        if ($cart && ($totalDiscount = $cart->getTotalDiscount())) {
+            return $totalDiscount;
+        }
+        return false;
+    }
+    
+    public function getPrepaidSpent()
+    {
+        $cart = $this->getModifiedCart();
+        if ($cart && ($prepaidSpent = $cart->getPrepaidSpent())) {
+            return $prepaidSpent;
+        }
+        return false;
+    }
+    
+    public function getCashAmount()
+    {
+        $cart = $this->getModifiedCart();
+        if ($cart && ($cashAmount = $cart->getCashAmount())) {
+            return $cashAmount->visible;
+        }
+    }
+    
+    public function getOriginalAmount()
+    {
+        $cart = $this->getModifiedCart();
+        if ($cart && ($originalAmount = $cart->getOriginalAmount())) {
+            return $originalAmount->visible;
+        }
+    }
+    
+    protected function getModifiedCart()
+    {
+        if ($this->isTransactionStarted()) {
+            return $this->getTransaction()->getModifiedCart();
+        } else {
+            return $this->getAnonymousModifiedCart();
+        }
+        return false;
+    }
+    
+    /**
+     *
+     * @return OneGoAPI_DTO_ModifiedCartDto 
+     */
+    protected function getAnonymousModifiedCart()
+    {
+        if ((is_null($this->getFromSession('anonymousModifiedCart'))) ||
+            ($this->getEshopCartHash() != $this->getFromSession('anonymousModifiedCartHash'))) 
+        {
+            $api = $this->getApi();
+            try {
+                $modifiedCart = $api->getAnonymousAwards($this->collectCartEntries());
+                $this->log('Anonymous awards requested', self::LOG_NOTICE);
+                $this->saveToSession('anonymousModifiedCart', $modifiedCart);
+                $this->saveToSession('anonymousModifiedCartHash', $this->getEshopCartHash());
+            } catch (OneGoAPI_Exception $e) {
+                // ignore
+                $this->log('Anonymous awards request failed: '.$e->getMessage(), self::LOG_ERROR);
+                return false;
+            }
+        }
+        $modifiedCart = $this->getFromSession('anonymousModifiedCart');
+        return is_null($modifiedCart) ? false : $modifiedCart;
+    }
+    
+    public function deleteAnonymousModifiedCart()
+    {
+        $this->saveToSession('anonymousModifiedCart', null);
+    }
+    
+    public function agreeToDiscloseEmail($agreed)
+    {
+        $this->saveToSession('agreedToDiscloseEmail', $agreed);
+    }
+    
+    public function hasAgreedToDiscloseEmail()
+    {
+        return $this->getFromSession('agreedToDiscloseEmail');
+    }
+    
+    public function requestOAuthAccessToken($authorizationCode, $requestedScopes = false)
+    {
+        $auth = $this->getAuth();
+        try {
+            $token = $auth->requestAccessToken($authorizationCode, $this->getOAuthRedirectUri());
+            $this->log('OAuth token issued', self::LOG_NOTICE);
+            if (!empty($requestedScopes)) {
+                // remember token scope(s)
+                $token->setScopes($requestedScopes);
+            }
+
+            if ($this->isTransactionStarted()) {
+                // check if current transaction works with the new token, restart if not
+                $this->verifyTransactionWithNewToken($token);
+            }
+            $this->saveOAuthToken($token);
+        } catch (OneGoAPI_OAuthException $e) {
+            $this->log('Issuing OAuth token failed: '.$e->getMessage(), self::LOG_ERROR);
+            throw $e;
+        }
+        return $token;        
     }
 }
 

@@ -74,7 +74,7 @@ class ControllerTotalOnego extends Controller {
                     'error' => get_class($e),
                     'message' => $errorMessage,
                 );
-            } catch (OneGoAPICallFailedException $e) {
+            } catch (OneGoException $e) {
                 $errorMessage = $this->language->get('error_api_call_failed');
                 $response = array(
                     'error' => get_class($e),
@@ -84,20 +84,10 @@ class ControllerTotalOnego extends Controller {
             
             if (empty($response) && $onego->isTransactionStarted()) {
                 $do_use = $request->post['use_funds'] == 'true';
-                try {
-                    if ($do_use) {
-                        $onego->log('transaction/prepaid/spend', ModelTotalOnego::LOG_NOTICE);
-                        $response = array('status' => $onego->spendPrepaid() ? 1 : 0);
-                    } else {
-                        $onego->log('transaction/prepaid/spending/cancel', ModelTotalOnego::LOG_NOTICE);
-                        $response = array('status' => $onego->cancelSpendingPrepaid() ? 0 : 1);
-                    }
-                } catch (Exception $e) {
-                    $response = array(
-                        'error'     => $e->getCode(),
-                        'message'   => $e->getMessage(),
-                    );
-                    $onego->log('funds usage call exception: '.$e->getMessage(), ModelTotalOnego::LOG_ERROR);
+                if ($do_use) {
+                    $response = array('status' => $onego->spendPrepaid() ? 1 : 0);
+                } else {
+                    $response = array('status' => $onego->cancelSpendingPrepaid() ? 1 : 0);
                 }
             }
             $this->response->setOutput(OneGoAPI_JSON::encode($response));
@@ -113,13 +103,14 @@ class ControllerTotalOnego extends Controller {
         $reqScope = OneGoAPI_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY;
         
         // login not required if user is already athenticated with OneGo, return
-        if ($onego->isUserAuthenticated()) {
-            $onego->log('autologin not needed, user already authenticated', ModelTotalOnego::LOG_NOTICE);
+        $token = $onego->getSavedOAuthToken();
+        if ($onego->isUserAuthenticated() && $token && !$token->isExpired()) {
+            $onego->log('autologin not needed, user already authenticated');
             $this->redirect($referer);
         }
         
         if ($onego->autologinBlockedUntil()) {
-            $onego->log('autologin blocked after last fail', ModelTotalOnego::LOG_NOTICE);
+            $onego->log('autologin blocked after last fail');
             $this->redirect($referer);
         }
         
@@ -145,8 +136,9 @@ class ControllerTotalOnego extends Controller {
         $reqScope = array(OneGoAPI_Impl_OneGoOAuth::SCOPE_USE_BENEFITS, OneGoAPI_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY);
         
         // login not required if user is already athenticated with OneGo, return
-        if ($onego->isUserAuthenticated() && $onego->userHasScope($reqScope)) {
-            $onego->log('login not needed, user already authenticated and has required scope', ModelTotalOnego::LOG_NOTICE);
+        $token = $onego->getSavedOAuthToken();
+        if ($onego->isUserAuthenticated() && $onego->userHasScope($reqScope) && $token && !$token->isExpired()) {
+            $onego->log('login not needed, user already authenticated and has required scope');
             $this->redirect($returnpage);
         }
         
@@ -174,7 +166,6 @@ class ControllerTotalOnego extends Controller {
         try {
             $this->processAuthorizationResponse($request->get, $auth_request);
             $onego->saveToSession('authorizationSuccess', true);
-            $onego->log('authorization success', ModelTotalOnego::LOG_INFO);
         } catch (OneGoAPI_OAuthAccessDeniedException $e) {
             $errorMessage = $this->language->get('error_authorization_access_denied');
         } catch (OneGoAPI_OAuthTemporarilyUnavailableException $e) {
@@ -206,8 +197,7 @@ class ControllerTotalOnego extends Controller {
         $onego = $this->getModel();
         $authorizationSuccessful = $onego->getFromSession('authorizationSuccess');
         $this->data['onego_authenticated'] = $authorizationSuccessful;
-        $this->data['onego_error'] = $authorizationSuccessful ?
-                false : $this->takeoverGlobalErrorMessage();
+        $this->data['onego_error'] = $authorizationSuccessful ? false : $this->takeoverGlobalErrorMessage();
         
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_auth_status.tpl')) {
             $this->template = $this->config->get('config_template') . '/template/total/onego_auth_status.tpl';
@@ -222,13 +212,8 @@ class ControllerTotalOnego extends Controller {
         $this->language->load('total/onego');
         $onego = $this->getModel();
         
-        if ($onego->isTransactionStarted()) {
-            if ($onego->cancelTransaction()) {
-                $onego->log('transaction cancelled');
-                $onego->getSession()->data['success'] = $this->language->get('benefits_disabled');
-            } else {
-                $onego->log('failed to cancel transaction', ModelTotalOnego::LOG_WARNING);
-            }
+        if ($onego->cancelTransaction()) {
+            $onego->getSession()->data['success'] = $this->language->get('benefits_disabled');
         }
         $onego->deleteOAuthToken();
         
@@ -248,6 +233,8 @@ class ControllerTotalOnego extends Controller {
             
         }
         
+        $onego->deleteAnonymousModifiedCart();
+        
         $this->redirect($referer);
     }
     
@@ -255,7 +242,7 @@ class ControllerTotalOnego extends Controller {
     {
         $onego = $this->getModel();
         $agreed = (bool) !empty($this->request->post['agree']);
-        $onego->saveToSession('onego_agreed', $agreed);
+        $onego->agreeToDiscloseEmail($agreed);
     }
     
     public function claimBenefits()
@@ -389,25 +376,8 @@ class ControllerTotalOnego extends Controller {
         $onego = $this->getModel();
         if (!empty($response_params['code'])) {
             // issue token
-            try {
-                $auth = $onego->getAuth();
-                $redirectUri = $onego->getOAuthRedirectUri();
-                $token = $auth->requestAccessToken($response_params['code'], $redirectUri);
-                if (isset($authorization_request['scope'])) {
-                    // remember token scope(s)
-                    $token->setScopes($authorization_request['scope']);
-                }
-                
-                if ($onego->isTransactionStarted()) {
-                    // check if current transaction works with the new token, restart if not
-                    $onego->verifyTransactionWithNewToken($token);
-                }
-                
-                $onego->saveOAuthToken($token);
-                
-            } catch (Exception $e) {
-                throw $e;
-            }
+            $requestedScopes = !empty($authorization_request['scope']) ? $authorization_request['scope'] : false;
+            $onego->requestOAuthAccessToken($response_params['code'], $requestedScopes);
             return true;
         } else {
             // transform response to OneGoAPI_OAuthException

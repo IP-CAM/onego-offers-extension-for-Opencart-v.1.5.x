@@ -378,8 +378,20 @@ class ControllerCheckoutConfirm extends Controller {
                 }
             } else {
                 $this->data['onego_login_url'] = $this->url->link('total/onego/login');
-                $this->data['onego_agreed'] = $onego->getFromSession('onego_agreed');
             }
+            $this->data['onego_login_button'] = $this->language->get('button_onego_login');
+            $this->data['onego_agreed'] = $onego->hasAgreedToDiscloseEmail();
+            $this->data['onego_agree_email_expose'] = $this->language->get('agree_email_expose');
+            $this->data['onego_agree_email_expose'] = str_replace('{%EMAIL%}', $data['email'], $this->data['onego_agree_email_expose']);
+            //$rewards = $onego->getPrepaidReceivedAmount();
+            $rewards = false;
+            if ($rewards) {
+                $rewards = $this->currency->format($rewards);
+                $this->data['onego_agree_email_expose'] = str_replace('{%REWARDS%}', ' ('.$rewards.')', $this->data['onego_agree_email_expose']);
+            } else {
+                $this->data['onego_agree_email_expose'] = str_replace('{%REWARDS%}', '', $this->data['onego_agree_email_expose']);
+            }
+            
 
             $json['output'] = $this->render();
         }

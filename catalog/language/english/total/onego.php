@@ -7,7 +7,7 @@ $_['button_disable']   = 'Do not use OneGo benefits';
 $_['benefits_disabled'] = 'OneGo benefits withheld.';
 
 // Entry
-$_['button_onego_login']  = 'Apply OneGo Benefits';
+$_['button_onego_login']  = 'Apply my Benefits';
 
 $_['button_update']   = 'Reapply benefits';
 $_['onego_cart_discount'] = 'OneGo discount';
@@ -30,6 +30,10 @@ $_['use_funds'] = 'Do you want to use your OneGo funds?';
 $_['no_funds_available'] = 'You have no funds available yet';
 $_['funds_monetary_points'] = 'Use my %s';
 $_['funds_prepaid'] = 'Use my OneGo funds: %s';
+
+//$_['agree_email_expose'] = 'I want to receive OneGo rewards for this purchase{%REWARDS%} and I agree to expose my e-mail ({%EMAIL%}) to OneGo to receive benefits in the future';
+$_['agree_email_expose'] = 'I want to receive OneGo rewards for this purchase{%REWARDS%} and I agree to expose my e-mail to OneGo to receive benefits in the future';
+$_['agree_email_expose'] = 'I agree to expose my e-mail to OneGo to receive benefits for this{%REWARDS%} and future purchases';
 
 $_['widget_handle_show'] = 'Show OneGo widget';
 $_['widget_handle_hide'] = 'Hide OneGo widget';

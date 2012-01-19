@@ -36,6 +36,21 @@ input.onego_watermark.focused {
     padding-top: 15px;
 }
 
+#onego_panel hr {
+    display: block;
+    position: relative;
+    padding: 0;
+    margin: 8px auto;
+    width: 100%;
+    clear: both;
+    border: none;
+    border-top: 1px solid #AAA;
+    border-bottom: 1px solid #FFF;
+    font-size: 1px;
+    line-height: 0;
+    overflow: visible;
+}
+
 #onego_widget_container {
     position: absolute; 
     left: -462px;

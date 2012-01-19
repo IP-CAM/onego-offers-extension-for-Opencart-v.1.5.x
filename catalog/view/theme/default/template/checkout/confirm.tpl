@@ -52,10 +52,10 @@ $('#onego_agree').unbind().change(function(e){
         data: { 'agree': $(this).is(':checked') ? 1 : 0 },
         dataType: 'json',
         beforeSend: function() {
-            $(this).attr('disabled', true);
+            OneGo.lib.setAsLoading($('#onego_agree'));
         },	
         success: function() {
-            $(this).removeAttr('disabled');
+            OneGo.opencart.reloadCheckoutOrderInfo();
         }
     });
 })
@@ -101,21 +101,29 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
           <div id="onego_panel_label"></div>
           <div id="onego_panel_content">
             <?php if (empty($onego_authenticated)) { ?>
-            <ul style="margin: 0px; padding: 0px 20px;">
-                <li>
-                    I already have my OneGo account - <a href="<?php echo $onego_login_url ?>" class="button" id="onego_login"><span>Apply my benefits</span></a>
-                </li>
-                <li>
-                    I wish to receive OneGo rewards for the purchase and I agree that my e-mail address is exposed to OneGo: 
-                    <input type="checkbox" id="onego_agree" value="y" <?php echo !empty($onego_agreed) ? 'checked="checked"' : '' ?> />
-                </li>
-                <li>
-                    I wish to redeem my Gift Card:
-                    <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="Gift Card Number" />
-                    <input type="button" value="Redeem" onclick="OneGo.opencart.redeemGiftCardAnonymous();" />
-                </li>
-            </ul>
-
+              <table border="0" width="100%">
+                  <tr>
+                      <td width="45%" align="center">
+                          <div style="padding-bottom: 5px;">Already have your OneGo account?</div>
+                          <a href="<?php echo $onego_login_url; ?>" class="button"><span><?php echo $onego_login_button; ?></span></a>
+                      </td>
+                      <td width="10%" align="center">
+                          or
+                      </td>
+                      <td width="45%" align="center">
+                          <div style="padding-bottom: 5px;">Got a gift card?</div>
+                          <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="Gift Card Number" />
+                          <a href="javascript:OneGo.opencart.redeemGiftCardAnonymous();" class="button"><span>Redeem</span></a>
+                      </td>
+                  </tr>
+                  <tr>
+                      <td colspan="3" align="center">
+                          <hr />
+                          <input type="checkbox" id="onego_agree" value="y" <?php echo !empty($onego_agreed) ? 'checked="checked"' : '' ?> />
+                          - <?php echo $onego_agree_email_expose ?>
+                      </td>
+                  </tr>
+              </table>
             <?php } else { ?>
 
               <div class="onego_funds">
