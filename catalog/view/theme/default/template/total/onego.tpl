@@ -7,7 +7,7 @@
               <table border="0" width="100%">
                   <tr>
                       <td width="45%" align="center">
-                          <div style="padding-bottom: 5px;">Do you already have OneGo account?</div>
+                          <div style="padding-bottom: 5px;">Already have your benefits account?</div>
                           <a href="<?php echo $onego_login; ?>" class="button"><span><?php echo $button_onego_login; ?></span></a>
                       </td>
                       <td width="10%" align="center">
@@ -19,8 +19,32 @@
                           <a href="javascript:OneGo.opencart.redeemGiftCardAnonymous();" class="button"><span>Redeem</span></a>
                       </td>
                   </tr>
+                  <tr>
+                      <td colspan="3" align="center">
+                          <hr />
+                          <input type="checkbox" id="onego_agree" value="y" <?php echo !empty($onego_agreed) ? 'checked="checked"' : '' ?> />
+                          - <label for="onego_agree"><?php echo $onego_agree_email_expose ?></label>
+                      </td>
+                  </tr>
               </table>
           </div>
     </div>
   </div>
 </div>
+
+<script type="text/javascript">
+$('#onego_agree').unbind().change(function(e){
+    $.ajax({
+        url: 'index.php?route=total/onego/agree', 
+        type: 'post',
+        data: { 'agree': $(this).is(':checked') ? 1 : 0 },
+        dataType: 'json',
+        beforeSend: function() {
+            OneGo.lib.setAsLoading($('#onego_agree'));
+        },	
+        success: function() {
+            OneGo.opencart.reloadPage();
+        }
+    });
+})
+</script>

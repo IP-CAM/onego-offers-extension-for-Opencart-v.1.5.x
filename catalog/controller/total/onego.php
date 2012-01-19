@@ -27,6 +27,7 @@ class ControllerTotalOnego extends Controller {
             $this->data['onego_use_funds_url'] = $this->url->link('total/onego/useFunds');
             $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
             $this->data['checkoutUri'] = $this->url->link('checkout/checkout');
+            $this->data['authWidgetText'] = $this->language->get('auth_widget_text');
             
             if ($onego->isTransactionStarted()) {
                 $this->data['onego_applied'] = true;
@@ -54,6 +55,8 @@ class ControllerTotalOnego extends Controller {
                 $this->template = 'default/template/total/onego.tpl';
             }
         }
+        $this->data['onego_agreed'] = $onego->hasAgreedToDiscloseEmail();
+        $this->data['onego_agree_email_expose'] = $this->language->get('agree_email_expose');
 
         $this->response->setOutput($this->render());
     }
@@ -328,6 +331,12 @@ class ControllerTotalOnego extends Controller {
         } else {
             $this->template = 'default/template/total/onego_widget.tpl';
         }
+        $this->response->setOutput($this->render());
+    }
+    
+    public function checkoutConfirm()
+    {
+        // TO DO: checkout/confirm output
         $this->response->setOutput($this->render());
     }
     

@@ -367,9 +367,9 @@ class ControllerCheckoutConfirm extends Controller {
             $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
             if ($onego->isUserAuthenticated()) {
                 $this->data['onego_authenticated'] = true;
-                
                 $this->data['onego_action'] = $this->url->link('checkout/confirm');
                 $this->data['onego_disable'] = $this->url->link('total/onego/cancel');
+                $this->data['authWidgetText'] = $this->language->get('auth_widget_text');
                 
                 if ($this->data['onego_applied'] = $onego->isTransactionStarted()) {
                     $this->data['onego_funds'] = $onego->getFundsAvailable();
@@ -382,17 +382,7 @@ class ControllerCheckoutConfirm extends Controller {
             $this->data['onego_login_button'] = $this->language->get('button_onego_login');
             $this->data['onego_agreed'] = $onego->hasAgreedToDiscloseEmail();
             $this->data['onego_agree_email_expose'] = $this->language->get('agree_email_expose');
-            $this->data['onego_agree_email_expose'] = str_replace('{%EMAIL%}', $data['email'], $this->data['onego_agree_email_expose']);
-            //$rewards = $onego->getPrepaidReceivedAmount();
-            $rewards = false;
-            if ($rewards) {
-                $rewards = $this->currency->format($rewards);
-                $this->data['onego_agree_email_expose'] = str_replace('{%REWARDS%}', ' ('.$rewards.')', $this->data['onego_agree_email_expose']);
-            } else {
-                $this->data['onego_agree_email_expose'] = str_replace('{%REWARDS%}', '', $this->data['onego_agree_email_expose']);
-            }
             
-
             $json['output'] = $this->render();
         }
 

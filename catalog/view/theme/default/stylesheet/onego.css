@@ -6,7 +6,7 @@ input.onego_watermark.focused {
 }
 #onego_authwidget_container {
     width: 350px;
-    height: 35px;
+    /*height: 35px;*/
 }
 #onego_panel {
     margin: 0px;
@@ -100,7 +100,6 @@ input.onego_watermark.focused {
     display: none;
 }
 
-.onego_loading {
+.onego_loading_container {
     background: transparent url(../image/onego_loading.gif) no-repeat center center;
-    display: inline-block;
 }

@@ -104,7 +104,7 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
               <table border="0" width="100%">
                   <tr>
                       <td width="45%" align="center">
-                          <div style="padding-bottom: 5px;">Already have your OneGo account?</div>
+                          <div style="padding-bottom: 5px;">Already have your benefits account?</div>
                           <a href="<?php echo $onego_login_url; ?>" class="button"><span><?php echo $onego_login_button; ?></span></a>
                       </td>
                       <td width="10%" align="center">
@@ -120,7 +120,7 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
                       <td colspan="3" align="center">
                           <hr />
                           <input type="checkbox" id="onego_agree" value="y" <?php echo !empty($onego_agreed) ? 'checked="checked"' : '' ?> />
-                          - <?php echo $onego_agree_email_expose ?>
+                          - <label for="onego_agree"><?php echo $onego_agree_email_expose ?></label>
                       </td>
                   </tr>
               </table>
@@ -140,7 +140,8 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
                                           'link-color': '#38B0E3',
                                           'font-size': '12px',
                                           'font': 'arial',
-                                          'height': 35
+                                          'height': 40,
+                                          'text': "<?php echo $authWidgetText ?>"
                                       });
                                   </script>
                               </td>

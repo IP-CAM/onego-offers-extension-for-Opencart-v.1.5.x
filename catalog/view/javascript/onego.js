@@ -156,13 +156,14 @@ OneGo.plugins.authWidget = function(elementId, initParams)
         'fo':   initParams['font'] || false,
         'ts':   initParams['font-size'] || false,
         'wi':   initParams['width'] || false,
-        'he':   initParams['height'] || false
+        'he':   initParams['height'] || false,
+        'te':   initParams['text'] || false
     }
     
-    var w = params.wi ? params.wi+'px' : $('#'+elementId).outerWidth();
-    var h = params.he ? params.he+'px' : '40px';
+    var w = params.wi ? params.wi : $('#'+elementId).width();
+    var h = params.he ? params.he : $('#'+elementId).height();
     var id = generateId();
-    var plugin = $('<div class="onego_plugin" id="'+id+'" width="'+w+'" height="'+h+'"></div>');
+    var plugin = $('<div class="onego_plugin" id="'+id+'" style="width: '+w+'px; height: '+h+'px;"></div>');
     if ($('#'+elementId).length) {
         $('#'+elementId).append(plugin);
         OneGo.plugins.addToInitQueue(initialize);
@@ -379,6 +380,9 @@ OneGo.opencart = {
             });
         }
     },
+    reloadPage: function(){
+        window.location.href = window.location.href;
+    },
     redeemGiftCardAnonymous: function(){
         $.fancybox({
             'width': 800,
@@ -532,20 +536,18 @@ OneGo.log = function(msg, level)
 
 OneGo.lib = {
     setAsLoading: function(element) {
-        var curtain = $('<div class="onego_loading"><div></div></div>')
-        curtain.css('width', element.outerWidth());
-        curtain.css('height', element.outerHeight());
-        //element.attr('disabled', true);
-        element.hide();
-        element.after(curtain);
-        
+        var curtain = $('<span class="onego_loading_container"></span>')
+        element.before(curtain);
+        curtain.append(element);
+        element.css('visibility', 'hidden');
     },
     unsetAsLoading: function(element) {
-        //element.attr('disabled', false);
-        element.show();
-        if (element.next().hasClass('onego_loading')) {
-            element.next().remove();
+        var container = element.parent();
+        if (container.hasClass('onego_loading_container')) {
+            container.after(element);
+            container.remove();
         }
+        element.css('visibility', 'visible');
     }
 }
 

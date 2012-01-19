@@ -1211,9 +1211,11 @@ END;
     {
         $cart = $this->getModifiedCart();
         $discount = null;
-        foreach ($cart->getEntries() as $cartEntry) {
-            if ($this->isShippingItem($cartEntry) && $cartEntry->getDiscount()) {
-                $discount += $cartEntry->getDiscount()->getAmount();
+        if ($cart) {
+            foreach ($cart->getEntries() as $cartEntry) {
+                if ($this->isShippingItem($cartEntry) && $cartEntry->getDiscount()) {
+                    $discount += $cartEntry->getDiscount()->getAmount();
+                }
             }
         }
         return $discount;

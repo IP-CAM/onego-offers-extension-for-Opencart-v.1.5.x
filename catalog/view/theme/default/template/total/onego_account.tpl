@@ -15,11 +15,12 @@
                                   </div>
                                   <script type="text/javascript">
                                       var authwidget = OneGo.plugins.authWidget('onego_authwidget_container', {
-                                          'text-color': 'black',
+                                          'text-color': '#000',
                                           'link-color': '#38B0E3',
                                           'font-size': '12px',
                                           'font': 'arial',
-                                          'height': 35
+                                          'height': 40,
+                                          'text': "<?php echo $authWidgetText ?>"
                                       });
                                   </script>
                               </td>
@@ -67,7 +68,7 @@ $(document).ready(function(){
                     OneGo.opencart.flashWarningBefore($('#onego_panel'), data.message);
                     OneGo.lib.unsetAsLoading($('#use_onego_funds'));
                 } else {
-                    location.href = location.href;
+                    OneGo.opencart.reloadPage();
                 }
             }
         );
@@ -88,7 +89,7 @@ function promptLoginForFundsUse()
                 $('#use_onego_funds'),
                 function(data, textStatus, jqXHR){
                     if (typeof data.status != 'undefined') {
-                        location.href = location.href;
+                        OneGo.opencart.reloadPage();
                     }
                 }
             );
