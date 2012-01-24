@@ -10,19 +10,9 @@
                       <table border="0" width="100%">
                           <tr>
                               <td rowspan="2" align="left" valign="top">
-                                  <div id="onego_authwidget_container">
-                                      <img src="catalog/view/theme/default/image/loading.gif" />
+                                  <div id="onego_authwidget_container" class="onego-authwidget" data-textcolor="#000" data-linkcolor="#38B0E3" data-fontsize="12px" data-font="arial" data-height="40" data-width="350" data-text="<?php echo $authWidgetText ?>">
+                                      Benefits by: <img src="catalog/view/theme/default/image/loading.gif" />
                                   </div>
-                                  <script type="text/javascript">
-                                      var authwidget = OneGo.plugins.authWidget('onego_authwidget_container', {
-                                          'text-color': '#000',
-                                          'link-color': '#38B0E3',
-                                          'font-size': '12px',
-                                          'font': 'arial',
-                                          'height': 40,
-                                          'text': "<?php echo $authWidgetText ?>"
-                                      });
-                                  </script>
                               </td>
                               <td align="right">
                                   <?php
@@ -57,18 +47,18 @@ $(document).ready(function(){
     $('#use_onego_funds').change(function(e){
         $('.warning').remove();
         <?php if (!empty($onego_scope_extended)) { ?>
-        OneGo.opencart.processFundUsage(
+        OneGoOpencart.processFundUsage(
             $(this),
             function(data, textStatus, jqXHR){
                 if (data.error && data.error == 'OneGoAuthenticationRequiredException') {
-                    OneGo.lib.unsetAsLoading($('#use_onego_funds'));
+                    OneGoOpencart.unsetAsLoading($('#use_onego_funds'));
                     cancelUseFundsCheck();
                     promptLoginForFundsUse();
                 } else if (data.error) {
-                    OneGo.opencart.flashWarningBefore($('#onego_panel'), data.message);
-                    OneGo.lib.unsetAsLoading($('#use_onego_funds'));
+                    OneGoOpencart.flashWarningBefore($('#onego_panel'), data.message);
+                    OneGoOpencart.unsetAsLoading($('#use_onego_funds'));
                 } else {
-                    OneGo.opencart.reloadPage();
+                    OneGoOpencart.reloadPage();
                 }
             }
         );
@@ -83,13 +73,13 @@ $(document).ready(function(){
 
 function promptLoginForFundsUse()
 {
-    OneGo.opencart.promptLogin(
+    OneGoOpencart.promptLogin(
         function(){
-            OneGo.opencart.processFundUsage(
+            OneGoOpencart.processFundUsage(
                 $('#use_onego_funds'),
                 function(data, textStatus, jqXHR){
                     if (typeof data.status != 'undefined') {
-                        OneGo.opencart.reloadPage();
+                        OneGoOpencart.reloadPage();
                     }
                 }
             );

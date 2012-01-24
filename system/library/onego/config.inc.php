@@ -3,6 +3,8 @@ $oneGoConfig = array();
 
 $oneGoConfig['debugModeOn'] = true;
 
+$oneGoConfig['autologinOn'] = true;
+
 // transaction timeout, in seconds
 $oneGoConfig['transactionTTL'] = 900;
 

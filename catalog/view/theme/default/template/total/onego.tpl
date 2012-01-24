@@ -16,7 +16,7 @@
                       <td width="45%" align="center">
                           <div style="padding-bottom: 5px;">Got a gift card?</div>
                           <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="Gift Card Number" />
-                          <a href="javascript:OneGo.opencart.redeemGiftCardAnonymous();" class="button"><span>Redeem</span></a>
+                          <a href="javascript:OneGoOpencart.redeemGiftCardAnonymous();" class="button"><span>Redeem</span></a>
                       </td>
                   </tr>
                   <tr>
@@ -40,10 +40,10 @@ $('#onego_agree').unbind().change(function(e){
         data: { 'agree': $(this).is(':checked') ? 1 : 0 },
         dataType: 'json',
         beforeSend: function() {
-            OneGo.lib.setAsLoading($('#onego_agree'));
+            OneGoOpencart.setAsLoading($('#onego_agree'));
         },	
         success: function() {
-            OneGo.opencart.reloadPage();
+            OneGoOpencart.reloadPage();
         }
     });
 })

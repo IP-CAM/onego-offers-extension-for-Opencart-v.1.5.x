@@ -35,9 +35,6 @@
   <?php } ?>
 </table>
 <div class="checkout">
-<?php if (!empty($show_onego)) { ?>
-<a href="<?php echo $onego_login; ?>" class="button"><span><?php echo $button_onego_login; ?></span></a>
-<?php } ?>
 <a href="<?php echo $checkout; ?>" class="button"><span><?php echo $button_checkout; ?></span></a></div>
 <?php } else { ?>
 <div class="empty"><?php echo $text_empty; ?></div>

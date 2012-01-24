@@ -15,7 +15,7 @@ var status = {
     authenticated: <?php echo (!empty($onego_authenticated) ? 'true' : 'false') ?>
 }
 <?php if (!empty($onego_authenticated)) { ?>
-window.parent.OneGo.opencart.loginPromptSuccess = true;
+window.parent.OneGoOpencart.loginPromptSuccess = true;
 <?php } ?>    
 
 </script>
@@ -32,7 +32,7 @@ html {
     <?php echo $onego_error ?>
 </div>
 <script type="text/javascript">
-window.parent.OneGo.opencart.flashWarningBefore(window.parent.$('#onego_panel'), '<?php echo str_replace('\'', '\\\'', $onego_error) ?>');
+window.parent.OneGoOpencart.flashWarningBefore(window.parent.$('#onego_panel'), '<?php echo str_replace('\'', '\\\'', $onego_error) ?>');
 </script>
 <?php } else { ?>
 Authorization successful.

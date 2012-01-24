@@ -2,39 +2,39 @@
 <!--
 $('#onego_login').unbind().click(function(e){
     e.preventDefault();
-    OneGo.opencart.promptLogin(OneGo.opencart.reloadCheckoutOrderInfo);
+    OneGoOpencart.promptLogin(OneGoOpencart.reloadCheckoutOrderInfo);
 });
 $('#onego_logout').unbind().click(function(e){
     e.preventDefault();
     $(this).after('<span class="wait">&nbsp;<img src="catalog/view/theme/default/image/loading.gif" alt="" /></span>');
     $(this).remove();
-    OneGo.opencart.processLogoffDynamic();
+    OneGoOpencart.processLogoffDynamic();
 })
 $('#use_onego_funds').unbind('change').change(function(e) {
     $('.warning').remove();
     <?php if (!empty($onego_scope_extended)) { ?>
-    OneGo.opencart.processFundUsage(
+    OneGoOpencart.processFundUsage(
         $(this),
         function(data, textStatus, jqXHR){
             if (data.error && data.error == 'OneGoAuthenticationRequiredException') {
-                OneGo.opencart.reloadCheckoutOrderInfo();
+                OneGoOpencart.reloadCheckoutOrderInfo();
             } else if (data.error) {
-                OneGo.opencart.flashWarningBefore($('#onego_panel'), data.message);
-                OneGo.lib.unsetAsLoading($('#use_onego_funds'));
+                OneGoOpencart.flashWarningBefore($('#onego_panel'), data.message);
+                OneGoOpencart.unsetAsLoading($('#use_onego_funds'));
             } else {
-                OneGo.opencart.reloadCheckoutOrderInfo();
+                OneGoOpencart.reloadCheckoutOrderInfo();
             }
         }
     );
     <?php } else { ?>
-    OneGo.opencart.promptLogin(
+    OneGoOpencart.promptLogin(
         function(){
-            OneGo.opencart.processFundUsage(
+            OneGoOpencart.processFundUsage(
                 $('#use_onego_funds'),
                 function(data, textStatus, jqXHR){
                     if (typeof data.status != 'undefined') {
-                        OneGo.opencart.reloadCheckoutOrderInfo();
-                        OneGo.opencart.reloadWidget();
+                        OneGoOpencart.reloadCheckoutOrderInfo();
+                        OneGoOpencart.reloadWidget();
                     }
                 }
             );
@@ -52,10 +52,10 @@ $('#onego_agree').unbind().change(function(e){
         data: { 'agree': $(this).is(':checked') ? 1 : 0 },
         dataType: 'json',
         beforeSend: function() {
-            OneGo.lib.setAsLoading($('#onego_agree'));
+            OneGoOpencart.setAsLoading($('#onego_agree'));
         },	
         success: function() {
-            OneGo.opencart.reloadCheckoutOrderInfo();
+            OneGoOpencart.reloadCheckoutOrderInfo();
         }
     });
 })
@@ -113,7 +113,7 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
                       <td width="45%" align="center">
                           <div style="padding-bottom: 5px;">Got a gift card?</div>
                           <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="Gift Card Number" />
-                          <a href="javascript:OneGo.opencart.redeemGiftCardAnonymous();" class="button"><span>Redeem</span></a>
+                          <a href="javascript:OneGoOpencart.redeemGiftCardAnonymous();" class="button"><span>Redeem</span></a>
                       </td>
                   </tr>
                   <tr>
