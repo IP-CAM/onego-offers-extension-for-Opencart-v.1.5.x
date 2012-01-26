@@ -370,6 +370,7 @@ class ControllerCheckoutConfirm extends Controller {
                 $this->data['onego_action'] = $this->url->link('checkout/confirm');
                 $this->data['onego_disable'] = $this->url->link('total/onego/cancel');
                 $this->data['authWidgetText'] = $this->language->get('auth_widget_text');
+                $this->data['authWidgetTextLoading'] = $this->language->get('auth_widget_text_loading');
                 
                 if ($this->data['onego_applied'] = $onego->isTransactionStarted()) {
                     $this->data['onego_funds'] = $onego->getFundsAvailable();

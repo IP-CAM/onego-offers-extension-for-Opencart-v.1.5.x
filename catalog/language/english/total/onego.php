@@ -18,6 +18,7 @@ $_['text_shipping_discount'] = 'Your shipping discount';
 $_['no_funds_available'] = 'You have no funds available.';
 $_['funds_prepaid'] = 'Use my prepaid funds: %s';
 
+$_['auth_widget_text_loading'] = 'Benefits by:';
 $_['auth_widget_text'] = 'Benefits by: {%NAME%}. {%LOGOUT|Not you?%}';
 
 $_['agree_email_expose'] = 'I agree to expose my e-mail to receive benefits for this and future purchases';

@@ -193,7 +193,17 @@ OneGoOpencart = {
             container.remove();
         }
         element.css('visibility', 'visible');
+    },
+    
+    widget: {
+        container: $('<div id="onego_widget_container"></div>'),
+        show: function(topOffset, isFixed) {
+            topOffset = topOffset || 0;
+            isFixed = isFixed || true;
+            
+        }
     }
+    
 }
 
 // initialize on load

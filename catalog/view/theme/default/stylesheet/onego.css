@@ -5,8 +5,18 @@ input.onego_watermark.focused {
     color: black;
 }
 #onego_authwidget_container {
+    float: left;
     width: 350px;
-    /*height: 35px;*/
+}
+#onego_funds_container {
+    float: right;
+}
+#onego_funds_container .onego_funds_available,
+#onego_funds_container .onego_giftcard {
+    text-align: right;
+}
+#onego_funds_container .onego_giftcard {
+    margin-top: 5px;
 }
 #onego_panel {
     margin: 0px;
@@ -21,7 +31,6 @@ input.onego_watermark.focused {
     position: absolute;
     top: 0;
     width: 90px;
-    
     background-color: #FFF;
     border: 1px solid #D8DEE1; 
     border-radius: 5px;
@@ -51,7 +60,8 @@ input.onego_watermark.focused {
     overflow: visible;
 }
 
-#onego_widget_container {
+/*
+#onego_slideinwidget_container {
     position: absolute; 
     left: -462px;
     top: 0pt; 
@@ -59,17 +69,17 @@ input.onego_watermark.focused {
     z-index: 999;
 }
 
-#onego_widget_container .onego_widget_handle {
+#onego_slideinwidget_container .onego_widget_handle {
     margin-top: 35px;
     float: right;
     width: 38px;
     background: transparent url(../image/onego_handle.png) no-repeat center center;
 }
-#onego_widget_container .onego_widget_handle .onego_widget_hide,
-#onego_widget_container .onego_widget_handle .onego_widget_show {
+#onego_slideinwidget_container .onego_widget_handle .onego_widget_hide,
+#onego_slideinwidget_container .onego_widget_handle .onego_widget_show {
     display: none;
 }
-#onego_widget_container .onego_widget_handle {
+#onego_slideinwidget_container .onego_widget_handle {
 }
 .onego_widget_handle .onego_widget_loading,
 .onego_widget_handle .onego_widget_hide,
@@ -82,7 +92,7 @@ input.onego_watermark.focused {
     border: none;
     padding: 11px 8px 64px 6px;
 }
-#onego_widget_container .onego_widget {
+#onego_slideinwidget_container .onego_widget {
     margin-right: 38px;
     width: 450px;
     overflow: hidden;
@@ -96,8 +106,56 @@ input.onego_watermark.focused {
     border: 1px solid silver;
     padding: 5px;
 }
-.onego_plugin {
+*/
+#onego_slideinwidget_container {
+    position: absolute; 
+    left: -362px;
+    top: 0pt; 
+    z-index: 999;
+}
+
+#onego_slideinwidget_container .onego-slideinwidget {
+    width: 350px;
+    overflow: hidden;
+    -moz-border-radius-topright: 10px;
+    -moz-border-radius-bottomright: 10px;
+    -webkit-border-top-right-radius: 10px;
+    -webkit-border-bottom-right-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    background-color: #EEE;
+    border: 1px solid silver;
+    padding: 5px;
+    float: left;
+}
+
+#onego_slideinwidget_container .onego_slideinwidget_handle {
+    float: left;
+    margin-top: 35px;
+    position: relative;
+}
+#onego_slideinwidget_container .onego_slideinwidget_handle .onego_slideinwidget_hide,
+#onego_slideinwidget_container .onego_slideinwidget_handle .onego_slideinwidget_show {
     display: none;
+}
+.onego_slideinwidget_handle .onego_slideinwidget_loading,
+.onego_slideinwidget_handle .onego_slideinwidget_hide,
+.onego_slideinwidget_handle .onego_slideinwidget_show {
+    margin: 4px 0px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+.onego_slideinwidget_handle .onego_slideinwidget_loading img,
+.onego_slideinwidget_handle .onego_slideinwidget_hide img,
+.onego_slideinwidget_handle .onego_slideinwidget_show img {
+    border: none;
+    padding: 11px 8px 64px 5px;
+}
+
+
+.onego_plugin {
+    /*display: none;*/
 }
 
 .onego_loading_container {

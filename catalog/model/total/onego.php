@@ -48,7 +48,14 @@ class ModelTotalOnego extends Model
         if ($this->getConfig('widgetShow') == 'Y') {
             $topOffset = (int) $this->getConfig('widgetTopOffset');
             $isFrozen = ($this->getConfig('widgetFrozen') == 'Y') ? 'true' : 'false';
-            //$html .= "OneGo.plugins.widget.init({$topOffset}, {$isFrozen});\n";
+            $html .= <<<END
+var OneGoWidget = OneGo.plugins.slideInWidget.init({
+    topOffset: {$topOffset}, 
+    isFixed: {$isFrozen}
+})
+.onShow(function(){ alert('open!'); })
+.onHide(function(){ alert('hidden!'); });
+END;
         }
         
         // enable debugging

@@ -5,44 +5,38 @@
       <div id="onego_panel">
           <div id="onego_panel_label"></div>
           <div id="onego_panel_content">
-              <div class="onego_funds">
-                  <form action="<?php echo $onego_action ?>" method="post" id="onego_account">
-                      <table border="0" width="100%">
-                          <tr>
-                              <td rowspan="2" align="left" valign="top">
-                                  <div id="onego_authwidget_container" class="onego-authwidget" data-textcolor="#000" data-linkcolor="#38B0E3" data-fontsize="12px" data-font="arial" data-height="40" data-width="350" data-text="<?php echo $authWidgetText ?>">
-                                      Benefits by: <img src="catalog/view/theme/default/image/loading.gif" />
-                                  </div>
-                              </td>
-                              <td align="right">
-                                  <?php
-                                  if (!empty($onego_funds)) {
-                                      $disabled = $onego_funds['amount'] > 0 ? '' : ' disabled="disabled"';
-                                      $st = $onego_funds['is_used'] ? ' checked="checked"' : '';
-                                      echo '<label for="use_onego_funds">'.$onego_funds['title'].'</label> ';
-                                      echo '<input type="checkbox" name="use_onego_funds" class="onego_funds" id="use_onego_funds" value="y"'.$disabled.$st.' /> ';
-                                  }
-                                  ?>
-                              </td>
-
-                          </tr>
-                          <tr>
-                              <td align="right">
-                                  <?php if (!empty($onego_applied)) { ?>
-                                      <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="onego_watermark" />
-                                      <input type="button" id="onego_giftcard_redeem" value="redeem" />
-                                  <?php } ?>
-                              </td>
-                          </tr>
-                      </table>
-                  </form>
-              </div>
+              <form action="<?php echo $onego_action ?>" method="post" id="onego_account">
+                  <div id="onego_authwidget_container" class="onego-authwidget" data-textcolor="#000" data-linkcolor="#38B0E3" data-fontsize="12px" data-font="arial" data-height="40" data-width="350" data-text="<?php echo $authWidgetText ?>">
+                      <?php echo $authWidgetTextLoading ?> <img src="catalog/view/theme/default/image/loading.gif" />
+                  </div>
+                  <div id="onego_funds_container">
+                      <div class="onego_funds_available">
+                          <?php
+                          if (!empty($onego_funds)) {
+                              $disabled = $onego_funds['amount'] > 0 ? '' : ' disabled="disabled"';
+                              $st = $onego_funds['is_used'] ? ' checked="checked"' : '';
+                              echo '<label for="use_onego_funds">'.$onego_funds['title'].'</label> ';
+                              echo '<input type="checkbox" name="use_onego_funds" class="onego_funds" id="use_onego_funds" value="y"'.$disabled.$st.' /> ';
+                          }
+                          ?>
+                      </div>
+                      <div class="onego_giftcard">
+                          <?php if (!empty($onego_applied)) { ?>
+                              <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="onego_watermark" />
+                              <input type="button" id="onego_giftcard_redeem" value="redeem" />
+                          <?php } ?>
+                      </div>
+                  </div>                  
+                  <div style="clear: both;"></div>
+              </form>
           </div>
     </div>
   </div>
 </div>
 
 <script type="text/javascript">
+function shout() { alert('loaded') }
+    
 $(document).ready(function(){
     $('#use_onego_funds').change(function(e){
         $('.warning').remove();

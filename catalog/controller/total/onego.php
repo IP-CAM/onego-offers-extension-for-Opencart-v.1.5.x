@@ -28,6 +28,7 @@ class ControllerTotalOnego extends Controller {
             $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
             $this->data['checkoutUri'] = $this->url->link('checkout/checkout');
             $this->data['authWidgetText'] = $this->language->get('auth_widget_text');
+            $this->data['authWidgetTextLoading'] = $this->language->get('auth_widget_text_loading');
             
             if ($onego->isTransactionStarted()) {
                 $this->data['onego_applied'] = true;
