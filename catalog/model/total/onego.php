@@ -51,10 +51,9 @@ class ModelTotalOnego extends Model
             $html .= <<<END
 var OneGoWidget = OneGo.plugins.slideInWidget.init({
     topOffset: {$topOffset}, 
-    isFixed: {$isFrozen}
-})
-.onShow(function(){ alert('open!'); })
-.onHide(function(){ alert('hidden!'); });
+    isFixed: {$isFrozen},
+    handleImage: '/catalog/view/theme/{$this->config->get('config_template')}/image/onego_handle.png'
+});
 END;
         }
         

@@ -35,8 +35,6 @@
 </div>
 
 <script type="text/javascript">
-function shout() { alert('loaded') }
-    
 $(document).ready(function(){
     $('#use_onego_funds').change(function(e){
         $('.warning').remove();
