@@ -14,14 +14,14 @@ OneGoOpencart = {
     processLoginDynamic: function(){
         OneGoOpencart.autologin(OneGoOpencart.reloadCheckoutOrderInfo);
         // listen for widget logoff
-        OneGo.plugins.authAgent.setListener('onego.widget.user.authenticated', false);
-        OneGo.plugins.authAgent.setListener('onego.widget.user.anonymous', OneGoOpencart.processLogoffDynamic);
+        OneGo.events.reset('UserIsSignedIn');
+        OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);
     },
     processLogoffDynamic: function(){
         OneGoOpencart.logoff(OneGoOpencart.reloadCheckoutOrderInfo);
         // listen for widget login
-        OneGo.plugins.authAgent.setListener('onego.widget.user.anonymous', false);
-        OneGo.plugins.authAgent.setListener('onego.widget.user.authenticated', OneGoOpencart.processLoginDynamic);
+        OneGo.events.reset('UserIsSignedOut');
+        OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);
     },
     processAutoLogin: function(){
         if (OneGoOpencart.isAutologinAllowed()) {

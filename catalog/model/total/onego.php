@@ -21,27 +21,11 @@ class ModelTotalOnego extends Model
         $pluginsURI = $this->getConfig('pluginsURI');
         
         $html = '';
-        $initParams = array();
         
         // autologin attempts are blocked
         if ($this->autologinBlockedUntil()) {
             $autologinBlockedFor = ($this->autologinBlockedUntil() - time()) * 1000;
             $html .= "OneGoOpencart.blockAutologin({$autologinBlockedFor});\n";
-        }
-        
-        // OneGo events listeners
-        $isAjaxCall = !empty($this->request->request['route']) && 
-                ($this->request->request['route'] == 'checkout/checkout');
-
-        if ($this->isUserAuthenticated()) {
-            // listen for logoff event
-            $initParams[] = $isAjaxCall ? 
-                'onUserIsSignedOut: OneGoOpencart.processLogoffDynamic' :
-                'onUserIsSignedOut: OneGoOpencart.processLogoff';
-        } else {
-            $initParams[] = $isAjaxCall ? 
-                'onUserIsSignedIn: OneGoOpencart.processLoginDynamic' :
-                'onUserIsSignedIn: OneGoOpencart.processAutoLogin';
         }
         
         // widget plugin
@@ -53,9 +37,27 @@ var OneGoWidget = OneGo.plugins.slideInWidget.init({
     topOffset: {$topOffset}, 
     isFixed: {$isFrozen},
     handleImage: '/catalog/view/theme/{$this->config->get('config_template')}/image/onego_handle.png'
-});
+});4
+
 END;
         }
+        
+        // OneGo events listeners
+        $isAjaxCall = !empty($this->request->request['route']) && 
+                ($this->request->request['route'] == 'checkout/checkout');
+
+        if ($this->isUserAuthenticated()) {
+            // listen for logoff event
+            $html .= $isAjaxCall ? 
+                "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);\n" :
+                "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoff);\n";
+        } else {
+            $html .= $isAjaxCall ? 
+                "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);\n" :
+                "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processAutoLogin);\n";
+        }
+        
+        $initParams = array();
         
         // enable debugging
         if ($this->getConfig('debugModeOn')) {
@@ -191,106 +193,6 @@ END;
             $cashAmount = $this->getCashAmount();
             if ($initial_total != $cashAmount) {
                 $onego_discount = $this->getOriginalAmount() - $cashAmount;
-                $total -= $onego_discount;
-            }
-            
-            // decrease taxes if discount was applied
-            if ($onego_discount) {
-                // decrease taxes to be applied for products
-                foreach ($this->cart->getProducts() as $product) {
-                    if ($product['tax_class_id']) {
-                        // discount part for this product
-                        $discount = $onego_discount * ($product['total'] / $initial_total);
-                        $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
-                        foreach ($tax_rates as $tax_rate) {
-                            if ($tax_rate['type'] == 'P') {
-                                $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
-                            }
-                        }
-                    }
-                }
-                // decrease taxes to be applied for shipping
-                if ($free_shipping && isset($this->session->data['shipping_method'])) {
-                    if (!empty($this->session->data['shipping_method']['tax_class_id'])) {
-                        // tax rates that will be applied (or were already) to shipping
-                        $tax_rates = $this->tax->getRates($this->session->data['shipping_method']['cost'], $this->session->data['shipping_method']['tax_class_id']);
-                        // subtract them
-                        foreach ($tax_rates as $tax_rate) {
-                            $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
-                        }
-                    }
-                }
-            }
-        }
-        
-        
-        
-        
-        if (false and $this->isTransactionStarted()) {
-            $initial_total = $total;
-            
-            // items discounts
-            // TODO
-            
-            // shipping discounts
-            $free_shipping = false;
-            $shipping_discount = $this->getShippingDiscount();
-            if ($shipping_discount > 0) {
-                $total -= $shipping_discount;
-                $total_data[] = array(
-                    'code' => 'onego',
-                    'title' => $this->language->get('text_shipping_discount'),
-                    'text' => $this->currency->format(-$shipping_discount),
-                    'value' => $shipping_discount,
-                    'sort_order' => $this->config->get('onego_sort_order').'y'
-                );
-            }
-            if ($shipping_discount && isset($this->session->data['shipping_method'])) {
-                $opencart_shipping_cost = $this->session->data['shipping_method']['cost'];
-                if ($opencart_shipping_cost - $shipping_discount == 0) {
-                    $free_shipping = true;
-                }
-            }
-            
-            // cart discount
-            $discount = $transaction->getTotalDiscount();
-            $discountAmount = !empty($discount) ? $discount->getAmount() : null;
-            if (!empty($discountAmount) && ($discountAmount != $shipping_discount)) {
-                // (TEMPORARY FIX)
-                $discountPercents = $discount->getPercents();
-                if (!empty($discountPercents)) {
-                    $title = sprintf($this->language->get('onego_cart_discount_percents'), 
-                            round($discountPercents, 2));
-                } else {
-                    $title = $this->language->get('onego_cart_discount');
-                }
-                $total_data[] = array(
-                    'code' => 'onego',
-                    'title' => $title,
-                    'text' => $this->currency->format(-$discountAmount),
-                    'value' => -$discountAmount,
-                    'sort_order' => $this->config->get('onego_sort_order').'a'
-                );
-                $modified = true;
-            }
-            
-            // funds spent
-            $spent = $transaction->getPrepaidSpent();
-            if (!empty($spent)) {
-                $total_data[] = array(
-                    'code' => 'onego',
-                    'title' => $this->language->get('prepaid_spent'),
-                    'text' => $this->currency->format(-$spent),
-                    'value' => 0,
-                    'sort_order' => $this->config->get('onego_sort_order').'p'
-                );
-            }
-            
-            // onego subtotal
-            $onego_discount = 0;
-            $cashAmount = $transaction->getCashAmount();
-            if ($initial_total != $cashAmount) {
-                $onego_discount = $transaction->getOriginalAmount() - $cashAmount;
                 $total -= $onego_discount;
             }
             
