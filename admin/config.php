@@ -9,7 +9,7 @@ define('HTTPS_SERVER', 'http://opencart/admin/');
 define('HTTPS_IMAGE', 'http://opencart/image/');
 
 // DIR
-define('DIR_ROOT', '/opt/local/www/opencart/');
+define('DIR_ROOT', dirname(__DIR__).'/');
 define('DIR_APPLICATION', DIR_ROOT.'admin/');
 define('DIR_SYSTEM', DIR_ROOT.'system/');
 define('DIR_DATABASE', DIR_ROOT.'system/database/');

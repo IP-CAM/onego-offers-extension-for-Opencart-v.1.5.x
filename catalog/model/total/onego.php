@@ -52,9 +52,11 @@ END;
                 "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);\n" :
                 "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoff);\n";
         } else {
-            $html .= $isAjaxCall ? 
-                "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);\n" :
-                "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processAutoLogin);\n";
+            if ($this->getConfig('autologinOn')) {
+                $html .= $isAjaxCall ? 
+                    "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);\n" :
+                    "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processAutoLogin);\n";
+            }
         }
         
         $initParams = array();

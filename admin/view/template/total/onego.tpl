@@ -20,14 +20,10 @@
           <tr id="cfgRow_<?php echo $field ?>">
             <td><?php echo $row['title']; ?></td>
             <td>
-                <?php if (in_array($field, array('widgetShow', 'widgetFrozen'))) { ?>
+                <?php if (in_array($field, array('widgetShow', 'widgetFrozen', 'autologinOn'))) { ?>
                 
                 <input type="hidden" name="onego_<?php echo $field ?>" value="" />
                 <input type="checkbox" name="onego_<?php echo $field ?>" id="cfgField_<?php echo $field ?>" value="Y" <?php echo $row['value'] == 'Y' ? ' checked="checked"' : '' ?> />
-                
-                <?php } else if (in_array($field, array('widgetCode'))) { ?>
-                
-                <textarea name="onego_<?php echo $field ?>" id="cfgField_<?php echo $field ?>" cols="70" rows="12"><?php echo $row['value'] ?></textarea>
                 
                 <?php } else { ?>
                 <input type="text" name="onego_<?php echo $field ?>" id="cfgField_<?php echo $field ?>" value="<?php echo $row['value']; ?>" />

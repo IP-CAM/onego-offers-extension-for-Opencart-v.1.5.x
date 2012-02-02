@@ -73,7 +73,7 @@ class ControllerTotalOnego extends Controller {
         }
         
         $config_fields = array('clientId', 'clientSecret', 'terminalId', 'transactionTTL',
-            'shippingCode', 'widgetShow', 'widgetCode', 'widgetFrozen', 'widgetTopOffset');
+            'shippingCode', 'widgetShow', 'widgetFrozen', 'widgetTopOffset', 'autologinOn');
         $fields = array();
         foreach ($config_fields as $field) {
             $help_key = 'entry_help_'.$field;
@@ -112,8 +112,7 @@ class ControllerTotalOnego extends Controller {
         $post = $this->request->post;
         if (empty($post['onego_clientId']) || 
             empty($post['onego_clientSecret']) ||
-            empty($post['onego_terminalId']) || 
-            (!empty($post['onego_widgetShow']) && empty($post['onego_widgetCode']))) 
+            empty($post['onego_terminalId'])) 
         {
             $this->error['warning'] = $this->language->get('error_missing_required_fields');
         }
