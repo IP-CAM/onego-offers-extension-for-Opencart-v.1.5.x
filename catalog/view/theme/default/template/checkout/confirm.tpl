@@ -99,7 +99,7 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
                   <tr>
                       <td width="45%" align="center">
                           <div style="padding-bottom: 5px;">Already have your benefits account?</div>
-                          <a href="<?php echo $onego_login_url; ?>" class="button"><span><?php echo $onego_login_button; ?></span></a>
+                          <a href="<?php echo $onego_login_url; ?>" id="onego_login" class="button"><span><?php echo $onego_login_button; ?></span></a>
                       </td>
                       <td width="10%" align="center">
                           or

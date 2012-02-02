@@ -8,7 +8,7 @@
                   <tr>
                       <td width="45%" align="center">
                           <div style="padding-bottom: 5px;">Already have your benefits account?</div>
-                          <a href="<?php echo $onego_login; ?>" class="button"><span><?php echo $button_onego_login; ?></span></a>
+                          <a href="<?php echo $onego_login; ?>" id="onego_login" class="button"><span><?php echo $button_onego_login; ?></span></a>
                       </td>
                       <td width="10%" align="center">
                           or

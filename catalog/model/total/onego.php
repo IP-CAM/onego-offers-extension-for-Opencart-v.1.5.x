@@ -37,7 +37,7 @@ var OneGoWidget = OneGo.plugins.slideInWidget.init({
     topOffset: {$topOffset}, 
     isFixed: {$isFrozen},
     handleImage: '/catalog/view/theme/{$this->config->get('config_template')}/image/onego_handle.png'
-});4
+});
 
 END;
         }
@@ -234,53 +234,126 @@ END;
      */
     public function confirm($order_info, $order_total)
     {
-        $benefits_applied = false;
-        if ($this->isTransactionStarted()) {
-            $api = $this->getApi();
-            try {
-                $this->confirmTransaction();
-                $this->saveOrderDetails($order_info['order_id'], true);
-            } catch (Exception $e) {
-                $this->throwError($e->getMessage());
+        $orderId = $order_info['order_id'];
+        $lastOrder = $this->getCompletedOrder();
+        if (empty($lastOrder) || ($lastOrder['order_id'] != $orderId)) {
+            $this->saveCompletedOrder($orderId, true);
+            if ($this->isTransactionStarted()) {
+                $api = $this->getApi();
+                $transactionId = $this->getTransactionId()->id;
+                try {
+                    $this->confirmTransaction();
+                } catch (Exception $e) {
+                    $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
+                    $this->throwError($e->getMessage());
+                }
+            } else {
+                if ($this->hasAgreedToDiscloseEmail()) {
+                    try {
+                        $this->bindEmail($order_info['email']);
+                        $this->saveCompletedOrder($orderId, true, true);
+                    } catch (OneGoException $e) {
+                        $transactionId = 'UNKNOWN';
+                        $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
+                    }
+                } else {
+                    $this->saveCompletedOrder($orderId, false);
+                }
             }
-        }        
+        }
     }
     
-    // TO DO: deprecate
-    public function saveOrderDetails($order_id, $benefits_applied = true)
+    public function saveCompletedOrder($orderId, $benefitsApplied = true, $newBuyerRegistered = false)
     {
-        $last_order = $this->getFromSession('last_order');
-        if (!$last_order || ($last_order['order_id'] != $order_id)) {
-            $this->load->model('account/order');		
-            $order_info = $this->model_account_order->getOrder($order_id);
-            $last_order = array(
-                'order_id'          => $order_id,
-                'confirmed_on'      => time(),
-                'benefits_applied'  => $benefits_applied,
-                'buyer_email'       => $order_info['email'],
-            );
-            $this->saveToSession('last_order', $last_order);
-        }
+        $this->load->model('account/order');		
+        $orderInfo = $this->model_account_order->getOrder($orderId);
+        
+        $completedOrder = array(
+            'order_id'          => $orderId,
+            'confirmed_on'      => time(),
+            'benefits_applied'  => $benefitsApplied,
+            'buyer_email'       => $orderInfo['email'],
+            'new_buyer_registered' => $newBuyerRegistered,
+            'cart'              => $this->getEshopCart()
+        );
+        $this->saveToSession('completedOrder', $completedOrder);
+    }
+    
+    public function getCompletedOrder()
+    {
+        $completedOrder = $this->getFromSession('completedOrder');
+        return !empty($completedOrder) ? $completedOrder : false;
+    }
+    
+    public function clearCompletedOrder()
+    {
+        $this->saveToSession('completedOrder', null);
+    }
+    
+    public function registerFailedTransaction($orderId, $errorMessage, $transactionId)
+    {
+        $this->load->model('account/order');		
+        $orderInfo = $this->model_account_order->getOrder($orderId);
+        
+        $text = <<<END
+WARNING: order #{$orderId} has been processed using OneGo benefits, but transaction confirmation failed.
+If buyer chose to spend his OneGo funds or use single use coupon the discount was applied to order but OneGo funds were not charged.
+You may want to consider revising order status.
+Please contact OneGo support for more information, including this information:
+
+OneGo transaction ID: {$transactionId}
+Failure reason: {$errorMessage}
+END;
+echo $text;
+        
+        // add record to order history
+        $sql = "INSERT INTO ".DB_PREFIX."order_history 
+                SET order_id='".(int)$orderId."', 
+                    order_status_id = '".(int)$orderInfo['order_status_id']."', 
+                    notify = '0', 
+                    comment = '{$this->db->escape($text)}', 
+                    date_added = NOW()";
+        $this->db->query($sql);
+        
+        // send email to e-shop admin
+        $mail = new Mail(); 
+        $mail->protocol = $this->config->get('config_mail_protocol');
+        $mail->parameter = $this->config->get('config_mail_parameter');
+        $mail->hostname = $this->config->get('config_smtp_host');
+        $mail->username = $this->config->get('config_smtp_username');
+        $mail->password = $this->config->get('config_smtp_password');
+        $mail->port = $this->config->get('config_smtp_port');
+        $mail->timeout = $this->config->get('config_smtp_timeout');
+        $mail->setTo($this->config->get('config_email'));
+        $mail->setFrom($this->config->get('config_email'));
+        $mail->setSender($orderInfo['store_name']);
+        $mail->setSubject('Warning: OneGo transaction for order #'.$orderId.' failed, please revise order status');
+        $mail->setText(html_entity_decode($text, ENT_QUOTES, 'UTF-8'));
+        $mail->send();
     }
     
     public function isAnonymousRewardsApplied()
     {
-        $last_order = $this->getFromSession('last_order');
-        if ($this->hasAgreedToDiscloseEmail() && !$last_order['benefits_applied']) {
-            // apply rewards - To DO
-            
-            // fake
-            $last_order['benefits_applied'] = true;
-            $this->saveToSession('last_order', $last_order);
-            return true;
-        }
-        return false;
+        $lastOrder = $this->getCompletedOrder();
+        return !empty($lastOrder['new_buyer_registered']);
     }
     
-    public function isOnegoBenefitsApplyable()
+    public function isAnonymousRewardsApplyable()
     {
-        $last_order = $this->getFromSession('last_order');
-        return !$this->hasAgreedToDiscloseEmail() && !$last_order['benefits_applied'];
+        $lastOrder = $this->getCompletedOrder();
+        return !$this->hasAgreedToDiscloseEmail() && !$lastOrder['benefits_applied'];
+    }
+    
+    public function bindEmail($email)
+    {
+        try {
+            // TO DO
+            throw new OneGoException('bindEmail not implemented');
+        } catch (Exception $e) {
+            $this->logCritical('bindEmail failed', $e);
+            throw $e;
+        }
+        return true;
     }
     
     /**

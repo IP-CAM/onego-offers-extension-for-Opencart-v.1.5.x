@@ -318,23 +318,6 @@ class ControllerTotalOnego extends Controller {
         $this->response->setOutput($this->render());
     }
     
-    public function widget()
-    {
-        $this->language->load('total/onego');
-        
-        $onego = $this->getModel();
-        $this->data['widgetCode'] = html_entity_decode($onego->getConfig('widgetCode'));
-        $this->data['widget_show'] = $this->language->get('widget_handle_show');
-        $this->data['widget_hide'] = $this->language->get('widget_handle_hide');
-        
-        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_widget.tpl')) {
-            $this->template = $this->config->get('config_template') . '/template/total/onego_widget.tpl';
-        } else {
-            $this->template = 'default/template/total/onego_widget.tpl';
-        }
-        $this->response->setOutput($this->render());
-    }
-    
     public function checkoutConfirm()
     {
         // TO DO: checkout/confirm output

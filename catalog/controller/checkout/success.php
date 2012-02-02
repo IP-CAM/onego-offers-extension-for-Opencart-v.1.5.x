@@ -3,18 +3,16 @@
 class ControllerCheckoutSuccess extends Controller {
 
     public function index() {
-        // TODO: refactor
+        // ONEGO - show post-order information
         $this->load->model('total/onego');
         $onego = ModelTotalOnego::getInstance();
-        if (isset($this->session->data['order_id'])) {
-            $onego->saveOrderDetails($this->session->data['order_id'], false);
-        }
+        $this->data['onego_claim'] = $this->url->link('total/onego/claimBenefits');
         if ($onego->isAnonymousRewardsApplied()) {
             $this->data['onego_benefits_applied'] = true;
-        } else if ($onego->isOnegoBenefitsApplyable()) {
+        } else if ($onego->isAnonymousRewardsApplyable()) {
             $this->data['onego_benefits_applyable'] = true;
         }
-        $this->data['onego_claim'] = $this->url->link('total/onego/claimBenefits');
+        // ONEGO - end
         
         
         if (isset($this->session->data['order_id'])) {

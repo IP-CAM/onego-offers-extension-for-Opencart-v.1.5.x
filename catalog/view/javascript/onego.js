@@ -8,20 +8,25 @@ OneGoOpencart = {
         loginUri: $('base').attr('href') + 'index.php?route=total/onego/loginDialog',
         autologinUri: $('base').attr('href') + 'index.php?route=total/onego/autologin',
         logoffUri: $('base').attr('href') + 'index.php?route=total/onego/cancel',
-        widgetUri: $('base').attr('href') + 'index.php?route=total/onego/widget'        
+        widgetUri: $('base').attr('href') + 'index.php?route=total/onego/widget',
+        agreeRegisterUri: $('base').attr('href') + 'index.php?route=total/onego/agree'
     },
     loginPromptSuccess: false,
     processLoginDynamic: function(){
-        OneGoOpencart.autologin(OneGoOpencart.reloadCheckoutOrderInfo);
-        // listen for widget logoff
-        OneGo.events.reset('UserIsSignedIn');
-        OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);
+        OneGoOpencart.autologin(function(){
+            OneGoOpencart.reloadCheckoutOrderInfo();
+            // listen for widget logoff
+            OneGo.events.reset('UserIsSignedIn');
+            OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);
+        });
     },
     processLogoffDynamic: function(){
-        OneGoOpencart.logoff(OneGoOpencart.reloadCheckoutOrderInfo);
-        // listen for widget login
-        OneGo.events.reset('UserIsSignedOut');
-        OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);
+        OneGoOpencart.logoff(function(){
+            OneGoOpencart.reloadCheckoutOrderInfo();
+            // listen for widget login
+            OneGo.events.reset('UserIsSignedOut');
+            OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);
+        });
     },
     processAutoLogin: function(){
         if (OneGoOpencart.isAutologinAllowed()) {
@@ -193,17 +198,7 @@ OneGoOpencart = {
             container.remove();
         }
         element.css('visibility', 'visible');
-    },
-    
-    widget: {
-        container: $('<div id="onego_widget_container"></div>'),
-        show: function(topOffset, isFixed) {
-            topOffset = topOffset || 0;
-            isFixed = isFixed || true;
-            
-        }
     }
-    
 }
 
 // initialize on load

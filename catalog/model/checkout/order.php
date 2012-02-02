@@ -496,7 +496,11 @@ class ModelCheckoutOrder extends Model {
 						$mail->send();
 					}
 				}				
-			}		
+			}
+                        
+                        // ONEGO - confirm transaction
+                        $this->load->model('total/onego');
+                        $this->model_total_onego->confirm($order_info, $order_total);
 		}
 	}
 	
