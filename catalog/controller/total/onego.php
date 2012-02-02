@@ -2,6 +2,116 @@
 
 class ControllerTotalOnego extends Controller {
 
+    public function header()
+    {   
+        $onego = $this->getModel();
+        
+        $this->data['theme'] = $this->config->get('config_template');
+        $this->data['onego_jssdk_url'] = "http://plugins-local.dev.onego.com/scripts/webapp/v0.1/{$onego->getConfig('clientId')}/{$onego->getConfig('terminalId')}/main.js";
+        
+        $html = '';
+        
+        // autologin attempts are blocked
+        if ($onego->autologinBlockedUntil()) {
+            $autologinBlockedFor = ($onego->autologinBlockedUntil() - time()) * 1000;
+            $html .= "OneGoOpencart.blockAutologin({$autologinBlockedFor});\n";
+        }
+        
+        // widget plugin
+        if ($onego->getConfig('widgetShow') == 'Y') {
+            $topOffset = (int) $onego->getConfig('widgetTopOffset');
+            $isFrozen = ($onego->getConfig('widgetFrozen') == 'Y') ? 'true' : 'false';
+            $html .= <<<END
+var OneGoWidget = OneGo.plugins.slideInWidget.init({
+    topOffset: {$topOffset}, 
+    isFixed: {$isFrozen},
+    handleImage: '/catalog/view/theme/{$this->config->get('config_template')}/image/onego_handle.png'
+});
+
+END;
+        }
+        
+        // OneGo events listeners
+        $isAjaxCall = !empty($this->request->request['route']) && 
+                ($this->request->request['route'] == 'checkout/checkout');
+
+        if ($onego->isUserAuthenticated()) {
+            // listen for logoff event
+            $html .= $isAjaxCall ? 
+                "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);\n" :
+                "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoff);\n";
+        } else {
+            if ($onego->getConfig('autologinOn')) {
+                $html .= $isAjaxCall ? 
+                    "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);\n" :
+                    "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processAutoLogin);\n";
+            }
+        }
+        
+        $initParams = array();
+        
+        // enable debugging
+        if ($onego->getConfig('debugModeOn')) {
+            $initParams[] = "debug: true";
+        }
+        
+        $this->data['initParamsStr'] = implode(",\n", $initParams);
+        $this->data['html'] = $html;
+        
+        
+        // logging output
+        $log = $onego->getLog(true);
+        $html = '';
+        if ($onego->getConfig('debugModeOn')) {
+            $html .= '<script type="text/javascript">';
+            $html .= 'if (typeof console != \'undefined\') { '."\r\n";
+            if (!empty($log)) {
+
+                foreach ($log as $row) {
+                    $msg = 'OneGo: '.$row['message'];
+                    $msg = preg_replace('/[\r\n]+/', ' ', $msg);
+                    $msg = preg_replace('/\'/', '\\\'', $msg);
+                    list($usec, $sec) = explode(" ", $row['time']);
+                    if (!empty($sec)) {
+                        $msg .= ' ['.date('H:i:s', $sec).']';
+                    }
+                    if ($row['level'] == ModelTotalOnego::LOG_ERROR) {
+                        $msg .= ' :: '.$row['pid'].' / '.$row['backtrace'];
+                    }
+                    switch ($row['level']) {
+                        case ModelTotalOnego::LOG_INFO:
+                            $html .= 'console.log(\''.$msg.'\');';
+                            break;
+                        case ModelTotalOnego::LOG_NOTICE:
+                            $html .= 'console.info(\''.$msg.'\');';
+                            break;
+                        case ModelTotalOnego::LOG_WARNING:
+                            $html .= 'console.warn(\''.$msg.'\');';
+                            break;
+                        default:
+                            $html .= 'console.error(\''.$msg.'\');';
+                    }
+                    $html .= "\r\n";
+                }
+            }
+            if ($transaction = $onego->getTransaction()) {
+                $html .= 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction->getTransactionDto())).')};'."\r\n";
+                $html .= 'console.dir(transaction);'."\r\n";
+                $html .= 'var transactionTtl = {\'expires\' : $.parseJSON('.json_encode(json_encode(date('Y-m-d H:i:s', time() + $transaction->getTtl()))).')};'."\r\n";
+                $html .= 'console.dir(transactionTtl);'."\r\n";
+            }        
+            if ($token = $onego->getSavedOAuthToken()) {
+                $html .= 'var scopes = {\'token\' : $.parseJSON('.json_encode(json_encode($token)).')};'."\r\n";
+                $html .= 'console.dir(scopes);'."\r\n";
+            }
+            $html .= '}</script>'."\r\n";
+        }
+        $this->data['debuggingCode'] = $html;
+        
+        $this->template = 'default/template/common/onego_header.tpl';
+        $this->response->setOutput($this->render());
+    }
+    
     public function index() {
         $this->language->load('total/onego');
         
