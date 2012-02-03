@@ -359,30 +359,13 @@ class ControllerCheckoutConfirm extends Controller {
                 $this->template = 'default/template/checkout/confirm.tpl';
             }
             
-            // onego actions
-            $this->load->model('total/onego');
-            $this->language->load('total/onego');
-            $onego = $this->model_total_onego;
-            $this->data['onego_use_funds_url'] = $this->url->link('total/onego/useFunds');
-            $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
-            if ($onego->isUserAuthenticated()) {
-                $this->data['onego_authenticated'] = true;
-                $this->data['onego_action'] = $this->url->link('checkout/confirm');
-                $this->data['onego_disable'] = $this->url->link('total/onego/cancel');
-                $this->data['authWidgetText'] = $this->language->get('auth_widget_text');
-                $this->data['authWidgetTextLoading'] = $this->language->get('auth_widget_text_loading');
-                
-                if ($this->data['onego_applied'] = $onego->isTransactionStarted()) {
-                    $this->data['onego_funds'] = $onego->getFundsAvailable();
-                    $this->data['use_funds'] = $this->language->get('use_funds');
-                    $this->data['no_funds_available'] = $this->language->get('no_funds_available');                    
-                }
+            // ONEGO: control panel
+            if ($this->config->get('onego_status')) {
+                $this->data['onego_panel'] = $this->getChild('total/onego/panel');
             } else {
-                $this->data['onego_login_url'] = $this->url->link('total/onego/login');
+                $this->data['onego_panel'] = '';
             }
-            $this->data['onego_login_button'] = $this->language->get('button_onego_login');
-            $this->data['onego_agreed'] = $onego->hasAgreedToDiscloseEmail();
-            $this->data['onego_agree_email_expose'] = $this->language->get('agree_email_expose');
+            // ONEGO: end
             
             $json['output'] = $this->render();
         }

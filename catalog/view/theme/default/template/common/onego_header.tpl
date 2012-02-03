@@ -5,5 +5,4 @@
 OneGo.init({ <?php echo $initParamsStr ?> });
 <?php echo $html ?>
 </script>
-
 <?php echo $debuggingCode ?>

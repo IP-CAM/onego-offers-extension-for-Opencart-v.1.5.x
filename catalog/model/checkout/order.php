@@ -501,6 +501,7 @@ class ModelCheckoutOrder extends Model {
                         // ONEGO - confirm transaction
                         $this->load->model('total/onego');
                         $this->model_total_onego->confirm($order_info, $order_total);
+                        // ONEGO - end
 		}
 	}
 	

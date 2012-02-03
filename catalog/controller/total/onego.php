@@ -2,6 +2,38 @@
 
 class ControllerTotalOnego extends Controller {
 
+    public function index() 
+    {
+        $this->language->load('total/onego');
+        
+        $this->data['heading_title'] = $this->language->get('heading_title');
+        if (isset($this->session->data['onego'])) {
+            $this->data['onego'] = $this->session->data['onego'];
+        } else {
+            $this->data['onego'] = '';
+        }
+
+        $onego = $this->getModel();
+        
+        try {
+            $onego->refreshTransaction();
+        } catch (OneGoAuthenticationRequiredException $e) {
+            // ignore
+        } catch (OneGoAPICallFailedException $e) {
+            // ignore
+        }
+        
+        $this->data['onego_panel'] = $this->getChild('total/onego/panel');
+        
+        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego.tpl')) {
+            $this->template = $this->config->get('config_template') . '/template/total/onego.tpl';
+        } else {
+            $this->template = 'default/template/total/onego.tpl';
+        }
+        
+        $this->response->setOutput($this->render());
+    }
+    
     public function header()
     {   
         $onego = $this->getModel();
@@ -112,63 +144,35 @@ END;
         $this->response->setOutput($this->render());
     }
     
-    public function index() {
+    public function panel()
+    {
         $this->language->load('total/onego');
-        
-        $this->data['heading_title'] = $this->language->get('heading_title');
-        if (isset($this->session->data['onego'])) {
-            $this->data['onego'] = $this->session->data['onego'];
-        } else {
-            $this->data['onego'] = '';
-        }
-
         $onego = $this->getModel();
-        
-        try {
-            $onego->refreshTransaction();
-        } catch (OneGoAuthenticationRequiredException $e) {
-            // ignore
-        } catch (OneGoAPICallFailedException $e) {
-            // ignore
-        }
-        
+        $this->data['onego_use_funds_url'] = $this->url->link('total/onego/useFunds');
+        $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
         if ($onego->isUserAuthenticated()) {
-            $this->data['onego_action'] = $this->url->link('checkout/cart');
-            $this->data['onego_use_funds_url'] = $this->url->link('total/onego/useFunds');
-            $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
-            $this->data['checkoutUri'] = $this->url->link('checkout/checkout');
+            $this->data['onego_authenticated'] = true;
+            $this->data['onego_action'] = $this->url->link('checkout/confirm');
+            $this->data['onego_disable'] = $this->url->link('total/onego/cancel');
             $this->data['authWidgetText'] = $this->language->get('auth_widget_text');
             $this->data['authWidgetTextLoading'] = $this->language->get('auth_widget_text_loading');
-            
-            if ($onego->isTransactionStarted()) {
-                $this->data['onego_applied'] = true;
-                
-                $this->data['cart_products'] = $this->cart->getProducts();
+
+            if ($this->data['onego_applied'] = $onego->isTransactionStarted()) {
                 $this->data['onego_funds'] = $onego->getFundsAvailable();
                 $this->data['use_funds'] = $this->language->get('use_funds');
-                $this->data['no_funds_available'] = $this->language->get('no_funds_available');
-            } else {
-                $this->data['onego_applied'] = false;
-            }
-            
-            if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_account.tpl')) {
-                $this->template = $this->config->get('config_template') . '/template/total/onego_account.tpl';
-            } else {
-                $this->template = 'default/template/total/onego_account.tpl';
+                $this->data['no_funds_available'] = $this->language->get('no_funds_available');                    
             }
         } else {
-            $this->data['button_onego_login'] = $this->language->get('button_onego_login');
-            $this->data['onego_login'] = $this->url->link('total/onego/login');
-            
-            if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_account.tpl')) {
-                $this->template = $this->config->get('config_template') . '/template/total/onego.tpl';
-            } else {
-                $this->template = 'default/template/total/onego.tpl';
-            }
+            $this->data['onego_login_url'] = $this->url->link('total/onego/login');
         }
+        $this->data['onego_login_button'] = $this->language->get('button_onego_login');
         $this->data['onego_agreed'] = $onego->hasAgreedToDiscloseEmail();
         $this->data['onego_agree_email_expose'] = $this->language->get('agree_email_expose');
-
+        $this->data['isAjaxRequest'] = $onego->isAjaxRequest();
+        $this->data['js_page_reload_callback'] = $onego->isAjaxRequest() ?
+                'OneGoOpencart.reloadCheckoutOrderInfo' : 'OneGoOpencart.reloadPage';
+        
+        $this->template = 'default/template/total/onego_panel.tpl';
         $this->response->setOutput($this->render());
     }
     
@@ -425,12 +429,6 @@ END;
     public function redeemgiftcard()
     {
         $this->template = 'default/template/total/onego_giftcard.tpl';
-        $this->response->setOutput($this->render());
-    }
-    
-    public function checkoutConfirm()
-    {
-        // TO DO: checkout/confirm output
         $this->response->setOutput($this->render());
     }
     

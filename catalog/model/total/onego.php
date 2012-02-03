@@ -3,14 +3,11 @@ define('DIR_ONEGO', DIR_SYSTEM.'library/onego/');
 require_once DIR_ONEGO.'php-api/src/OneGoAPI/init.php';
 
 class ModelTotalOnego extends Model 
-{
+{   
     const LOG_INFO = 0;
     const LOG_NOTICE = 1;
     const LOG_WARNING = 2;
     const LOG_ERROR = 3;
-    
-    const AUTH_MESSAGE_AUTHENTICATED = 'onego.widget.user.authenticated';
-    const AUTH_MESSAGE_ANONYMOUS = 'onego.widget.user.anonymous';
     
     protected $registrykey = 'onego_extension';
     
@@ -231,14 +228,16 @@ class ModelTotalOnego extends Model
         $this->load->model('account/order');		
         $orderInfo = $this->model_account_order->getOrder($orderId);
         
+        $version = ONEGO_EXTENSION_VERSION;
         $text = <<<END
 WARNING: order #{$orderId} has been processed using OneGo benefits, but transaction confirmation failed.
 If buyer chose to spend his OneGo funds or use single use coupon the discount was applied to order but OneGo funds were not charged.
 You may want to consider revising order status.
-Please contact OneGo support for more information, including this information:
+Please contact OneGo support for more information, including these details:
 
 OneGo transaction ID: {$transactionId}
 Failure reason: {$errorMessage}
+Opencart extension version: {$version}
 END;
 echo $text;
         
@@ -305,7 +304,6 @@ echo $text;
     /**
      * Return current OneGo transaction object from session
      *
-     * @param boolean $autoupdate Whether to update transaction if it is stale
      * @return OneGoAPI_Impl_Transaction
      */
     public function getTransaction()
@@ -956,14 +954,6 @@ echo $text;
     {
         $this->saveToSession('Transaction', null);
         $this->log('Transaction destroyed');
-    }
-    
-    public function isAutologinAttemptExpected()
-    {
-        if (($token = $this->getSavedOAuthToken()) && !$token->isExpired()) {
-            return false;
-        }
-        return true;
     }
     
     public function getOAuthRedirectUri()
