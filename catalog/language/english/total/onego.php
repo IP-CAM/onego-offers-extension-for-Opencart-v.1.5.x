@@ -23,8 +23,14 @@ $_['auth_widget_text'] = 'Benefits by: {%NAME%}. {%LOGOUT|Not you?%}';
 
 $_['agree_email_expose'] = 'I agree to expose my e-mail to receive benefits for this and future purchases';
 
-$_['widget_handle_show'] = 'Show your personal benefits account';
-$_['widget_handle_hide'] = 'Hide your personal benefits account';
+$_['funds_received'] = 'You have received %s to your personal benefits account.';
+$_['funds_receivable'] = 'You will receive %s to your personal benefits account for future purchases if you agree to disclose your e-mail to OneGo.';
+$_['suggest_disclose'] = 'Do you agree that we disclose your e-mail address to OneGo to create your personal benefits account, to receive best offers from us in the future?';
+$_['button_agree_disclose'] = 'I agree';
+$_['claim_your_benefits'] = 'Claim your benefits:';
+$_['anonymous_buyer_created'] = 'Your purchase has been added to your benefits account history, to offer you best deals in the future.<br />'
+                                . 'You can now proceed creating your personal benefits account using your e-mail address:';
+$_['button_register_anonymous'] = 'Register with OneGo';
 
 // Error
 $_['benefits_applied']  = 'Success: Your personal benefits applied.';

@@ -172,7 +172,53 @@ END;
         $this->data['js_page_reload_callback'] = $onego->isAjaxRequest() ?
                 'OneGoOpencart.reloadCheckoutOrderInfo' : 'OneGoOpencart.reloadPage';
         
-        $this->template = 'default/template/total/onego_panel.tpl';
+        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_panel.tpl')) {
+            $this->template = $this->config->get('config_template') . '/template/total/onego_panel.tpl';
+        } else {
+            $this->template = 'default/template/total/onego_panel.tpl';
+        }
+        
+        $this->response->setOutput($this->render());
+    }
+    
+    public function success()
+    {
+        $onego = $this->getModel();
+        $this->data['onego_claim'] = $this->url->link('total/onego/claimBenefits');
+        
+        $this->language->load('total/onego');
+        $orderInfo = $onego->getCompletedOrder();
+        $this->data['onego_funds_received'] = !empty($orderInfo['funds_received']) ?
+                sprintf($this->language->get('funds_received'), $this->currency->format($orderInfo['funds_received'])) 
+                : false;
+        $this->data['onego_suggest_disclose'] = $this->language->get('suggest_disclose');
+        $this->data['onego_button_agree'] = $this->language->get('button_agree_disclose');
+        $this->data['onego_claim_benefits'] = $this->language->get('claim_your_benefits');
+        $this->data['onego_buyer_created'] = $this->language->get('anonymous_buyer_created');
+        $this->data['onego_button_register'] = $this->language->get('button_register_anonymous');
+        
+        if ($onego->isAnonymousRewardsApplied()) {
+            $this->data['onego_benefits_applied'] = true;
+        } else if ($onego->isAnonymousRewardsApplyable()) {
+            $this->data['onego_benefits_applyable'] = true;
+            
+            // get reward amount
+            try {
+                $receivable = $onego->getAnonymousPrepaidReceivableForLastOrder();
+            } catch (OneGoAPI_Exception $e) {
+                // TODO error handling
+                $receivable = false;
+            }
+            $this->data['onego_funds_receivable'] = $receivable ? 
+                    sprintf($this->language->get('funds_receivable'), $this->currency->format($receivable)) : false;
+        }
+        
+        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_success.tpl')) {
+            $this->template = $this->config->get('config_template') . '/template/total/onego_success.tpl';
+        } else {
+            $this->template = 'default/template/total/onego_success.tpl';
+        }
+        
         $this->response->setOutput($this->render());
     }
     

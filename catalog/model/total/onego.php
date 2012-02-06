@@ -175,7 +175,9 @@ class ModelTotalOnego extends Model
                 $api = $this->getApi();
                 $transactionId = $this->getTransactionId()->id;
                 try {
-                    $this->confirmTransaction();
+                    $transaction = $this->confirmTransaction();
+                    $this->saveCompletedOrder($orderId, true, false, 
+                            $transaction->getPrepaidAmountReceived());
                 } catch (Exception $e) {
                     $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
                     $this->throwError($e->getMessage());
@@ -184,7 +186,9 @@ class ModelTotalOnego extends Model
                 if ($this->hasAgreedToDiscloseEmail()) {
                     try {
                         $this->bindEmail($order_info['email']);
-                        $this->saveCompletedOrder($orderId, true, true);
+                        // TO DO: actual amount
+                        $receivedFunds = 66;
+                        $this->saveCompletedOrder($orderId, true, true, $receivedFunds);
                     } catch (OneGoException $e) {
                         $transactionId = 'UNKNOWN';
                         $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
@@ -196,7 +200,8 @@ class ModelTotalOnego extends Model
         }
     }
     
-    public function saveCompletedOrder($orderId, $benefitsApplied = true, $newBuyerRegistered = false)
+    public function saveCompletedOrder($orderId, $benefitsApplied = true, 
+            $newBuyerRegistered = false, $fundsReceived = false)
     {
         $this->load->model('account/order');		
         $orderInfo = $this->model_account_order->getOrder($orderId);
@@ -207,6 +212,7 @@ class ModelTotalOnego extends Model
             'benefits_applied'  => $benefitsApplied,
             'buyer_email'       => $orderInfo['email'],
             'new_buyer_registered' => $newBuyerRegistered,
+            'funds_received'    => $fundsReceived,
             'cart'              => $this->getEshopCart()
         );
         $this->saveToSession('completedOrder', $completedOrder);
@@ -556,7 +562,7 @@ echo $text;
     /**
      * Confirm OneGo transaction, unset saved transaction
      *
-     * @return boolean status 
+     * @return mixed OneGoAPI_Impl_Transaction on success, false on fail 
      */
     public function confirmTransaction()
     {
@@ -567,7 +573,7 @@ echo $text;
                 $transaction->confirm();
                 $this->deleteTransaction();
                 $this->saveToSession('onego_benefits_applied', true);
-                return true;
+                return $transaction;
             } catch (Exception $e) {
                 $this->log('Transaction confirm failed: '.$e->getMessage(), self::LOG_ERROR);
                 $this->deleteTransaction();
@@ -670,10 +676,13 @@ echo $text;
      *
      * @return OneGoAPI_Impl_Cart
      */
-    public function collectCartEntries()
+    public function collectCartEntries($eshopCart = null)
     {
+        if (is_null($eshopCart)) {
+            $eshopCart = $this->getEshopCart();
+        }
         $cart = $this->getApi()->newCart();
-        foreach ($this->getEshopCart() as $product) {
+        foreach ($eshopCart as $product) {
             $cart->setEntry($product['key'], $product['_item_code'], $product['price'], 
                     $product['quantity'], $product['total'], $product['name']);
         }
@@ -1217,6 +1226,11 @@ echo $text;
      */
     protected function getAnonymousModifiedCart()
     {
+        // prevent multiple requests on the same page if first request failed
+        if ($this->getFromRegistry('anonymousRequestFailed')) {
+            return false;
+        }
+        
         if ((is_null($this->getFromSession('anonymousModifiedCart'))) ||
             ($this->getEshopCartHash() != $this->getFromSession('anonymousModifiedCartHash'))) 
         {
@@ -1226,9 +1240,11 @@ echo $text;
                 $this->log('Anonymous awards requested', self::LOG_NOTICE);
                 $this->saveToSession('anonymousModifiedCart', $modifiedCart);
                 $this->saveToSession('anonymousModifiedCartHash', $this->getEshopCartHash());
+                $this->saveToRegistry('anonymousRequestFailed', false);
             } catch (OneGoAPI_Exception $e) {
                 // ignore
                 $this->log('Anonymous awards request failed: '.$e->getMessage(), self::LOG_ERROR);
+                $this->saveToRegistry('anonymousRequestFailed', true);
                 return false;
             }
         }
@@ -1272,6 +1288,24 @@ echo $text;
             throw $e;
         }
         return $token;        
+    }
+    
+    public function getAnonymousPrepaidReceivableForLastOrder()
+    {
+        $lastOrder = $this->getCompletedOrder();
+        if (!empty($lastOrder)) {
+            $cart = !empty($lastOrder['cart']) ? $lastOrder['cart'] : array();
+            try {
+                $awards = $this->getApi()
+                        ->getAnonymousAwards($this->collectCartEntries($cart))
+                        ->getPrepaidReceived()->getAmount()->visible;
+            } catch (OneGoAPI_Exception $e) {
+                $this->logCritical('Failed retrieving anonymous awards', $e);
+                throw $e;
+            }
+            return (float) $awards;
+        }
+        return false;
     }
 }
 
