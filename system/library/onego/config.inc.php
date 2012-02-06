@@ -29,3 +29,6 @@ $oneGoConfig['oAuthURI'] = 'http://oauth.dev.onego.cloud:8080/oauth';
 $oneGoConfig['widgetShow'] = 'Y';
 $oneGoConfig['widgetTopOffset'] = '50';
 $oneGoConfig['widgetFrozen'] = 'Y';
+
+// link to onego.com registration page for newly created buyers
+$oneGoConfig['anonymousRegistrationURI'] = 'http://register.onego.com';

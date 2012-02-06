@@ -13,7 +13,7 @@
         <?php echo $onego_buyer_created ?>
         <br />
         <br />
-        <div class="right"><a href="http://www.onego.com" class="button"><span><?php echo $onego_button_register ?></span></a></div>
+        <div class="right"><a href="<?php echo $onego_claim; ?>" class="button"><span><?php echo $onego_button_register ?></span></a></div>
     <?php } ?>
     
     <?php if (!empty($onego_benefits_applyable)) { ?>

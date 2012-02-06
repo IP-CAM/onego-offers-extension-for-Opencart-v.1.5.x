@@ -189,17 +189,19 @@ END;
     public function success()
     {
         $onego = $this->getModel();
-        $this->data['onego_claim'] = $this->url->link('total/onego/claimBenefits');
+        $this->data['onego_claim'] = $onego->getConfig('anonymousRegistrationURI');
         
         $this->language->load('total/onego');
         $orderInfo = $onego->getCompletedOrder();
+        
         $this->data['onego_funds_received'] = !empty($orderInfo['funds_received']) ?
                 sprintf($this->language->get('funds_received'), $this->currency->format($orderInfo['funds_received'])) 
                 : false;
         $this->data['onego_suggest_disclose'] = $this->language->get('suggest_disclose');
         $this->data['onego_button_agree'] = $this->language->get('button_agree_disclose');
-        $this->data['onego_claim_benefits'] = $this->language->get('claim_your_benefits');
-        $this->data['onego_buyer_created'] = $this->language->get('anonymous_buyer_created');
+        $this->data['onego_claim_benefits'] = $this->language->get('title_claim_your_benefits');
+        $this->data['onego_buyer_created'] = 
+                sprintf($this->language->get('anonymous_buyer_created'), $onego->getConfig('anonymousRegistrationURI'));
         $this->data['onego_button_register'] = $this->language->get('button_register_anonymous');
         
         if ($onego->isAnonymousRewardsApplied()) {
@@ -414,11 +416,48 @@ END;
         $onego->agreeToDiscloseEmail($agreed);
     }
     
-    public function claimBenefits()
+    public function claimbenefits()
     {
+        $this->language->load('total/onego');
+        $onego = $this->getModel();
+        $lastOrder = $onego->getCompletedOrder();
+        if (!$lastOrder || !empty($lastOrder['benefits_applied']))
+        {
+            $this->redirect($this->url->link('checkout/success'));
+        }
+        
+        if (empty($lastOrder['new_buyer_registered'])) {
+            try {
+                $orderCart = !empty($lastOrder['cart']) ? $lastOrder['cart'] : array();
+                $cart = $onego->collectCartEntries($orderCart);
+                $fundsReceived = $onego->bindEmail($lastOrder['buyer_email'], $cart);
+                $onego->saveCompletedOrder($lastOrder['order_id'], false, true, $fundsReceived);
+            } catch (OneGoAPI_InvalidInputException $e) {
+                $this->data['onego_error'] = $this->language->get('error_bindnew_invalid_email');
+            } catch (Exception $e) {
+                $this->data['onego_error'] = $this->language->get('error_bindnew_failed');
+                $this->data['show_try_again'] = true;
+            }
+        } else {
+            $fundsReceived = $lastOrder['funds_received'];
+        }
+        $this->data['onego_rewarded'] = !empty($fundsReceived) ?
+                sprintf($this->language->get('anonymous_rewarded'), $this->currency->format($lastOrder['funds_received']))
+                : false;
+        $this->data['onego_anonymous_buyer_created'] = 
+                sprintf($this->language->get('anonymous_buyer_created'), $onego->getConfig('anonymousRegistrationURI'));
+        $this->data['onego_button_register'] = $this->language->get('button_register_anonymous');
+        $this->data['onego_registration_uri'] = $onego->getConfig('anonymousRegistrationURI');
+        
+        // rest of page output
+        $this->data['onego_claim_benefits'] = $this->language->get('title_claim_your_benefits');
+        $this->data['onego_button_try_again'] = $this->language->get('button_try_again');
+        $this->data['link_reload'] = $this->url->link('total/onego/claimbenefits');
+        $this->data['onego_benefits_claimed'] = $this->language->get('title_benefits_claimed');
+        
         $this->language->load('checkout/success');
 
-        $this->document->setTitle($this->language->get('heading_title'));
+        $this->document->setTitle($this->language->get('title_claim_your_benefits'));
 
         $this->data['breadcrumbs'] = array();
 
@@ -441,8 +480,8 @@ END;
         );
 
         $this->data['breadcrumbs'][] = array(
-            'href' => $this->url->link('checkout/success'),
-            'text' => $this->language->get('text_success'),
+            'href' => $this->url->link('total/onego/claimbenefits'),
+            'text' => $this->language->get('title_claim_your_benefits'),
             'separator' => $this->language->get('text_separator')
         );
 
@@ -459,10 +498,10 @@ END;
         $this->data['continue'] = $this->url->link('common/home');
         
         
-        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/common/onego_claimed.tpl')) {
-            $this->template = $this->config->get('config_template') . '/template/common/onego_claimed.tpl';
+        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_claimed.tpl')) {
+            $this->template = $this->config->get('config_template') . '/template/total/onego_claimed.tpl';
         } else {
-            $this->template = 'default/template/common/onego_claimed.tpl';
+            $this->template = 'default/template/total/onego_claimed.tpl';
         }
 
         $this->children = array(

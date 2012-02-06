@@ -185,9 +185,7 @@ class ModelTotalOnego extends Model
             } else {
                 if ($this->hasAgreedToDiscloseEmail()) {
                     try {
-                        $this->bindEmail($order_info['email']);
-                        // TO DO: actual amount
-                        $receivedFunds = 66;
+                        $receivedFunds = $this->bindEmail($order_info['email'], $this->collectCartEntries());
                         $this->saveCompletedOrder($orderId, true, true, $receivedFunds);
                     } catch (OneGoException $e) {
                         $transactionId = 'UNKNOWN';
@@ -285,11 +283,25 @@ echo $text;
         return !$this->hasAgreedToDiscloseEmail() && !$lastOrder['benefits_applied'];
     }
     
-    public function bindEmail($email)
+    public function bindEmail($email, OneGoAPI_Impl_Cart $cart)
     {
         try {
-            // TO DO
-            throw new OneGoException('bindEmail not implemented');
+            $email = trim($email);
+            if (empty($email)) {
+                throw new OneGoException('bindEmail requires valid email address');
+            }
+            
+            $api = $this->getApi();
+            if ($this->isTransactionStarted()) {
+                throw new OneGoException('bindEmail() for started transactions NOT IMPLEMENTED');
+            } else {
+                $modifiedCart = $api->bindNewEmail($email, $cart);
+                $prepaidReceived = isset($modifiedCart->prepaidReceived) ?
+                        $modifiedCart->getPrepaidReceived()->getAmount()->visible : 0;
+                $this->log('bindNewEmail executed, prepaid received: '.$prepaidReceived);
+                return $prepaidReceived;
+            }
+                    
         } catch (Exception $e) {
             $this->logCritical('bindEmail failed', $e);
             throw $e;

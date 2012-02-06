@@ -149,7 +149,7 @@ OneGoOpencart = {
         OneGo.user.authorizeFull(
             function() { alert('autorization success') },
             function() { alert('autorization canceled') },
-            function() { alert('autorization error') },
+            function() { alert('autorization error') }
         );
     },
     reloadWidget: function(){
