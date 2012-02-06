@@ -12,7 +12,7 @@ $_['onego_cart_discount'] = 'Your personal discount';
 $_['onego_cart_discount_percents'] = 'Your personal discount (%s%%)';
 $_['text_sub_total'] = 'Sub-Total with your benefits applied';
 $_['prepaid_spent'] = 'Prepaid funds spent';
-$_['funds_receivable'] = 'Your rewards';
+$_['funds_receivable'] = 'Your reward';
 $_['text_shipping_discount'] = 'Your shipping discount';
 
 $_['no_funds_available'] = 'You have no funds available.';
@@ -24,13 +24,18 @@ $_['auth_widget_text'] = 'Benefits by: {%NAME%}. {%LOGOUT|Not you?%}';
 $_['agree_email_expose'] = 'I agree to expose my e-mail to receive benefits for this and future purchases';
 
 $_['funds_received'] = 'You have received %s to your personal benefits account.';
-$_['funds_receivable'] = 'You will receive %s to your personal benefits account for future purchases if you agree to disclose your e-mail to OneGo.';
+$_['funds_receivable_descr'] = 'You will receive %s to your personal benefits account for future purchases if you agree to disclose your e-mail to OneGo.';
 $_['suggest_disclose'] = 'Do you agree that we disclose your e-mail address to OneGo to create your personal benefits account, to receive best offers from us in the future?';
 $_['button_agree_disclose'] = 'I agree';
 $_['claim_your_benefits'] = 'Claim your benefits:';
 $_['anonymous_buyer_created'] = 'Your purchase has been added to your benefits account history, to offer you best deals in the future.<br />'
                                 . 'You can now proceed creating your personal benefits account using your e-mail address:';
 $_['button_register_anonymous'] = 'Register with OneGo';
+$_['invite_to_login'] = 'Already have your benefits account?';
+$_['invite_to_use_vgc'] = 'Got a gift card?';
+$_['button_redeem'] = 'Redeem';
+$_['vgc_number'] = 'Gift Card Number';
+$_['or'] = 'or';
 
 // Error
 $_['benefits_applied']  = 'Success: Your personal benefits applied.';

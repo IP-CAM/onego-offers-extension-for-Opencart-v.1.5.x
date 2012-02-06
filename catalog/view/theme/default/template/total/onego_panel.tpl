@@ -5,16 +5,16 @@
       <table border="0" width="100%">
           <tr>
               <td width="45%" align="center">
-                  <div style="padding-bottom: 5px;">Already have your benefits account?</div>
+                  <div style="padding-bottom: 5px;"><?php echo $onego_login_invitation ?></div>
                   <a href="<?php echo $onego_login_url; ?>" id="onego_login" class="button"><span><?php echo $onego_login_button; ?></span></a>
               </td>
               <td width="10%" align="center">
-                  or
+                  <?php echo $onego_or ?>
               </td>
               <td width="45%" align="center">
-                  <div style="padding-bottom: 5px;">Got a gift card?</div>
-                  <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="Gift Card Number" />
-                  <a href="javascript:OneGoOpencart.redeemGiftCardAnonymous();" class="button"><span>Redeem</span></a>
+                  <div style="padding-bottom: 5px;"><?php echo $onego_vgc_invitation ?></div>
+                  <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="<?php echo $onego_vgc_number ?>" />
+                  <a href="javascript:OneGoOpencart.redeemGiftCardAnonymous();" class="button"><span><?php echo $onego_button_redeem ?></span></a>
               </td>
           </tr>
           <tr>
@@ -45,8 +45,8 @@
                   </div>
                   <div class="onego_giftcard">
                       <?php if (!empty($onego_applied)) { ?>
-                          <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="Gift Card Number" class="onego_watermark" />
-                          <input type="button" id="onego_giftcard_redeem" value="redeem" />
+                          <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="<?php echo $onego_vgc_number ?>" class="onego_watermark" />
+                          <input type="button" id="onego_giftcard_redeem" value="<?php echo $onego_button_redeem ?>" />
                       <?php } ?>
                   </div>
               </div>
@@ -77,6 +77,7 @@ $('#onego_agree').unbind().change(function(e){
 $('#onego_login').unbind().click(function(e){
     e.preventDefault();
     OneGoOpencart.promptLogin(<?php echo $js_page_reload_callback ?>);
+    //OneGoOpencart.promptLogin2();
 });
 
 $('#use_onego_funds').unbind('change').change(function(e) {

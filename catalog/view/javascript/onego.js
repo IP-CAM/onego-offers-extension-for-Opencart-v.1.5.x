@@ -144,6 +144,14 @@ OneGoOpencart = {
             }
         });
     },
+    promptLogin2: function(onSuccess, onCancel, onClose)
+    {
+        OneGo.user.authorizeFull(
+            function() { alert('autorization success') },
+            function() { alert('autorization canceled') },
+            function() { alert('autorization error') },
+        );
+    },
     reloadWidget: function(){
         $('.onego_widget iframe').attr('src', $('.onego_widget iframe').attr('src'));
     },

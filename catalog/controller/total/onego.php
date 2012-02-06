@@ -150,6 +150,11 @@ END;
         $onego = $this->getModel();
         $this->data['onego_use_funds_url'] = $this->url->link('total/onego/useFunds');
         $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
+        $this->data['onego_login_invitation'] = $this->language->get('invite_to_login');
+        $this->data['onego_vgc_invitation'] = $this->language->get('invite_to_use_vgc');
+        $this->data['onego_button_redeem'] = $this->language->get('button_redeem');
+        $this->data['onego_vgc_number'] = $this->language->get('vgc_number');
+        $this->data['onego_or'] = $this->language->get('or');
         if ($onego->isUserAuthenticated()) {
             $this->data['onego_authenticated'] = true;
             $this->data['onego_action'] = $this->url->link('checkout/confirm');
@@ -210,7 +215,7 @@ END;
                 $receivable = false;
             }
             $this->data['onego_funds_receivable'] = $receivable ? 
-                    sprintf($this->language->get('funds_receivable'), $this->currency->format($receivable)) : false;
+                    sprintf($this->language->get('funds_receivable_descr'), $this->currency->format($receivable)) : false;
         }
         
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_success.tpl')) {
