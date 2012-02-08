@@ -51,3 +51,5 @@ $_['error_api_call_failed'] = 'We\'re sorry, benefits account server is not acce
 $_['error_authentication_expired'] = 'Your benefits account session has expired, please login again.';
 $_['error_bindnew_invalid_email'] = 'Error: your e-mail was not recognized as valid.';
 $_['error_bindnew_failed'] = 'Error: creating your personal benefits account failed, please try later.';
+$_['error_redeem_failed'] = 'Redeeming card failed, please try again later';
+$_['error_redeem_cardnumber_invalid'] = 'Gift card number is not valid';

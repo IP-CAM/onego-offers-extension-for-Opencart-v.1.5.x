@@ -13,7 +13,7 @@
               </td>
               <td width="45%" align="center">
                   <div style="padding-bottom: 5px;"><?php echo $onego_vgc_invitation ?></div>
-                  <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="<?php echo $onego_vgc_number ?>" />
+                  <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" class="onego_watermark" value="<?php echo $onego_vgc_number ?>" autocomplete="off" />
                   <a href="javascript:OneGoOpencart.redeemGiftCardAnonymous();" class="button"><span><?php echo $onego_button_redeem ?></span></a>
               </td>
           </tr>
@@ -37,7 +37,7 @@
                       <?php
                       if (!empty($onego_funds)) {
                           $disabled = $onego_funds['amount'] > 0 ? '' : ' disabled="disabled"';
-                          $st = $onego_funds['is_used'] ? ' checked="checked"' : '';
+                          $st = $onego_prepaid_spent ? ' checked="checked"' : '';
                           echo '<label for="use_onego_funds">'.$onego_funds['title'].'</label> ';
                           echo '<input type="checkbox" name="use_onego_funds" class="onego_funds" id="use_onego_funds" value="y"'.$disabled.$st.' /> ';
                       }
@@ -45,7 +45,7 @@
                   </div>
                   <div class="onego_giftcard">
                       <?php if (!empty($onego_applied)) { ?>
-                          <input type="text" name="onego_giftcard" id="onego_giftcard" style="width: 140px;" value="<?php echo $onego_vgc_number ?>" class="onego_watermark" />
+                          <input type="text" name="onego_giftcard" id="onego_giftcard_number" style="width: 140px;" value="<?php echo $onego_vgc_number ?>" class="onego_watermark" autocomplete="off" />
                           <input type="button" id="onego_giftcard_redeem" value="<?php echo $onego_button_redeem ?>" />
                       <?php } ?>
                   </div>
@@ -127,7 +127,22 @@ function cancelUseFundsCheck()
 
 
 $('#onego_giftcard_redeem').unbind('click').click(function(e) {
-    OneGoOpencart.redeemGiftCardAnonymous();
+    var cardNumber = $('#onego_giftcard_number').val();
+    if (!cardNumber.length || (cardNumber == '<?php echo $onego_vgc_number ?>')) {
+        $('#onego_giftcard_number').focus();
+        return false;
+    } else {
+        OneGoOpencart.redeemGiftCard(
+            cardNumber,
+            function() {
+                <?php echo $js_page_reload_callback ?>();
+            },
+            function(errorMessage) {
+                var errorMessage = errorMessage || '<?php echo $onego_redeem_failed ?>';
+                OneGoOpencart.flashWarningBefore($('#onego_panel'), errorMessage);
+            }
+        );
+    }
 });
 
 <?php if ($isAjaxRequest) { ?>

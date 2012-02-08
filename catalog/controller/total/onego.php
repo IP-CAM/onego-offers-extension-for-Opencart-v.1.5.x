@@ -154,6 +154,7 @@ END;
         $this->data['onego_vgc_invitation'] = $this->language->get('invite_to_use_vgc');
         $this->data['onego_button_redeem'] = $this->language->get('button_redeem');
         $this->data['onego_vgc_number'] = $this->language->get('vgc_number');
+        $this->data['onego_prepaid_spent'] = $onego->hasSpentPrepaid();
         $this->data['onego_or'] = $this->language->get('or');
         if ($onego->isUserAuthenticated()) {
             $this->data['onego_authenticated'] = true;
@@ -170,6 +171,7 @@ END;
         } else {
             $this->data['onego_login_url'] = $this->url->link('total/onego/login');
         }
+        $this->data['onego_redeem_failed'] = $this->language->get('error_redeem_failed');
         $this->data['onego_login_button'] = $this->language->get('button_onego_login');
         $this->data['onego_agreed'] = $onego->hasAgreedToDiscloseEmail();
         $this->data['onego_agree_email_expose'] = $this->language->get('agree_email_expose');
@@ -229,7 +231,7 @@ END;
         $this->response->setOutput($this->render());
     }
     
-    public function useFunds()
+    public function usefunds()
     {
         $onego = $this->getModel();
         $this->language->load('total/onego');
@@ -518,8 +520,51 @@ END;
     
     public function redeemgiftcard()
     {
+        $onego = $this->getModel();
+        $this->language->load('total/onego');
+        $request = $this->registry->get('request');
+        if (!empty($request->post['cardnumber'])) {
+            $response = false;
+            
+            try {
+                if ($onego->isTransactionStarted()) {
+                    $transaction = $onego->refreshTransaction();
+                }
+                
+                $res = $onego->redeemVirtualGiftCard($request->post['cardnumber']);
+                if ($res) {
+                    $response = array('success' => true);
+                }
+                
+            } catch (OneGoAuthenticationRequiredException $e) {
+                $errorMessage = $this->language->get('error_authentication_expired');
+                $response = array(
+                    'error' => get_class($e),
+                    'message' => $errorMessage,
+                );
+            } catch (Exception $e) {
+                if (in_array(get_class($e), array(
+                    'OneGoAPI_VirtualGiftCardNotFoundException',
+                    'OneGoAPI_InvalidInputException'
+                ))) 
+                {
+                    $errorMessage = $this->language->get('error_redeem_cardnumber_invalid');
+                } else {
+                    $errorMessage = $this->language->get('error_redeem_failed');
+                }
+                $response = array(
+                    'error' => get_class($e),
+                    'message' => $errorMessage,
+                );
+            }
+            
+            $this->response->setOutput(OneGoAPI_JSON::encode($response));
+        }
+        
+        /*
         $this->template = 'default/template/total/onego_giftcard.tpl';
         $this->response->setOutput($this->render());
+        */
     }
     
     

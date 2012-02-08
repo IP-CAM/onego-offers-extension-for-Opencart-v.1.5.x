@@ -561,7 +561,7 @@ echo $text;
             
             // save cart hash to later detect when transaction cart needs to be updated
             $this->saveToSession('cart_hash', $this->getEshopCartHash());
-            $this->saveToSession('onego_benefits_applied', false);
+            $this->saveToSession('spentPrepaid', false);
             
             $this->log('transaction started with '.count($cart).' cart entries', self::LOG_NOTICE);
             return true;
@@ -584,7 +584,6 @@ echo $text;
                 $this->log('Transaction confirm', self::LOG_NOTICE);
                 $transaction->confirm();
                 $this->deleteTransaction();
-                $this->saveToSession('onego_benefits_applied', true);
                 return $transaction;
             } catch (Exception $e) {
                 $this->log('Transaction confirm failed: '.$e->getMessage(), self::LOG_ERROR);
@@ -606,7 +605,6 @@ echo $text;
             try {
                 $transaction->cancel();
                 $this->deleteTransaction();
-                $this->saveToSession('onego_benefits_applied', false);
                 $this->log('Transaction canceled', self::LOG_NOTICE);
                 return true;
             } catch (Exception $e) {
@@ -974,6 +972,7 @@ echo $text;
     public function deleteTransaction()
     {
         $this->saveToSession('Transaction', null);
+        $this->saveToSession('spentPrepaid', false);
         $this->log('Transaction destroyed');
     }
     
@@ -1033,6 +1032,7 @@ echo $text;
         }
         try {
             $transaction->spendPrepaid($this->getFundsAmountAvailable());
+            $this->saveToSession('spentPrepaid', true);
             $this->log('Spent prepaid: '.$this->getFundsAmountAvailable(), self::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
@@ -1050,6 +1050,7 @@ echo $text;
         }
         try {
             $transaction->cancelSpendingPrepaid();
+            $this->saveToSession('spentPrepaid', false);
             $this->log('Spend prepaid canceled', self::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
@@ -1057,6 +1058,11 @@ echo $text;
             $this->log('Cancel spending prepaid failed: '.$e->getMessage(), self::LOG_ERROR);
         }
         return false;
+    }
+    
+    public function hasSpentPrepaid()
+    {
+        return $this->getFromSession('spentPrepaid', false);
     }
     
     public function isCurrentScopeSufficient()
@@ -1150,7 +1156,8 @@ echo $text;
         }
         
         if ($transaction && $transaction->isExpired()) {
-            $res = $this->cancelTransaction();
+            $this->log('Transaction expired', self::LOG_NOTICE);
+            $this->deleteTransaction();
             $transactionCanceled = true;
         }
         
@@ -1318,6 +1325,20 @@ echo $text;
             return (float) $awards;
         }
         return false;
+    }
+    
+    public function redeemVirtualGiftCard($cardNumber)
+    {
+        $transaction = $this->getTransaction();
+        try {
+            $transaction->redeemVirtualGiftCard($cardNumber);
+            $this->log('VGC redeemed', self::LOG_NOTICE);
+            $this->saveTransaction($transaction);
+            return true;
+        } catch (OneGoAPI_Exception $e) {
+            $this->log('Spend prepaid failed: '.$e->getMessage(), self::LOG_ERROR);
+            throw $e;
+        }
     }
 }
 

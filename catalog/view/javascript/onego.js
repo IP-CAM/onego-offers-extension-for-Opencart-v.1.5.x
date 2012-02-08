@@ -75,10 +75,38 @@ OneGoOpencart = {
             }
         });
     },
+    redeemGiftCard: function(cardNumber, onSuccess, onError) {
+        var redeemButton = $('#onego_giftcard_redeem');
+        $.ajax({
+            url: $('base').attr('href') + 'index.php?route=total/onego/redeemgiftcard', 
+            type: 'post',
+            data: { cardnumber: cardNumber },
+            dataType: 'json',
+            beforeSend: function(jqXHR, settings) {
+                OneGoOpencart.setAsLoading(redeemButton);
+            },
+            success: function(data, textStatus, jqXHR) {
+                OneGoOpencart.unsetAsLoading(redeemButton);
+                if (data.error) {
+                    onError(data.message);
+                } else {
+                    if (onSuccess) {
+                        onSuccess();
+                    }
+                }
+            },
+            error: function(xhr, ajaxOptions, thrownError) {
+                OneGoOpencart.unsetAsLoading(redeemButton);
+                if (onError) {
+                    onError();
+                }
+            }
+        })
+    },
     processFundUsage: function(checkboxElement, onSuccess, onError){
         var isChecked = checkboxElement.is(':checked');
         $.ajax({
-            url: $('base').attr('href') + 'index.php?route=total/onego/useFunds', 
+            url: $('base').attr('href') + 'index.php?route=total/onego/usefunds', 
             type: 'post',
             data: {'use_funds': isChecked},
             dataType: 'json',
