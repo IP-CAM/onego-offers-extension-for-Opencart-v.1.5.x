@@ -46,8 +46,8 @@ $_['error_coupon']  = 'Warning: Coupon is either invalid, expired or reached it\
 
 $_['error_authorization_access_denied'] = 'Access to your benefits account denied';
 $_['error_authorization_temporarily_unavailable'] = 'Your benefits account is temporarily unavailable, please try again later.';
-$_['error_authorization_failed'] = 'We\'re sorry, benefits account server is not accessible right now. Please try again later.';
-$_['error_api_call_failed'] = 'We\'re sorry, benefits account server is not accessible right now. Please try again later.';
+$_['error_authorization_failed'] = 'We are sorry, benefits account server is not accessible right now. Please try again later.';
+$_['error_api_call_failed'] = 'We are sorry, benefits account server is not accessible right now. Please try again later.';
 $_['error_authentication_expired'] = 'Your benefits account session has expired, please login again.';
 $_['error_bindnew_invalid_email'] = 'Error: your e-mail was not recognized as valid.';
 $_['error_bindnew_failed'] = 'Error: creating your personal benefits account failed, please try later.';

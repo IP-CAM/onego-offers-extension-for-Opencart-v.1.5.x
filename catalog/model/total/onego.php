@@ -1038,6 +1038,7 @@ echo $text;
             return true;
         } catch (OneGoAPI_Exception $e) {
             $this->log('Spend prepaid failed: '.$e->getMessage(), self::LOG_ERROR);
+            throw $e;
         }
         return false;
     }

@@ -86,27 +86,27 @@ OneGoOpencart = {
                 OneGoOpencart.setAsLoading(redeemButton);
             },
             success: function(data, textStatus, jqXHR) {
-                OneGoOpencart.unsetAsLoading(redeemButton);
                 if (data.error) {
                     onError(data.message);
                 } else {
                     if (onSuccess) {
-                        onSuccess();
+                        onSuccess(data);
                     }
                 }
+                OneGoOpencart.unsetAsLoading(redeemButton);
             },
             error: function(xhr, ajaxOptions, thrownError) {
-                OneGoOpencart.unsetAsLoading(redeemButton);
                 if (onError) {
                     onError();
                 }
+                OneGoOpencart.unsetAsLoading(redeemButton);
             }
         })
     },
-    processFundUsage: function(checkboxElement, onSuccess, onError){
+    spendPrepaid: function(checkboxElement, onSuccess, onError){
         var isChecked = checkboxElement.is(':checked');
         $.ajax({
-            url: $('base').attr('href') + 'index.php?route=total/onego/usefunds', 
+            url: $('base').attr('href') + 'index.php?route=total/onego/spendprepaid', 
             type: 'post',
             data: {'use_funds': isChecked},
             dataType: 'json',
@@ -114,24 +114,24 @@ OneGoOpencart = {
                 OneGoOpencart.setAsLoading(checkboxElement);
             },
             success: function(data, textStatus, jqXHR) {
-                if (!onSuccess) {
-                    OneGoOpencart.unsetAsLoading(checkboxElement);
-                }
-                if (typeof data.error != 'undefined') {
-                    checkboxElement.attr('checked', !checkboxElement.is(':checked'));
+                if (data.error) {
+                    if (onError) {
+                        onError(data.message, data.error);
+                    }
+                    checkboxElement.attr('checked', !isChecked);
                 } else {
-                    checkboxElement.attr('checked', data.status == '1');
+                    if (onSuccess) {
+                        onSuccess(data);
+                    }
                 }
-                if (onSuccess) {
-                    onSuccess(data, textStatus, jqXHR);
-                }
+                OneGoOpencart.unsetAsLoading(checkboxElement);
             },
             error: function(xhr, ajaxOptions, thrownError) {
+                if (onError) {
+                    onError();
+                }
                 OneGoOpencart.unsetAsLoading(checkboxElement);
                 checkboxElement.attr('checked', !isChecked);
-                if (onError) {
-                    onError(xhr, ajaxOptions, thrownError);
-                }
             }
         })
     },

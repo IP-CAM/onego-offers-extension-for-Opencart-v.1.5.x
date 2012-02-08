@@ -82,22 +82,8 @@ $('#onego_login').unbind().click(function(e){
 
 $('#use_onego_funds').unbind('change').change(function(e) {
     $('.warning').remove();
-    <?php if (!empty($onego_scope_extended)) { ?>
-    OneGoOpencart.processFundUsage(
-        $(this),
-        function(data, textStatus, jqXHR){
-            if (data.error && data.error == 'OneGoAuthenticationRequiredException') {
-                OneGoOpencart.unsetAsLoading($('#use_onego_funds'));
-                cancelUseFundsCheck();
-                promptLoginForFundsUse();
-            } else if (data.error) {
-                OneGoOpencart.flashWarningBefore($('#onego_panel'), data.message);
-                OneGoOpencart.unsetAsLoading($('#use_onego_funds'));
-            } else {
-                <?php echo $js_page_reload_callback ?>();
-            }
-        }
-    );
+    <?php if (!empty($onego_scope_sufficient)) { ?>
+    spendPrepaid();
     <?php } else { ?>
     promptLoginForFundsUse();
     <?php } ?>
@@ -106,18 +92,29 @@ $('#use_onego_funds').unbind('change').change(function(e) {
 function promptLoginForFundsUse()
 {
     OneGoOpencart.promptLogin(
-        function(){
-            OneGoOpencart.processFundUsage(
-                $('#use_onego_funds'),
-                function(data, textStatus, jqXHR){
-                    if (typeof data.status != 'undefined') {
-                        <?php echo $js_page_reload_callback ?>();
-                    }
-                }
-            );
-        },
+        spendPrepaid,
         cancelUseFundsCheck
     )
+}
+
+function spendPrepaid()
+{
+    OneGoOpencart.spendPrepaid(
+        $('#use_onego_funds'),
+        function(data) {
+            <?php echo $js_page_reload_callback ?>();
+        },
+        function (errorMessage, error) {
+            if (error && error == 'OneGoAuthenticationRequiredException') {
+                cancelUseFundsCheck();
+                promptLoginForFundsUse();
+            } else if (errorMessage) {
+                OneGoOpencart.flashWarningBefore($('#onego_panel'), errorMessage);
+            } else {
+                OneGoOpencart.flashWarningBefore($('#onego_panel'), '<?php echo $onego_error_spend_prepaid ?>');
+            }
+        }
+    );
 }
 
 function cancelUseFundsCheck()

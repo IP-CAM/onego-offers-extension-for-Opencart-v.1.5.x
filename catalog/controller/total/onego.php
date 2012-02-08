@@ -149,7 +149,7 @@ END;
         $this->language->load('total/onego');
         $onego = $this->getModel();
         $this->data['onego_use_funds_url'] = $this->url->link('total/onego/useFunds');
-        $this->data['onego_scope_extended'] = $onego->isCurrentScopeSufficient();
+        $this->data['onego_scope_sufficient'] = $onego->isCurrentScopeSufficient();
         $this->data['onego_login_invitation'] = $this->language->get('invite_to_login');
         $this->data['onego_vgc_invitation'] = $this->language->get('invite_to_use_vgc');
         $this->data['onego_button_redeem'] = $this->language->get('button_redeem');
@@ -175,6 +175,7 @@ END;
         $this->data['onego_login_button'] = $this->language->get('button_onego_login');
         $this->data['onego_agreed'] = $onego->hasAgreedToDiscloseEmail();
         $this->data['onego_agree_email_expose'] = $this->language->get('agree_email_expose');
+        $this->data['onego_error_spend_prepaid'] = $this->language->get('error_api_call_failed');
         $this->data['isAjaxRequest'] = $onego->isAjaxRequest();
         $this->data['js_page_reload_callback'] = $onego->isAjaxRequest() ?
                 'OneGoOpencart.reloadCheckoutOrderInfo' : 'OneGoOpencart.reloadPage';
@@ -231,7 +232,7 @@ END;
         $this->response->setOutput($this->render());
     }
     
-    public function usefunds()
+    public function spendprepaid()
     {
         $onego = $this->getModel();
         $this->language->load('total/onego');
@@ -240,14 +241,25 @@ END;
             $response = false;
             
             try {
-                $transaction = $onego->refreshTransaction();
+                $onego->refreshTransaction();
+                
+                if ($onego->isTransactionStarted()) {
+                    $do_use = $request->post['use_funds'] == 'true';
+                    if ($do_use) {
+                        $response = array('status' => $onego->spendPrepaid() ? 1 : 0);
+                    } else {
+                        $response = array('status' => $onego->cancelSpendingPrepaid() ? 1 : 0);
+                    }
+                } else {
+                    throw new OneGoException('Transaction not started');
+                }
             } catch (OneGoAuthenticationRequiredException $e) {
                 $errorMessage = $this->language->get('error_authentication_expired');
                 $response = array(
                     'error' => get_class($e),
                     'message' => $errorMessage,
                 );
-            } catch (OneGoException $e) {
+            } catch (Exception $e) {
                 $errorMessage = $this->language->get('error_api_call_failed');
                 $response = array(
                     'error' => get_class($e),
@@ -255,14 +267,6 @@ END;
                 );
             }
             
-            if (empty($response) && $onego->isTransactionStarted()) {
-                $do_use = $request->post['use_funds'] == 'true';
-                if ($do_use) {
-                    $response = array('status' => $onego->spendPrepaid() ? 1 : 0);
-                } else {
-                    $response = array('status' => $onego->cancelSpendingPrepaid() ? 1 : 0);
-                }
-            }
             $this->response->setOutput(OneGoAPI_JSON::encode($response));
         }
     }
