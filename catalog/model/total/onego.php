@@ -473,7 +473,7 @@ echo $text;
             
             // save cart hash to later detect when transaction cart needs to be updated
             OneGoUtils::saveToSession('cart_hash', $this->getEshopCartHash());
-            OneGoTransactionState::reset();
+            OneGoTransactionState::getCurrent()->reset();
             
             OneGoUtils::log('transaction started with '.count($cart).' cart entries', OneGoUtils::LOG_NOTICE);
             return true;
@@ -730,7 +730,7 @@ echo $text;
     public function deleteTransaction()
     {
         OneGoUtils::saveToSession('Transaction', null);
-        OneGoTransactionState::reset();
+        OneGoTransactionState::getCurrent()->reset();
         OneGoUtils::log('Transaction destroyed');
     }
     
@@ -791,7 +791,7 @@ echo $text;
         try {
             $amount = $this->getFundsAmountAvailable();
             $transaction->spendPrepaid($amount);
-            OneGoTransactionState::set(OneGoTransactionState::PREPAID_SPENT, $amount);
+            OneGoTransactionState::getCurrent()->set(OneGoTransactionState::PREPAID_SPENT, $amount);
             OneGoUtils::log('Spent prepaid: '.$amount, OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
@@ -810,7 +810,7 @@ echo $text;
         }
         try {
             $transaction->cancelSpendingPrepaid();
-            OneGoTransactionState::set(OneGoTransactionState::PREPAID_SPENT, false);
+            OneGoTransactionState::getCurrent()->set(OneGoTransactionState::PREPAID_SPENT, false);
             OneGoUtils::log('Spend prepaid canceled', OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
@@ -822,7 +822,7 @@ echo $text;
     
     public function hasSpentPrepaid()
     {
-        return OneGoTransactionState::get(OneGoTransactionState::PREPAID_SPENT);
+        return OneGoTransactionState::getCurrent()->get(OneGoTransactionState::PREPAID_SPENT);
     }
     
     public function isCurrentScopeSufficient()
@@ -959,7 +959,7 @@ echo $text;
     public function getPrepaidRedeemedAmount()
     {
         // TODO actual value
-        if (OneGoTransactionState::get(OneGoTransactionState::VGC_REDEEMED)) {
+        if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::VGC_REDEEMED)) {
             return $this->getPrepaidSpent();
         }
         return false;
@@ -1048,7 +1048,7 @@ echo $text;
     
     public function hasAgreedToDiscloseEmail()
     {
-        return OneGoTransactionState::get(OneGoTransactionState::AGREED_DISCLOSE_EMAIL);
+        return OneGoTransactionState::getCurrent()->get(OneGoTransactionState::AGREED_DISCLOSE_EMAIL);
     }
     
     public function requestOAuthAccessToken($authorizationCode, $requestedScopes = false)
@@ -1118,7 +1118,7 @@ echo $text;
             $transaction->redeemVirtualGiftCard($cardNumber);
             OneGoUtils::log('VGC redeemed for '.$cardNumber, OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
-            OneGoTransactionState::set(OneGoTransactionState::VGC_REDEEMED, $cardNumber);
+            OneGoTransactionState::getCurrent()->set(OneGoTransactionState::VGC_REDEEMED, $cardNumber);
             return true;
         } catch (OneGoAPI_Exception $e) {
             OneGoUtils::log('redeemVirtualGiftCard failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
@@ -1145,17 +1145,71 @@ echo $text;
     }
 }
 
-class OneGoTransactionState
+abstract class OneGoPersistentState
+{
+    abstract protected function initialize();
+    abstract protected function getStorageKey();
+
+    public function get($key)
+    {
+        return isset($this->$key) ? $this->$key : null;
+    }
+    
+    public function reset()
+    {
+        $this->initialize();
+        $this->save();
+    }
+    
+    public function set($key, $value)
+    {
+        $this->$key = $value;
+        $this->save();
+    }
+    
+    public function __construct() {
+        $this->initialize();
+    }
+    
+    protected function save()
+    {
+        OneGoUtils::saveToSession($this->getStorageKey(), $this);
+    }
+    
+    /**
+     *
+     * @return OneGoPersistentState 
+     */
+    public static function loadCurrent(OneGoPersistentState $newDefault)
+    {
+        return OneGoUtils::getFromSession($newDefault->getStorageKey(), $newDefault);
+    }
+}
+
+class OneGoTransactionState extends OneGoPersistentState
 {
     const PREPAID_SPENT = 'spentPrepaid';
     const VGC_REDEEMED = 'redeemedVGC';
     const AGREED_DISCLOSE_EMAIL = 'agreedToDiscloseEmail';
     const BUYER_ANONYMOUS = 'buyerAnonymous';
     
-    public $spentPrepaid = false;
-    public $redeemedVGC = false;
-    public $agreedToDiscloseEmail = false;
-    public $buyerAnonymous = false;
+    protected $spentPrepaid;
+    protected $redeemedVGC;
+    protected $agreedToDiscloseEmail;
+    protected $buyerAnonymous;
+    
+    protected function getStorageKey()
+    {
+        return 'TransactionState';
+    }
+    
+    protected function initialize()
+    {
+        $this->spentPrepaid = false;
+        $this->redeemedVGC = false;
+        $this->agreedToDiscloseEmail = false;
+        $this->buyerAnonymous = false;
+    }
     
     /**
      *
@@ -1163,35 +1217,7 @@ class OneGoTransactionState
      */
     public static function getCurrent()
     {
-        return OneGoUtils::getFromSession('TransactionState', new self());
-    }
-    
-    public static function get($key)
-    {
-        $state = self::getCurrent();
-        if ($key) {
-            return isset($state->$key) ? $state->$key : null;
-        } else {
-            return $state;
-        }
-    }
-    
-    public static function reset()
-    {
-        $state = new self();
-        $state->save();
-    }
-    
-    public static function set($key, $value)
-    {
-        $state = self::getCurrent();
-        $state->$key = $value;
-        $state->save();
-    }
-    
-    public function save()
-    {
-        OneGoUtils::saveToSession('TransactionState', $this);
+        return parent::loadCurrent(new self());
     }
 }
 
