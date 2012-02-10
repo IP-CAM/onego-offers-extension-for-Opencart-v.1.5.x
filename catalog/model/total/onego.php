@@ -4,13 +4,6 @@ require_once DIR_ONEGO.'php-api/src/OneGoAPI/init.php';
 
 class ModelTotalOnego extends Model 
 {   
-    const LOG_INFO = 0;
-    const LOG_NOTICE = 1;
-    const LOG_WARNING = 2;
-    const LOG_ERROR = 3;
-    
-    protected $registrykey = 'onego_extension';
-    
     protected static $current_eshop_cart = false;
     
     /**
@@ -21,8 +14,7 @@ class ModelTotalOnego extends Model
      */
     public static function getInstance()
     {
-        global $registry;
-        return new self($registry);
+        return new self(OneGoUtils::getRegistry());
     }
     
     public function getConfig($key)
@@ -298,12 +290,12 @@ echo $text;
                 $modifiedCart = $api->bindNewEmail($email, $cart);
                 $prepaidReceived = isset($modifiedCart->prepaidReceived) ?
                         $modifiedCart->getPrepaidReceived()->getAmount()->visible : 0;
-                $this->log('bindNewEmail executed, prepaid received: '.$prepaidReceived);
+                OneGoUtils::log('bindNewEmail executed, prepaid received: '.$prepaidReceived);
                 return $prepaidReceived;
             }
                     
         } catch (Exception $e) {
-            $this->logCritical('bindEmail failed', $e);
+            OneGoUtils::logCritical('bindEmail failed', $e);
             throw $e;
         }
         return true;
@@ -386,7 +378,7 @@ echo $text;
                 $this->getConfig('transactionTTL')
         );
         $cfg->apiUri = $this->getConfig('apiURI');
-        $cfg->currencyCode = $this->getRegistryObj()->get('config')->get('config_currency');
+        $cfg->currencyCode = OneGoUtils::getRegistry()->get('config')->get('config_currency');
         $api = OneGoAPI_Impl_SimpleAPI::init($cfg);
         $token = $this->getSavedOAuthToken();
         if ($token) {
@@ -435,22 +427,13 @@ echo $text;
     }
     
     /**
-     *
-     * @return Registry 
-     */
-    public function getRegistryObj()
-    {
-        return $this->registry;
-    }
-    
-    /**
      * Wrapper for exception throwing
      *
      * @param string $message 
      */
     public function throwError($message)
     {
-        $this->log('exeption: '.$message, self::LOG_ERROR);
+        OneGoUtils::log('exeption: '.$message, OneGoUtils::LOG_ERROR);
         throw new Exception('OneGo extension error: '.$message);
     }
     
@@ -490,12 +473,12 @@ echo $text;
             
             // save cart hash to later detect when transaction cart needs to be updated
             OneGoUtils::saveToSession('cart_hash', $this->getEshopCartHash());
-            $this->resetTransactionState();
+            OneGoTransactionState::reset();
             
-            $this->log('transaction started with '.count($cart).' cart entries', self::LOG_NOTICE);
+            OneGoUtils::log('transaction started with '.count($cart).' cart entries', OneGoUtils::LOG_NOTICE);
             return true;
         } catch (Exception $e) {
-            $this->log('Begin transaction failed: '.$e->getMessage(), self::LOG_ERROR);
+            OneGoUtils::log('Begin transaction failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
     }
@@ -510,12 +493,12 @@ echo $text;
         $api = $this->getApi();
         if ($transaction = $this->getTransaction()) {
             try {
-                $this->log('Transaction confirm', self::LOG_NOTICE);
+                OneGoUtils::log('Transaction confirm', OneGoUtils::LOG_NOTICE);
                 $transaction->confirm();
                 $this->deleteTransaction();
                 return $transaction;
             } catch (Exception $e) {
-                $this->log('Transaction confirm failed: '.$e->getMessage(), self::LOG_ERROR);
+                OneGoUtils::log('Transaction confirm failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
                 $this->deleteTransaction();
             }
         }
@@ -534,11 +517,11 @@ echo $text;
             try {
                 $transaction->cancel();
                 $this->deleteTransaction();
-                $this->log('Transaction canceled', self::LOG_NOTICE);
+                OneGoUtils::log('Transaction canceled', OneGoUtils::LOG_NOTICE);
                 return true;
             } catch (Exception $e) {
                 if (!$silent) {
-                    $this->log('Transaction cancel failed: '.$e->getMessage(), self::LOG_ERROR);
+                    OneGoUtils::log('Transaction cancel failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
                 }
                 $this->deleteTransaction();
             }
@@ -558,12 +541,12 @@ echo $text;
             $cart = $api->newCart();
             try {
                 $transaction = $this->getTransaction()->updateCart($this->collectCartEntries());
-                $this->log('Transaction cart updated', self::LOG_NOTICE);
+                OneGoUtils::log('Transaction cart updated', OneGoUtils::LOG_NOTICE);
                 $this->saveTransaction($transaction);
                 OneGoUtils::saveToSession('cart_hash', $this->getEshopCartHash());
                 return true;
             } catch (Exception $e) {
-                $this->log('Transaction cart update failed: '.$e->getMessage(), self::LOG_ERROR);
+                OneGoUtils::log('Transaction cart update failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             }
         }
         return false;
@@ -581,7 +564,7 @@ echo $text;
     {
         if ($reload || (self::$current_eshop_cart === false)) {
             // add Opencart cart items
-            $cart = $this->getRegistryObj()->get('cart');
+            $cart = OneGoUtils::getRegistry()->get('cart');
             $products = $cart->getProducts();
             self::$current_eshop_cart = $products;
             
@@ -710,153 +693,6 @@ echo $text;
     }
     
     
-    // ******* helper methods **************************************************
-    
-    /**
-     * Save log message to session to later display in debugger, truncate log to
-     * specified length 
-     *
-     * @param string $str Log message text
-     * @param string $level self::LOG_INFO, self::LOG_NOTICE, self::LOG_WARNING, self::LOG_ERROR
-     * @param integer $max_length Max amount of log messages to be saved
-     */
-    public function log($str, $level = self::LOG_INFO, $max_length = 25)
-    {
-        if ($this->getConfig('debugModeOn')) {
-            $log = $this->getLog();
-            $log[] = array(
-                'time'      => microtime(),
-                'pid'       => getmypid(),
-                'backtrace' => implode(' / ', self::debugBacktrace()),
-                'message'   => $str,
-                'level'     => $level,
-            );
-            $log = array_slice($log, -$max_length); // keep log small
-            OneGoUtils::saveToSession('log', $log);
-        }
-    }
-    
-    public function writeLog($str)
-    {
-        // write critical errors to log file
-        $fh = fopen(DIR_LOGS.'onego_error.log', 'a');
-        if ($fh) {
-            $ln = date('Y-m-d H:i:s').' '.$str.' => '.implode(' / ', self::debugBacktrace());
-            fwrite($fh, $ln."\n");
-            fclose($fh);
-        }
-    }
-    
-    public function logCritical($errorStr, $exception = null)
-    {
-        if (!empty($exception) && is_a($exception, 'Exception')) {
-            $errorStr = $errorStr.' :: '.get_class($exception).' :: '.$exception->getMessage();
-        }
-        $this->log($errorStr, self::LOG_ERROR);
-        $this->writeLog($errorStr);
-    }
-    
-    /**
-     * Returns list of messages saved in log
-     *
-     * @param boolean $clear Whether to remove returned log messages
-     * @return array List of saved log entries
-     */
-    public function getLog($clear = false)
-    {
-        $log = OneGoUtils::getFromSession('log');
-        if (empty($log)) {
-            $log = array();
-        }
-        if ($clear) {
-            OneGoUtils::saveToSession('log', array());
-        }
-        return $log;
-    }
-    
-    /**
-     * Get backtrace info for debugging purposes, valid for the calling method
-     *
-     * @param integer $limit Max amount of backtrace steps to be returned
-     * @return array List of backtrace data from latest calls to oldest
-     */
-    public static function debugBacktrace($limit = 5)
-    {
-        $trace = debug_backtrace();
-        $simple = array();
-        foreach ($trace as $key => $val) {
-            $row = $trace[$key];
-            $id = '';
-            if (isset($row['class'])) {
-                $id .= $row['class'].$row['type'];
-            }
-            $id .= $row['function'].'()';
-            if (isset($row['line'])){
-                $id .= ' ['.$row['line'].']';
-            }
-            $simple[] = $id;
-        }
-        
-        return array_slice($simple, 2, $limit);
-    }
-    
-    /**
-     *
-     * @param string $str
-     * @param boolean $strong Whether to escape all characters and not just quotes
-     * @return string
-     */
-    public static function escapeJs($str, $strong = false) {
-	$new_str = '';
-	$str_len = strlen($str);
-	for($i = 0; $i < $str_len; $i++) {
-            $char = $str[$i];
-            if ($strong || in_array($char, array('\'', '"', "\r", "\n"))) {
-                $new_str .= '\\x' . dechex(ord(substr($str, $i, 1)));
-            } else {
-                $new_str .= $char;
-            }
-	}
-	return $new_str;
-    }
-    
-    /**
-     * Determine if current request is an AJAX request
-     *
-     * @return boolean
-     */
-    public static function isAjaxRequest()
-    {
-        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-            ($_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest");
-    }
-    
-    /**
-     *
-     * @return string HTTP referrer's URL
-     */
-    public function getHttpReferer()
-    {
-        return !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : false;
-    }
-    
-    public static function selfUrl()
-    {
-        $pageURL = 'http';
-        if (!empty($_SERVER["HTTPS"]) && ($_SERVER["HTTPS"] == "on")) {
-            $pageURL .= "s";
-        }
-        $pageURL .= "://";
-        if ($_SERVER["SERVER_PORT"] != "80") {
-            $pageURL .= $_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"];
-        } else {
-            $pageURL .= $_SERVER["SERVER_NAME"].$_SERVER["REQUEST_URI"];
-        }
-        return $pageURL;
-    }
-    
-    // =================== NEW
-    
     /**
      *
      * @return OneGoAPI_Impl_OAuthToken 
@@ -877,7 +713,7 @@ echo $text;
     {
         OneGoUtils::saveToSession('OAuthToken', null);
         OneGoUtils::saveToSession('OAuthTokenAnonymous', null);
-        $this->log('OAuth token destroyed');
+        OneGoUtils::log('OAuth token destroyed');
     }
     
     public function getSavedTransaction()
@@ -894,8 +730,8 @@ echo $text;
     public function deleteTransaction()
     {
         OneGoUtils::saveToSession('Transaction', null);
-        $this->resetTransactionState();
-        $this->log('Transaction destroyed');
+        OneGoTransactionState::reset();
+        OneGoUtils::log('Transaction destroyed');
     }
     
     public function getOAuthRedirectUri()
@@ -912,7 +748,7 @@ echo $text;
     public function blockAutologin($period = 60) // seconds
     {
         OneGoUtils::saveToSession('autologinBlocked', time() + $period);
-        $this->log('Autologin blocked until '.date('Y-m-d H:i:s', time() + $period));
+        OneGoUtils::log('Autologin blocked until '.date('Y-m-d H:i:s', time() + $period));
     }
     
     public function isUserAuthenticated()
@@ -955,12 +791,12 @@ echo $text;
         try {
             $amount = $this->getFundsAmountAvailable();
             $transaction->spendPrepaid($amount);
-            $this->setSpentPrepaid($amount);
-            $this->log('Spent prepaid: '.$this->getFundsAmountAvailable(), self::LOG_NOTICE);
+            OneGoTransactionState::set(OneGoTransactionState::PREPAID_SPENT, $amount);
+            OneGoUtils::log('Spent prepaid: '.$amount, OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
         } catch (OneGoAPI_Exception $e) {
-            $this->log('Spend prepaid failed: '.$e->getMessage(), self::LOG_ERROR);
+            OneGoUtils::log('Spend prepaid failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
         return false;
@@ -974,19 +810,19 @@ echo $text;
         }
         try {
             $transaction->cancelSpendingPrepaid();
-            $this->setSpentPrepaid(false);
-            $this->log('Spend prepaid canceled', self::LOG_NOTICE);
+            OneGoTransactionState::set(OneGoTransactionState::PREPAID_SPENT, false);
+            OneGoUtils::log('Spend prepaid canceled', OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
         } catch (OneGoAPI_Exception $e) {
-            $this->log('Cancel spending prepaid failed: '.$e->getMessage(), self::LOG_ERROR);
+            OneGoUtils::log('Cancel spending prepaid failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
         }
         return false;
     }
     
     public function hasSpentPrepaid()
     {
-        return $this->getPrepaidSpent();
+        return OneGoTransactionState::get(OneGoTransactionState::PREPAID_SPENT);
     }
     
     public function isCurrentScopeSufficient()
@@ -1014,9 +850,9 @@ echo $text;
         $api->setOAuthToken($newToken);
         try {
             $res = $transaction->get();
-            $this->log('Transaction readable with new token', self::LOG_NOTICE);
+            OneGoUtils::log('Transaction readable with new token', OneGoUtils::LOG_NOTICE);
         } catch (OneGoAPI_Exception $e) {
-            $this->log('Transaction does not accept token: '.$e->getMessage(), self::LOG_NOTICE);
+            OneGoUtils::log('Transaction does not accept token: '.$e->getMessage(), OneGoUtils::LOG_NOTICE);
             
             // getting transaction has failed, restart
             $receiptNumber = $transaction->getReceiptNumber();
@@ -1025,9 +861,9 @@ echo $text;
             try {
                 // cancel current transaction
                 $transaction->cancel();
-                $this->log('Transaction canceled.', self::LOG_NOTICE);
+                OneGoUtils::log('Transaction canceled.', OneGoUtils::LOG_NOTICE);
             } catch (Exception $e) {
-                $this->log('Transaction cancel failed: '.$e->getMessage(), self::LOG_ERROR);
+                OneGoUtils::log('Transaction cancel failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             }
             
             $api->setOAuthToken($newToken);
@@ -1036,7 +872,7 @@ echo $text;
                 $this->beginTransaction($newToken, $receiptNumber);
                 return true;
             } catch (Exception $e) {
-                $this->log('Transaction start failed: '.$e->getMessage(), self::LOG_ERROR);
+                OneGoUtils::log('Transaction start failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             }
         }
     }
@@ -1061,9 +897,9 @@ echo $text;
                     $this->saveOAuthToken($token);
                     
                     $tokenRefreshed = true;
-                    $this->log('OAuth token refreshed', self::LOG_NOTICE);
+                    OneGoUtils::log('OAuth token refreshed', OneGoUtils::LOG_NOTICE);
                 } catch (OneGoAPI_Exception $e) {
-                    $this->log('OAuth token refresh failed: ['.get_class($e).'] '.$e->getMessage(), self::LOG_ERROR);
+                    OneGoUtils::log('OAuth token refresh failed: ['.get_class($e).'] '.$e->getMessage(), OneGoUtils::LOG_ERROR);
                     throw new OneGoAPICallFailedException('OAuth token refresh failed', null, $e);
                 }
             }
@@ -1077,13 +913,11 @@ echo $text;
         
         // save transaction state to restore on restart
         if ($this->isTransactionStarted()) {
-            // memorize transaction state to restore on restart
-            $prepaidSpent = $this->hasSpentPrepaid();
-            //$giftcardRedeemed = $this->hasRedeemedGiftCard();
+            $stateBeforeRestart = OneGoTransactionState::getCurrent();
         }
         
         if ($transaction && $transaction->isExpired()) {
-            $this->log('Transaction expired, delete', self::LOG_NOTICE);
+            OneGoUtils::log('Transaction expired, delete', OneGoUtils::LOG_NOTICE);
             $this->cancelTransaction(true);
             $transactionCanceled = true;
         }
@@ -1096,10 +930,10 @@ echo $text;
                 $this->beginTransaction($token);
                 $transactionAutostarted = true;
                 
-                // return transaction state to previous
-                if (!empty($prepaidSpent)) {
-                    $this->spendPrepaid();
+                if (!empty($stateBeforeRestart)) {
+                    $this->restoreTransactionToState($stateBeforeRestart);
                 }
+                
             } catch (OneGoAPI_Exception $e) {
                 throw new OneGoAPICallFailedException("Transaction {$action} failed", null, $e);
             }
@@ -1125,7 +959,10 @@ echo $text;
     public function getPrepaidRedeemedAmount()
     {
         // TODO actual value
-        //if ()
+        if (OneGoTransactionState::get(OneGoTransactionState::VGC_REDEEMED)) {
+            return $this->getPrepaidSpent();
+        }
+        return false;
     }
     
     public function getTotalDiscount()
@@ -1189,13 +1026,13 @@ echo $text;
             $api = $this->getApi();
             try {
                 $modifiedCart = $api->getAnonymousAwards($this->collectCartEntries());
-                $this->log('Anonymous awards requested', self::LOG_NOTICE);
+                OneGoUtils::log('Anonymous awards requested', OneGoUtils::LOG_NOTICE);
                 OneGoUtils::saveToSession('anonymousModifiedCart', $modifiedCart);
                 OneGoUtils::saveToSession('anonymousModifiedCartHash', $this->getEshopCartHash());
                 OneGoUtils::saveToRegistry('anonymousRequestFailed', false);
             } catch (OneGoAPI_Exception $e) {
                 // ignore
-                $this->log('Anonymous awards request failed: '.$e->getMessage(), self::LOG_ERROR);
+                OneGoUtils::log('Anonymous awards request failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
                 OneGoUtils::saveToRegistry('anonymousRequestFailed', true);
                 return false;
             }
@@ -1209,14 +1046,9 @@ echo $text;
         OneGoUtils::saveToSession('anonymousModifiedCart', null);
     }
     
-    public function agreeToDiscloseEmail($agreed)
-    {
-        OneGoUtils::saveToSession('agreedToDiscloseEmail', $agreed);
-    }
-    
     public function hasAgreedToDiscloseEmail()
     {
-        return OneGoUtils::getFromSession('agreedToDiscloseEmail');
+        return OneGoTransactionState::get(OneGoTransactionState::AGREED_DISCLOSE_EMAIL);
     }
     
     public function requestOAuthAccessToken($authorizationCode, $requestedScopes = false)
@@ -1224,7 +1056,7 @@ echo $text;
         $auth = $this->getAuth();
         try {
             $token = $auth->requestAccessToken($authorizationCode, $this->getOAuthRedirectUri());
-            $this->log('OAuth token issued', self::LOG_NOTICE);
+            OneGoUtils::log('OAuth token issued', OneGoUtils::LOG_NOTICE);
             if (!empty($requestedScopes)) {
                 // remember token scope(s)
                 $token->setScopes($requestedScopes);
@@ -1236,7 +1068,7 @@ echo $text;
             }
             $this->saveOAuthToken($token);
         } catch (OneGoAPI_OAuthException $e) {
-            $this->log('Issuing OAuth token failed: '.$e->getMessage(), self::LOG_ERROR);
+            OneGoUtils::log('Issuing OAuth token failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
         return $token;        
@@ -1247,7 +1079,7 @@ echo $text;
         $auth = $this->getAuth();
         try {
             $token = $auth->requestAccessTokenByVirtualGiftCard($cardNumber, $this->getOAuthRedirectUri());
-            $this->log('OAuth token issued by VGC', self::LOG_NOTICE);
+            OneGoUtils::log('OAuth token issued by VGC', OneGoUtils::LOG_NOTICE);
             
             if ($this->isTransactionStarted()) {
                 $this->cancelTransaction();
@@ -1255,7 +1087,7 @@ echo $text;
             
             $this->saveOAuthToken($token, true);
         } catch (OneGoAPI_OAuthException $e) {
-            $this->log('Issuing OAuth token failed: '.$e->getMessage(), self::LOG_ERROR);
+            OneGoUtils::log('Issuing OAuth token failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
         return $token;        
@@ -1271,7 +1103,7 @@ echo $text;
                         ->getAnonymousAwards($this->collectCartEntries($cart))
                         ->getPrepaidReceived()->getAmount()->visible;
             } catch (OneGoAPI_Exception $e) {
-                $this->logCritical('Failed retrieving anonymous awards', $e);
+                OneGoUtils::logCritical('Failed retrieving anonymous awards', $e);
                 throw $e;
             }
             return (float) $awards;
@@ -1284,70 +1116,94 @@ echo $text;
         $transaction = $this->getTransaction();
         try {
             $transaction->redeemVirtualGiftCard($cardNumber);
-            $this->log('VGC redeemed for '.$cardNumber, self::LOG_NOTICE);
+            OneGoUtils::log('VGC redeemed for '.$cardNumber, OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
-            
+            OneGoTransactionState::set(OneGoTransactionState::VGC_REDEEMED, $cardNumber);
             return true;
         } catch (OneGoAPI_Exception $e) {
-            $this->log('redeemVirtualGiftCard failed: '.$e->getMessage(), self::LOG_ERROR);
+            OneGoUtils::log('redeemVirtualGiftCard failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
     }
     
-    public function setRedeemedVirtualGiftCard($cardNumber)
-    {
-        OneGoUtils::saveToSession('buyerRedeemedVGC', $cardNumber);
-    }
-    
-    public function getRedeemedVirtualGiftCard($cardNumber)
-    {
-        OneGoUtils::getFromSession('buyerRedeemedVGC', false);
-    }
-    
-    public function setSpentPrepaid($amount)
-    {
-        OneGoUtils::saveToSession('spentPrepaid', $amount);
-    }
-    
-    public function getSpentPrepaid()
-    {
-        OneGoUtils::getFromSession('spentPrepaid', false);
-    }
-    
-    public function resetTransactionState()
-    {
-        OneGoUtils::saveToSession('TransactionState', new OneGoTransactionState());
-    }
-    
-    public function setTransactionState($key, $value)
-    {
-        $state = $this->getTransactionState();
-        $state->$key = $value;
-        OneGoUtils::saveToSession('TransactionState', $state);
-    }
-    
-    public function getTransactionState()
-    {
-        return OneGoUtils::getFromSession('TransactionState', new OneGoTransactionState());
-    }
-    
     public function restoreTransactionToState(OneGoTransactionState $state)
     {
-        // TO DO
+        if ($state->redeemedVGC) {
+            try {
+                $this->redeemVirtualGiftCard($state->redeemedVGC);
+            } catch (OneGoAPI_Exception $e) {
+                // ignore
+            }
+        }
+        if ($state->spentPrepaid) {
+            try {
+                $this->spendPrepaid();
+            } catch (OneGoAPI_Exception $e) { 
+                // ignore
+            }
+        }
     }
 }
 
 class OneGoTransactionState
 {
+    const PREPAID_SPENT = 'spentPrepaid';
+    const VGC_REDEEMED = 'redeemedVGC';
+    const AGREED_DISCLOSE_EMAIL = 'agreedToDiscloseEmail';
+    const BUYER_ANONYMOUS = 'buyerAnonymous';
+    
     public $spentPrepaid = false;
     public $redeemedVGC = false;
-    public $hasAgreedToDiscloseEmail = false;
-    public $isAnonymous = false;
+    public $agreedToDiscloseEmail = false;
+    public $buyerAnonymous = false;
+    
+    /**
+     *
+     * @return OneGoTransactionState 
+     */
+    public static function getCurrent()
+    {
+        return OneGoUtils::getFromSession('TransactionState', new self());
+    }
+    
+    public static function get($key)
+    {
+        $state = self::getCurrent();
+        if ($key) {
+            return isset($state->$key) ? $state->$key : null;
+        } else {
+            return $state;
+        }
+    }
+    
+    public static function reset()
+    {
+        $state = new self();
+        $state->save();
+    }
+    
+    public static function set($key, $value)
+    {
+        $state = self::getCurrent();
+        $state->$key = $value;
+        $state->save();
+    }
+    
+    public function save()
+    {
+        OneGoUtils::saveToSession('TransactionState', $this);
+    }
 }
+
 
 class OneGoUtils
 {
     const STORAGE_KEY = 'OneGoOpencart';
+    
+    const LOG_INFO = 0;
+    const LOG_NOTICE = 1;
+    const LOG_WARNING = 2;
+    const LOG_ERROR = 3;
     
     public static function getRegistry()
     {
@@ -1423,6 +1279,133 @@ class OneGoUtils
         return $data;
     }
     
+    /**
+     *
+     * @param string $str
+     * @param boolean $strong Whether to escape all characters and not just quotes
+     * @return string
+     */
+    public static function escapeJs($str, $strong = false) {
+	$new_str = '';
+	$str_len = strlen($str);
+	for($i = 0; $i < $str_len; $i++) {
+            $char = $str[$i];
+            if ($strong || in_array($char, array('\'', '"', "\r", "\n"))) {
+                $new_str .= '\\x' . dechex(ord(substr($str, $i, 1)));
+            } else {
+                $new_str .= $char;
+            }
+	}
+	return $new_str;
+    }
+    
+    /**
+     * Determine if current request is an AJAX request
+     *
+     * @return boolean
+     */
+    public static function isAjaxRequest()
+    {
+        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+            ($_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest");
+    }
+    
+    /**
+     *
+     * @return string HTTP referrer's URL
+     */
+    public static function getHttpReferer()
+    {
+        return !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : false;
+    }
+    
+    /**
+     * Save log message to session to later display in debugger, truncate log to
+     * specified length 
+     *
+     * @param string $str Log message text
+     * @param string $level self::LOG_INFO, self::LOG_NOTICE, self::LOG_WARNING, self::LOG_ERROR
+     * @param integer $max_length Max amount of log messages to be saved
+     */
+    public static function log($str, $level = self::LOG_INFO, $max_length = 25)
+    {
+        if (ModelTotalOnego::getInstance()->getConfig('debugModeOn')) {
+            $log = self::getLog();
+            $log[] = array(
+                'time'      => microtime(),
+                'pid'       => getmypid(),
+                'backtrace' => implode(' / ', self::debugBacktrace()),
+                'message'   => $str,
+                'level'     => $level,
+            );
+            $log = array_slice($log, -$max_length); // keep log small
+            OneGoUtils::saveToSession('log', $log);
+        }
+    }
+    
+    public static function writeLog($str)
+    {
+        // write critical errors to log file
+        $fh = fopen(DIR_LOGS.'onego_error.log', 'a');
+        if ($fh) {
+            $ln = date('Y-m-d H:i:s').' '.$str.' => '.implode(' / ', self::debugBacktrace());
+            fwrite($fh, $ln."\n");
+            fclose($fh);
+        }
+    }
+    
+    public static function logCritical($errorStr, $exception = null)
+    {
+        if (!empty($exception) && is_a($exception, 'Exception')) {
+            $errorStr = $errorStr.' :: '.get_class($exception).' :: '.$exception->getMessage();
+        }
+        self::log($errorStr, self::LOG_ERROR);
+        self::writeLog($errorStr);
+    }
+    
+    /**
+     * Returns list of messages saved in log
+     *
+     * @param boolean $clear Whether to remove returned log messages
+     * @return array List of saved log entries
+     */
+    public static function getLog($clear = false)
+    {
+        $log = OneGoUtils::getFromSession('log');
+        if (empty($log)) {
+            $log = array();
+        }
+        if ($clear) {
+            OneGoUtils::saveToSession('log', array());
+        }
+        return $log;
+    }
+    
+    /**
+     * Get backtrace info for debugging purposes, valid for the calling method
+     *
+     * @param integer $limit Max amount of backtrace steps to be returned
+     * @return array List of backtrace data from latest calls to oldest
+     */
+    public static function debugBacktrace($limit = 5)
+    {
+        $trace = debug_backtrace();
+        $simple = array();
+        foreach ($trace as $key => $val) {
+            $row = $trace[$key];
+            $id = '';
+            if (isset($row['class'])) {
+                $id .= $row['class'].$row['type'];
+            }
+            $id .= $row['function'].'()';
+            if (isset($row['line'])){
+                $id .= ' ['.$row['line'].']';
+            }
+            $simple[] = $id;
+        }
+        
+        return array_slice($simple, 2, $limit);
+    }
 }
 
 class OneGoConfig

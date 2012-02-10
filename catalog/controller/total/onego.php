@@ -93,7 +93,7 @@ END;
         
         
         // logging output
-        $log = $onego->getLog(true);
+        $log = OneGoUtils::getLog(true);
         $html = '';
         if ($onego->getConfig('debugModeOn')) {
             $html .= '<script type="text/javascript">';
@@ -108,17 +108,17 @@ END;
                     if (!empty($sec)) {
                         $msg .= ' ['.date('H:i:s', $sec).']';
                     }
-                    if ($row['level'] == ModelTotalOnego::LOG_ERROR) {
+                    if ($row['level'] == OneGoUtils::LOG_ERROR) {
                         $msg .= ' :: '.$row['pid'].' / '.$row['backtrace'];
                     }
                     switch ($row['level']) {
-                        case ModelTotalOnego::LOG_INFO:
+                        case OneGoUtils::LOG_INFO:
                             $html .= 'console.log(\''.$msg.'\');';
                             break;
-                        case ModelTotalOnego::LOG_NOTICE:
+                        case OneGoUtils::LOG_NOTICE:
                             $html .= 'console.info(\''.$msg.'\');';
                             break;
-                        case ModelTotalOnego::LOG_WARNING:
+                        case OneGoUtils::LOG_WARNING:
                             $html .= 'console.warn(\''.$msg.'\');';
                             break;
                         default:
@@ -160,6 +160,9 @@ END;
         $this->data['onego_or'] = $this->language->get('or');
         $this->data['onego_user_authenticated'] = $onego->isUserAuthenticated();
         $this->data['onego_transaction_started'] = $onego->isTransactionStarted();
+        $this->data['onego_vgc_text'] = $this->language->get('vgc_funds_redeemed');
+        $this->data['onego_redeemed_vgc_amount'] = $onego->getPrepaidRedeemedAmount() ?
+                $this->currency->format($onego->getPrepaidRedeemedAmount()) : false;
         if ($onego->isUserAuthenticated()) {
             $this->data['onego_action'] = $this->url->link('checkout/confirm');
             $this->data['onego_disable'] = $this->url->link('total/onego/cancel');
@@ -179,8 +182,8 @@ END;
         $this->data['onego_agreed'] = $onego->hasAgreedToDiscloseEmail();
         $this->data['onego_agree_email_expose'] = $this->language->get('agree_email_expose');
         $this->data['onego_error_spend_prepaid'] = $this->language->get('error_api_call_failed');
-        $this->data['isAjaxRequest'] = $onego->isAjaxRequest();
-        $this->data['js_page_reload_callback'] = $onego->isAjaxRequest() ?
+        $this->data['isAjaxRequest'] = OneGoUtils::isAjaxRequest();
+        $this->data['js_page_reload_callback'] = OneGoUtils::isAjaxRequest() ?
                 'OneGoOpencart.reloadCheckoutOrderInfo' : 'OneGoOpencart.reloadPage';
         
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_panel.tpl')) {
@@ -285,12 +288,12 @@ END;
         // login not required if user is already athenticated with OneGo, return
         $token = $onego->getSavedOAuthToken();
         if ($onego->isUserAuthenticated() && $token && !$token->isExpired()) {
-            $onego->log('autologin not needed, user already authenticated');
+            OneGoUtils::log('autologin not needed, user already authenticated');
             $this->redirect($referer);
         }
         
         if ($onego->autologinBlockedUntil()) {
-            $onego->log('autologin blocked after last fail');
+            OneGoUtils::log('autologin blocked after last fail');
             $this->redirect($referer);
         }
         
@@ -318,7 +321,7 @@ END;
         // login not required if user is already athenticated with OneGo, return
         $token = $onego->getSavedOAuthToken();
         if ($onego->isUserAuthenticated() && $onego->userHasScope($reqScope) && $token && !$token->isExpired()) {
-            $onego->log('login not needed, user already authenticated and has required scope');
+            OneGoUtils::log('login not needed, user already authenticated and has required scope');
             $this->redirect($returnpage);
         }
         
@@ -354,7 +357,7 @@ END;
         } catch (Exception $e) {
             $errorMessage = $this->language->get('error_authorization_failed');
             $onego->blockAutologin($autologinBlockTtl);
-            $onego->logCritical('authorization failed', $e);
+            OneGoUtils::logCritical('authorization failed', $e);
         }
         
         if (!empty($errorMessage) && empty($auth_request['silent'])) {
@@ -393,11 +396,11 @@ END;
         $onego = $this->getModel();
         
         if ($onego->cancelTransaction()) {
-            $onego->getSession()->data['success'] = $this->language->get('benefits_disabled');
+            OneGoUtils::getSession()->data['success'] = $this->language->get('benefits_disabled');
         }
         $onego->deleteOAuthToken();
         
-        if (!ModelTotalOnego::isAjaxRequest()) {
+        if (!OneGoUtils::isAjaxRequest()) {
             $this->redirect($this->getReferer());
         }
     }
@@ -422,7 +425,7 @@ END;
     {
         $onego = $this->getModel();
         $agreed = (bool) !empty($this->request->post['agree']);
-        $onego->agreeToDiscloseEmail($agreed);
+        OneGoTransactionState::set(OneGoTransactionState::AGREED_DISCLOSE_EMAIL, $agreed);
     }
     
     public function claimbenefits()
@@ -594,7 +597,7 @@ END;
     protected function getReferer()
     {
         $onego = $this->getModel();
-        return $onego->getHttpReferer() ? $onego->getHttpReferer() : $this->getDefaultReferer();
+        return OneGoUtils::getHttpReferer() ? OneGoUtils::getHttpReferer() : $this->getDefaultReferer();
     }
     
     protected function getDefaultReferer()

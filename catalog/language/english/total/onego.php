@@ -39,6 +39,7 @@ $_['button_redeem'] = 'Redeem';
 $_['vgc_number'] = 'Gift Card Number';
 $_['or'] = 'or';
 $_['button_try_again'] = 'Try again';
+$_['vgc_funds_redeemed'] = 'Virtual gift card funds';
 
 // Error
 $_['benefits_applied']  = 'Success: Your personal benefits applied.';

@@ -21,6 +21,11 @@
           </div>
           <?php } else { ?>
           <div id="onego_funds_container">
+              <?php if (!empty($onego_redeemed_vgc_amount)) { ?>
+              <div class="onego_funds_redeemed">
+                  <?php echo $onego_vgc_text ?>: <?php echo $onego_redeemed_vgc_amount ?>
+              </div>
+              <?php } ?>
               <div class="onego_funds_available">
                   <?php
                   if (!empty($onego_funds)) {

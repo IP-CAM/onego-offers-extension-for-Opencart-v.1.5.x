@@ -22,7 +22,10 @@ input.onego_watermark.focused {
 }
 #onego_funds_container {
     float: right;
+    margin: 0px;
+    padding: 0px;
 }
+#onego_funds_container .onego_funds_redeemed,
 #onego_funds_container .onego_funds_available,
 #onego_funds_container .onego_giftcard {
     text-align: right;
