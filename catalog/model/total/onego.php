@@ -213,18 +213,18 @@ class ModelTotalOnego extends Model
             'funds_received'    => $fundsReceived,
             'cart'              => $this->getEshopCart()
         );
-        $this->saveToSession('completedOrder', $completedOrder);
+        OneGoUtils::saveToSession('completedOrder', $completedOrder);
     }
     
     public function getCompletedOrder()
     {
-        $completedOrder = $this->getFromSession('completedOrder');
+        $completedOrder = OneGoUtils::getFromSession('completedOrder');
         return !empty($completedOrder) ? $completedOrder : false;
     }
     
     public function clearCompletedOrder()
     {
-        $this->saveToSession('completedOrder', null);
+        OneGoUtils::saveToSession('completedOrder', null);
     }
     
     public function registerFailedTransaction($orderId, $errorMessage, $transactionId)
@@ -335,7 +335,7 @@ echo $text;
      */
     public function getTransactionCartHash()
     {
-        return $this->getFromSession('cart_hash');
+        return OneGoUtils::getFromSession('cart_hash');
     }
     
     /**
@@ -365,7 +365,7 @@ echo $text;
      */    
     public function getApi()
     {
-        $api = $this->getFromRegistry('api');
+        $api = OneGoUtils::getFromRegistry('api');
         if (empty($api)) {
             $api = $this->initApi();
         }
@@ -397,7 +397,7 @@ echo $text;
             $api->setTransaction($transaction);
         }
 
-        $this->saveToRegistry('api', $api);
+        OneGoUtils::saveToRegistry('api', $api);
         
         return $api;
     }
@@ -409,7 +409,7 @@ echo $text;
      */    
     public function getAuth()
     {
-        $auth = $this->getFromRegistry('auth');
+        $auth = OneGoUtils::getFromRegistry('auth');
         if (empty($auth)) {
             $auth = $this->initAuth();
         }
@@ -430,7 +430,7 @@ echo $text;
                 $this->getConfig('oAuthURI')
         );
         $auth = OneGoAPI_Impl_SimpleOAuth::init($cfg);
-        $this->saveToRegistry('auth', $auth);
+        OneGoUtils::saveToRegistry('auth', $auth);
         return $auth;
     }
     
@@ -444,49 +444,6 @@ echo $text;
     }
     
     /**
-     *
-     * @return Session 
-     */
-    public function getSession()
-    {
-        $session = $this->getRegistryObj()->get('session');
-        if (is_null($session)) {
-            $this->throwError('session object not found');
-        }
-        return $session;
-    }
-    
-    /**
-     * Saves data to registry simulating own namespace
-     *
-     * @param string $key
-     * @param mixed $val 
-     */
-    public function saveToRegistry($key, $val)
-    {
-        $registry = $this->getRegistryObj();
-        $onego_data = $registry->get($this->registrykey);
-        if (empty($onego_data)) {
-            $onego_data = array();
-        }
-        $onego_data[$key] = $val;
-        $registry->set($this->registrykey, $onego_data);
-    }
-    
-    /**
-     * Getter from registry namespace
-     *
-     * @param string $key
-     * @return mixed null if no such data is available 
-     */
-    public function getFromRegistry($key)
-    {
-        $registry = $this->getRegistryObj();
-        $onego_data = $registry->get($this->registrykey);
-        return isset($onego_data[$key]) ? $onego_data[$key] : null;
-    }
-    
-    /**
      * Wrapper for exception throwing
      *
      * @param string $message 
@@ -495,34 +452,6 @@ echo $text;
     {
         $this->log('exeption: '.$message, self::LOG_ERROR);
         throw new Exception('OneGo extension error: '.$message);
-    }
-    
-    /**
-     * Saves data to session under own namespace
-     *
-     * @param string $key
-     * @param mixed $val 
-     */
-    public function saveToSession($key, $val)
-    {
-        $session = $this->getSession();
-        $onego_data = isset($session->data[$this->registrykey]) ? $session->data[$this->registrykey] : array();
-        $onego_data[$key] = serialize($val);
-        $session->data[$this->registrykey] = $onego_data;
-    }
-    
-    /**
-     * Namespaced getter from session
-     *
-     * @param string $key
-     * @return mixed 
-     */
-    public function getFromSession($key)
-    {
-        $session = $this->getSession();
-        $onego_data = isset($session->data[$this->registrykey]) ? $session->data[$this->registrykey] : array();
-        $data = isset($onego_data[$key]) ? unserialize($onego_data[$key]) : null;
-        return $data;
     }
     
     /**
@@ -560,8 +489,8 @@ echo $text;
             $this->saveTransaction($transaction);
             
             // save cart hash to later detect when transaction cart needs to be updated
-            $this->saveToSession('cart_hash', $this->getEshopCartHash());
-            $this->saveToSession('spentPrepaid', false);
+            OneGoUtils::saveToSession('cart_hash', $this->getEshopCartHash());
+            $this->resetTransactionState();
             
             $this->log('transaction started with '.count($cart).' cart entries', self::LOG_NOTICE);
             return true;
@@ -598,7 +527,7 @@ echo $text;
      *
      * @return boolean status
      */
-    public function cancelTransaction()
+    public function cancelTransaction($silent = false)
     {
         $api = $this->getApi();
         if ($transaction = $this->getTransaction()) {
@@ -608,7 +537,9 @@ echo $text;
                 $this->log('Transaction canceled', self::LOG_NOTICE);
                 return true;
             } catch (Exception $e) {
-                $this->log('Transaction cancel failed: '.$e->getMessage(), self::LOG_ERROR);
+                if (!$silent) {
+                    $this->log('Transaction cancel failed: '.$e->getMessage(), self::LOG_ERROR);
+                }
                 $this->deleteTransaction();
             }
         }
@@ -629,7 +560,7 @@ echo $text;
                 $transaction = $this->getTransaction()->updateCart($this->collectCartEntries());
                 $this->log('Transaction cart updated', self::LOG_NOTICE);
                 $this->saveTransaction($transaction);
-                $this->saveToSession('cart_hash', $this->getEshopCartHash());
+                OneGoUtils::saveToSession('cart_hash', $this->getEshopCartHash());
                 return true;
             } catch (Exception $e) {
                 $this->log('Transaction cart update failed: '.$e->getMessage(), self::LOG_ERROR);
@@ -778,17 +709,6 @@ echo $text;
         return isset($funds['amount']) ? $funds['amount'] : false;
     }
     
-    // TO DO
-    public function processGiftCard($cardno)
-    {
-        if ($cardno != '1111') {
-            $this->getSession()->data['error'] = 'Invalid OneGo gift card number';
-        } else {
-            $this->getSession()->data['success'] = 'OneGo gift card redeemed';
-        }
-        header('Location: '.self::selfUrl());
-        exit();
-    }
     
     // ******* helper methods **************************************************
     
@@ -812,7 +732,7 @@ echo $text;
                 'level'     => $level,
             );
             $log = array_slice($log, -$max_length); // keep log small
-            $this->saveToSession('log', $log);
+            OneGoUtils::saveToSession('log', $log);
         }
     }
     
@@ -844,12 +764,12 @@ echo $text;
      */
     public function getLog($clear = false)
     {
-        $log = $this->getFromSession('log');
+        $log = OneGoUtils::getFromSession('log');
         if (empty($log)) {
             $log = array();
         }
         if ($clear) {
-            $this->saveToSession('log', array());
+            OneGoUtils::saveToSession('log', array());
         }
         return $log;
     }
@@ -943,36 +863,38 @@ echo $text;
      */
     public function getSavedOAuthToken()
     {
-        $token = $this->getFromSession('OAuthToken');
+        $token = OneGoUtils::getFromSession('OAuthToken');
         return $token;
     }
     
-    public function saveOAuthToken(OneGoAPI_Impl_OAuthToken $token)
+    public function saveOAuthToken(OneGoAPI_Impl_OAuthToken $token, $isAnonymous = false)
     {
-        $this->saveToSession('OAuthToken', $token);
+        OneGoUtils::saveToSession('OAuthToken', $token);
+        OneGoUtils::saveToSession('OAuthTokenAnonymous', $isAnonymous);
     }
     
     public function deleteOAuthToken()
     {
-        $this->saveToSession('OAuthToken', null);
+        OneGoUtils::saveToSession('OAuthToken', null);
+        OneGoUtils::saveToSession('OAuthTokenAnonymous', null);
         $this->log('OAuth token destroyed');
     }
     
     public function getSavedTransaction()
     {
-        $transaction = $this->getFromSession('Transaction');
+        $transaction = OneGoUtils::getFromSession('Transaction');
         return $transaction;
     }
     
     public function saveTransaction(OneGoAPI_Impl_Transaction $transaction)
     {
-        $this->saveToSession('Transaction', $transaction);
+        OneGoUtils::saveToSession('Transaction', $transaction);
     }
     
     public function deleteTransaction()
     {
-        $this->saveToSession('Transaction', null);
-        $this->saveToSession('spentPrepaid', false);
+        OneGoUtils::saveToSession('Transaction', null);
+        $this->resetTransactionState();
         $this->log('Transaction destroyed');
     }
     
@@ -983,20 +905,20 @@ echo $text;
     
     public function autologinBlockedUntil()
     {
-        $blocked_until = $this->getFromSession('autologinBlocked');
+        $blocked_until = OneGoUtils::getFromSession('autologinBlocked');
         return $blocked_until > time() ? $blocked_until : false;
     }
     
     public function blockAutologin($period = 60) // seconds
     {
-        $this->saveToSession('autologinBlocked', time() + $period);
+        OneGoUtils::saveToSession('autologinBlocked', time() + $period);
         $this->log('Autologin blocked until '.date('Y-m-d H:i:s', time() + $period));
     }
     
     public function isUserAuthenticated()
     {
         $token = $this->getSavedOAuthToken();
-        return !empty($token) && !$token->isExpired();
+        return !empty($token) && !$token->isExpired() && !OneGoUtils::getFromSession('OAuthTokenAnonymous');
     }
     
     public function userHasScope($scope)
@@ -1031,8 +953,9 @@ echo $text;
             return false;
         }
         try {
-            $transaction->spendPrepaid($this->getFundsAmountAvailable());
-            $this->saveToSession('spentPrepaid', true);
+            $amount = $this->getFundsAmountAvailable();
+            $transaction->spendPrepaid($amount);
+            $this->setSpentPrepaid($amount);
             $this->log('Spent prepaid: '.$this->getFundsAmountAvailable(), self::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
@@ -1051,7 +974,7 @@ echo $text;
         }
         try {
             $transaction->cancelSpendingPrepaid();
-            $this->saveToSession('spentPrepaid', false);
+            $this->setSpentPrepaid(false);
             $this->log('Spend prepaid canceled', self::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
@@ -1063,7 +986,7 @@ echo $text;
     
     public function hasSpentPrepaid()
     {
-        return $this->getFromSession('spentPrepaid', false);
+        return $this->getPrepaidSpent();
     }
     
     public function isCurrentScopeSufficient()
@@ -1092,7 +1015,7 @@ echo $text;
         try {
             $res = $transaction->get();
             $this->log('Transaction readable with new token', self::LOG_NOTICE);
-        } catch (Exception $e) {
+        } catch (OneGoAPI_Exception $e) {
             $this->log('Transaction does not accept token: '.$e->getMessage(), self::LOG_NOTICE);
             
             // getting transaction has failed, restart
@@ -1151,14 +1074,17 @@ echo $text;
         // start transaction if not started and token available,
         // refresh transaction if expired
         $transaction = $this->getTransaction();
+        
+        // save transaction state to restore on restart
         if ($this->isTransactionStarted()) {
             // memorize transaction state to restore on restart
-            $prepaidSpent = $transaction->getPrepaidSpent();
+            $prepaidSpent = $this->hasSpentPrepaid();
+            //$giftcardRedeemed = $this->hasRedeemedGiftCard();
         }
         
         if ($transaction && $transaction->isExpired()) {
-            $this->log('Transaction expired', self::LOG_NOTICE);
-            $this->deleteTransaction();
+            $this->log('Transaction expired, delete', self::LOG_NOTICE);
+            $this->cancelTransaction(true);
             $transactionCanceled = true;
         }
         
@@ -1194,6 +1120,12 @@ echo $text;
             return $prepaidReceived->getAmount()->visible;
         }
         return false;
+    }
+    
+    public function getPrepaidRedeemedAmount()
+    {
+        // TODO actual value
+        //if ()
     }
     
     public function getTotalDiscount()
@@ -1247,44 +1179,44 @@ echo $text;
     protected function getAnonymousModifiedCart()
     {
         // prevent multiple requests on the same page if first request failed
-        if ($this->getFromRegistry('anonymousRequestFailed')) {
+        if (OneGoUtils::getFromRegistry('anonymousRequestFailed')) {
             return false;
         }
         
-        if ((is_null($this->getFromSession('anonymousModifiedCart'))) ||
-            ($this->getEshopCartHash() != $this->getFromSession('anonymousModifiedCartHash'))) 
+        if ((is_null(OneGoUtils::getFromSession('anonymousModifiedCart'))) ||
+            ($this->getEshopCartHash() != OneGoUtils::getFromSession('anonymousModifiedCartHash'))) 
         {
             $api = $this->getApi();
             try {
                 $modifiedCart = $api->getAnonymousAwards($this->collectCartEntries());
                 $this->log('Anonymous awards requested', self::LOG_NOTICE);
-                $this->saveToSession('anonymousModifiedCart', $modifiedCart);
-                $this->saveToSession('anonymousModifiedCartHash', $this->getEshopCartHash());
-                $this->saveToRegistry('anonymousRequestFailed', false);
+                OneGoUtils::saveToSession('anonymousModifiedCart', $modifiedCart);
+                OneGoUtils::saveToSession('anonymousModifiedCartHash', $this->getEshopCartHash());
+                OneGoUtils::saveToRegistry('anonymousRequestFailed', false);
             } catch (OneGoAPI_Exception $e) {
                 // ignore
                 $this->log('Anonymous awards request failed: '.$e->getMessage(), self::LOG_ERROR);
-                $this->saveToRegistry('anonymousRequestFailed', true);
+                OneGoUtils::saveToRegistry('anonymousRequestFailed', true);
                 return false;
             }
         }
-        $modifiedCart = $this->getFromSession('anonymousModifiedCart');
+        $modifiedCart = OneGoUtils::getFromSession('anonymousModifiedCart');
         return is_null($modifiedCart) ? false : $modifiedCart;
     }
     
     public function deleteAnonymousModifiedCart()
     {
-        $this->saveToSession('anonymousModifiedCart', null);
+        OneGoUtils::saveToSession('anonymousModifiedCart', null);
     }
     
     public function agreeToDiscloseEmail($agreed)
     {
-        $this->saveToSession('agreedToDiscloseEmail', $agreed);
+        OneGoUtils::saveToSession('agreedToDiscloseEmail', $agreed);
     }
     
     public function hasAgreedToDiscloseEmail()
     {
-        return $this->getFromSession('agreedToDiscloseEmail');
+        return OneGoUtils::getFromSession('agreedToDiscloseEmail');
     }
     
     public function requestOAuthAccessToken($authorizationCode, $requestedScopes = false)
@@ -1303,6 +1235,25 @@ echo $text;
                 $this->verifyTransactionWithNewToken($token);
             }
             $this->saveOAuthToken($token);
+        } catch (OneGoAPI_OAuthException $e) {
+            $this->log('Issuing OAuth token failed: '.$e->getMessage(), self::LOG_ERROR);
+            throw $e;
+        }
+        return $token;        
+    }
+    
+    public function requestOAuthAccessTokenByVGC($cardNumber)
+    {
+        $auth = $this->getAuth();
+        try {
+            $token = $auth->requestAccessTokenByVirtualGiftCard($cardNumber, $this->getOAuthRedirectUri());
+            $this->log('OAuth token issued by VGC', self::LOG_NOTICE);
+            
+            if ($this->isTransactionStarted()) {
+                $this->cancelTransaction();
+            }
+            
+            $this->saveOAuthToken($token, true);
         } catch (OneGoAPI_OAuthException $e) {
             $this->log('Issuing OAuth token failed: '.$e->getMessage(), self::LOG_ERROR);
             throw $e;
@@ -1333,14 +1284,145 @@ echo $text;
         $transaction = $this->getTransaction();
         try {
             $transaction->redeemVirtualGiftCard($cardNumber);
-            $this->log('VGC redeemed', self::LOG_NOTICE);
+            $this->log('VGC redeemed for '.$cardNumber, self::LOG_NOTICE);
             $this->saveTransaction($transaction);
+            
             return true;
         } catch (OneGoAPI_Exception $e) {
-            $this->log('Spend prepaid failed: '.$e->getMessage(), self::LOG_ERROR);
+            $this->log('redeemVirtualGiftCard failed: '.$e->getMessage(), self::LOG_ERROR);
             throw $e;
         }
     }
+    
+    public function setRedeemedVirtualGiftCard($cardNumber)
+    {
+        OneGoUtils::saveToSession('buyerRedeemedVGC', $cardNumber);
+    }
+    
+    public function getRedeemedVirtualGiftCard($cardNumber)
+    {
+        OneGoUtils::getFromSession('buyerRedeemedVGC', false);
+    }
+    
+    public function setSpentPrepaid($amount)
+    {
+        OneGoUtils::saveToSession('spentPrepaid', $amount);
+    }
+    
+    public function getSpentPrepaid()
+    {
+        OneGoUtils::getFromSession('spentPrepaid', false);
+    }
+    
+    public function resetTransactionState()
+    {
+        OneGoUtils::saveToSession('TransactionState', new OneGoTransactionState());
+    }
+    
+    public function setTransactionState($key, $value)
+    {
+        $state = $this->getTransactionState();
+        $state->$key = $value;
+        OneGoUtils::saveToSession('TransactionState', $state);
+    }
+    
+    public function getTransactionState()
+    {
+        return OneGoUtils::getFromSession('TransactionState', new OneGoTransactionState());
+    }
+    
+    public function restoreTransactionToState(OneGoTransactionState $state)
+    {
+        // TO DO
+    }
+}
+
+class OneGoTransactionState
+{
+    public $spentPrepaid = false;
+    public $redeemedVGC = false;
+    public $hasAgreedToDiscloseEmail = false;
+    public $isAnonymous = false;
+}
+
+class OneGoUtils
+{
+    const STORAGE_KEY = 'OneGoOpencart';
+    
+    public static function getRegistry()
+    {
+        global $registry;
+        return $registry;
+    }
+    
+    /**
+     *
+     * @return Session 
+     */
+    public static function getSession()
+    {
+        $session = self::getRegistry()->get('session');
+        return $session;
+    }
+    
+    /**
+     * Saves data to registry simulating own namespace
+     *
+     * @param string $key
+     * @param mixed $val 
+     */
+    public static function saveToRegistry($key, $val)
+    {
+        $registry = self::getRegistry();
+        $onego_data = $registry->get(self::STORAGE_KEY);
+        if (empty($onego_data)) {
+            $onego_data = array();
+        }
+        $onego_data[$key] = $val;
+        $registry->set(self::STORAGE_KEY, $onego_data);
+    }
+    
+    /**
+     * Getter from registry namespace
+     *
+     * @param string $key
+     * @return mixed null if no such data is available 
+     */
+    public static function getFromRegistry($key)
+    {
+        $registry = self::getRegistry();
+        $onego_data = $registry->get(self::STORAGE_KEY);
+        return isset($onego_data[$key]) ? $onego_data[$key] : null;
+    }
+    
+    /**
+     * Saves data to session under own namespace
+     *
+     * @param string $key
+     * @param mixed $val 
+     */
+    public static function saveToSession($key, $val)
+    {
+        $session = self::getSession();
+        $onego_data = isset($session->data[self::STORAGE_KEY]) ? $session->data[self::STORAGE_KEY] : array();
+        $onego_data[$key] = serialize($val);
+        $session->data[self::STORAGE_KEY] = $onego_data;
+    }
+    
+    /**
+     * Namespaced getter from session
+     *
+     * @param string $key
+     * @return mixed 
+     */
+    public static function getFromSession($key)
+    {
+        $session = self::getSession();
+        $onego_data = isset($session->data[self::STORAGE_KEY]) ? $session->data[self::STORAGE_KEY] : array();
+        $data = isset($onego_data[$key]) ? unserialize($onego_data[$key]) : null;
+        return $data;
+    }
+    
 }
 
 class OneGoConfig

@@ -8,6 +8,18 @@ input.onego_watermark.focused {
     float: left;
     width: 350px;
 }
+#onego_login_container {
+    float: left;
+    width: 360px;
+    text-align: center;
+    padding-bottom: 10px;
+}
+#onego_giftcardredeem_container {
+    float: right;
+    width: 360px;
+    text-align: center;
+    padding-bottom: 10px;
+}
 #onego_funds_container {
     float: right;
 }
@@ -39,11 +51,15 @@ input.onego_watermark.focused {
 
 #onego_panel_content {
     background-color:#F0F0F0;
-
     border: 1px solid #D8DEE1; 
     border-radius: 5px;
     padding: 10px;
-    padding-top: 15px;
+    padding-top: 20px;
+}
+
+#onego_panel_footer {
+    clear: both;
+    text-align: center;
 }
 
 #onego_panel hr {

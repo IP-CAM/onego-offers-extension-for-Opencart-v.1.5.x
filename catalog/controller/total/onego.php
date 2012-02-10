@@ -7,11 +7,12 @@ class ControllerTotalOnego extends Controller {
         $this->language->load('total/onego');
         
         $this->data['heading_title'] = $this->language->get('heading_title');
+        /*
         if (isset($this->session->data['onego'])) {
             $this->data['onego'] = $this->session->data['onego'];
         } else {
             $this->data['onego'] = '';
-        }
+        }*/
 
         $onego = $this->getModel();
         
@@ -84,7 +85,7 @@ END;
         
         // enable debugging
         if ($onego->getConfig('debugModeOn')) {
-            $initParams[] = "debug: true";
+            //$initParams[] = "debug: true";
         }
         
         $this->data['initParamsStr'] = implode(",\n", $initParams);
@@ -133,6 +134,7 @@ END;
                 $html .= 'console.dir(transactionTtl);'."\r\n";
             }        
             if ($token = $onego->getSavedOAuthToken()) {
+                $token->isAnonymous = !$onego->isUserAuthenticated();
                 $html .= 'var scopes = {\'token\' : $.parseJSON('.json_encode(json_encode($token)).')};'."\r\n";
                 $html .= 'console.dir(scopes);'."\r\n";
             }
@@ -156,8 +158,9 @@ END;
         $this->data['onego_vgc_number'] = $this->language->get('vgc_number');
         $this->data['onego_prepaid_spent'] = $onego->hasSpentPrepaid();
         $this->data['onego_or'] = $this->language->get('or');
+        $this->data['onego_user_authenticated'] = $onego->isUserAuthenticated();
+        $this->data['onego_transaction_started'] = $onego->isTransactionStarted();
         if ($onego->isUserAuthenticated()) {
-            $this->data['onego_authenticated'] = true;
             $this->data['onego_action'] = $this->url->link('checkout/confirm');
             $this->data['onego_disable'] = $this->url->link('total/onego/cancel');
             $this->data['authWidgetText'] = $this->language->get('auth_widget_text');
@@ -294,7 +297,7 @@ END;
         // redirect to OneGo authentication page
         $requestId = uniqid();
         // remember request parameters
-        $onego->saveToSession('oauth_authorize_request', array(
+        OneGoUtils::saveToSession('oauth_authorize_request', array(
             'request_id'    => $requestId,
             'referer'       => $referer,
             'scope'         => $reqScope,
@@ -321,7 +324,7 @@ END;
         
         // redirect to OneGo authentication page
         $requestId = uniqid();
-        $onego->saveToSession('oauth_authorize_request', array(
+        OneGoUtils::saveToSession('oauth_authorize_request', array(
             'request_id'    => $requestId,
             'referer'       => $returnpage,
             'scope'         => $reqScope,
@@ -336,13 +339,13 @@ END;
         $this->language->load('total/onego');
         $onego = $this->getModel();
         $request = $this->registry->get('request');
-        $auth_request = $onego->getFromSession('oauth_authorize_request');
+        $auth_request = OneGoUtils::getFromSession('oauth_authorize_request');
         $autologinBlockTtl = 30;
         $errorMessage = false;
-        $onego->saveToSession('authorizationSuccess', false);
+        OneGoUtils::saveToSession('authorizationSuccess', false);
         try {
             $this->processAuthorizationResponse($request->get, $auth_request);
-            $onego->saveToSession('authorizationSuccess', true);
+            OneGoUtils::saveToSession('authorizationSuccess', true);
         } catch (OneGoAPI_OAuthAccessDeniedException $e) {
             $errorMessage = $this->language->get('error_authorization_access_denied');
         } catch (OneGoAPI_OAuthTemporarilyUnavailableException $e) {
@@ -372,7 +375,7 @@ END;
     public function authStatus()
     {
         $onego = $this->getModel();
-        $authorizationSuccessful = $onego->getFromSession('authorizationSuccess');
+        $authorizationSuccessful = OneGoUtils::getFromSession('authorizationSuccess');
         $this->data['onego_authenticated'] = $authorizationSuccessful;
         $this->data['onego_error'] = $authorizationSuccessful ? false : $this->takeoverGlobalErrorMessage();
         
@@ -533,10 +536,17 @@ END;
             try {
                 if ($onego->isTransactionStarted()) {
                     $transaction = $onego->refreshTransaction();
-                }
-                
-                $res = $onego->redeemVirtualGiftCard($request->post['cardnumber']);
-                if ($res) {
+                    
+                    $res = $onego->redeemVirtualGiftCard($request->post['cardnumber']);
+                    if ($res) {
+                        $response = array('success' => true);
+                    }
+                } else {
+                    $token = $onego->requestOAuthAccessTokenByVGC($request->post['cardnumber']);
+                    $onego->beginTransaction($token);
+                    $onego->redeemVirtualGiftCard($request->post['cardnumber']);
+                    
+                    
                     $response = array('success' => true);
                 }
                 
@@ -549,7 +559,8 @@ END;
             } catch (Exception $e) {
                 if (in_array(get_class($e), array(
                     'OneGoAPI_VirtualGiftCardNotFoundException',
-                    'OneGoAPI_InvalidInputException'
+                    'OneGoAPI_InvalidInputException',
+                    'OneGoAPI_OAuthInvalidGrantException'
                 ))) 
                 {
                     $errorMessage = $this->language->get('error_redeem_cardnumber_invalid');
@@ -564,11 +575,6 @@ END;
             
             $this->response->setOutput(OneGoAPI_JSON::encode($response));
         }
-        
-        /*
-        $this->template = 'default/template/total/onego_giftcard.tpl';
-        $this->response->setOutput($this->render());
-        */
     }
     
     

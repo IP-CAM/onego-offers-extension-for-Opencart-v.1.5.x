@@ -60,7 +60,7 @@ OneGoOpencart = {
     reloadPage: function(){
         window.location.href = window.location.href;
     },
-    redeemGiftCardAnonymous: function(){
+    promptAnonymousGiftCardRedeem: function(){
         $.fancybox({
             'width': 800,
             'height': 500,
@@ -69,7 +69,7 @@ OneGoOpencart = {
             'transitionIn': 'none',
             'transitionOut': 'none',
             'type': 'ajax',
-            'href': 'http://opencart/index.php?route=total/onego/redeemgiftcard',
+            'href': 'http://opencart/index.php?route=total/onego/confirmredeemgiftcard',
             'onClosed': function() {
 
             }
