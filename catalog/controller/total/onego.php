@@ -7,13 +7,7 @@ class ControllerTotalOnego extends Controller {
         $this->language->load('total/onego');
         
         $this->data['heading_title'] = $this->language->get('heading_title');
-        /*
-        if (isset($this->session->data['onego'])) {
-            $this->data['onego'] = $this->session->data['onego'];
-        } else {
-            $this->data['onego'] = '';
-        }*/
-
+        
         $onego = $this->getModel();
         
         try {

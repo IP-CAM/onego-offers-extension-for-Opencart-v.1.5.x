@@ -315,7 +315,7 @@ echo $text;
      */
     public function getTransactionCartHash()
     {
-        return OneGoUtils::getFromSession('cart_hash');
+        return OneGoTransactionState::getCurrent()->get('cartHash');
     }
     
     /**
@@ -457,11 +457,9 @@ echo $text;
         }
         try {
             $transaction = $api->beginTransaction($receiptNumber, $cart);
-            $this->saveTransaction($transaction);
-            
-            // save cart hash to later detect when transaction cart needs to be updated
-            OneGoUtils::saveToSession('cart_hash', $this->getEshopCartHash());
             OneGoTransactionState::getCurrent()->reset();
+            $this->saveTransaction($transaction);
+            OneGoTransactionState::getCurrent()->set('cartHash', $this->getEshopCartHash());
             
             OneGoUtils::log('transaction started with '.count($cart).' cart entries', OneGoUtils::LOG_NOTICE);
             return true;
@@ -531,7 +529,7 @@ echo $text;
                 $transaction = $this->getTransaction()->updateCart($this->collectCartEntries());
                 OneGoUtils::log('Transaction cart updated', OneGoUtils::LOG_NOTICE);
                 $this->saveTransaction($transaction);
-                OneGoUtils::saveToSession('cart_hash', $this->getEshopCartHash());
+                OneGoTransactionState::getCurrent()->set('cartHash', $this->getEshopCartHash());
                 return true;
             } catch (Exception $e) {
                 OneGoUtils::log('Transaction cart update failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
@@ -687,37 +685,33 @@ echo $text;
      */
     public function getSavedOAuthToken()
     {
-        $token = OneGoUtils::getFromSession('OAuthToken');
-        return $token;
+        return OneGoOAuthTokenState::getCurrent()->get('token');
     }
     
     public function saveOAuthToken(OneGoAPI_Impl_OAuthToken $token, $isAnonymous = false)
     {
-        OneGoUtils::saveToSession('OAuthToken', $token);
-        OneGoUtils::saveToSession('OAuthTokenAnonymous', $isAnonymous);
+        OneGoOAuthTokenState::getCurrent()->set('token', $token);
+        OneGoOAuthTokenState::getCurrent()->set('buyerAnonymous', $isAnonymous);
     }
     
     public function deleteOAuthToken()
     {
-        OneGoUtils::saveToSession('OAuthToken', null);
-        OneGoUtils::saveToSession('OAuthTokenAnonymous', null);
+        OneGoOAuthTokenState::getCurrent()->reset();
         OneGoUtils::log('OAuth token destroyed');
     }
     
     public function getSavedTransaction()
     {
-        $transaction = OneGoUtils::getFromSession('Transaction');
-        return $transaction;
+        return OneGoTransactionState::getCurrent()->get('transaction');;
     }
     
     public function saveTransaction(OneGoAPI_Impl_Transaction $transaction)
     {
-        OneGoUtils::saveToSession('Transaction', $transaction);
+        OneGoTransactionState::getCurrent()->set('transaction', $transaction);
     }
     
     public function deleteTransaction()
     {
-        OneGoUtils::saveToSession('Transaction', null);
         OneGoTransactionState::getCurrent()->reset();
         OneGoUtils::log('Transaction destroyed');
     }
@@ -742,7 +736,8 @@ echo $text;
     public function isUserAuthenticated()
     {
         $token = $this->getSavedOAuthToken();
-        return !empty($token) && !$token->isExpired() && !OneGoUtils::getFromSession('OAuthTokenAnonymous');
+        return !empty($token) && !$token->isExpired() && 
+            !OneGoOAuthTokenState::getCurrent()->get('buyerAnonymous');
     }
     
     public function userHasScope($scope)
@@ -919,7 +914,7 @@ echo $text;
                 $transactionAutostarted = true;
                 
                 if (!empty($stateBeforeRestart)) {
-                    $this->restoreTransactionToState($stateBeforeRestart);
+                    $this->restoreTransactionState($stateBeforeRestart);
                 }
                 
             } catch (OneGoAPI_Exception $e) {
@@ -1054,7 +1049,7 @@ echo $text;
                 // check if current transaction works with the new token, restart if not
                 $this->verifyTransactionWithNewToken($token);
             }
-            $this->saveOAuthToken($token);
+            $this->saveOAuthToken($token, false);
         } catch (OneGoAPI_OAuthException $e) {
             OneGoUtils::log('Issuing OAuth token failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
@@ -1142,22 +1137,26 @@ echo $text;
         }
     }
     
-    public function restoreTransactionToState(OneGoTransactionState $state)
+    public function restoreTransactionState(OneGoTransactionState $state)
     {
         if ($state->get('redeemedVGC')) {
             try {
                 $this->redeemVirtualGiftCard($state->get('redeemedVGC'));
-            } catch (OneGoAPI_Exception $e) {
+            } catch (Exception $e) {
                 // ignore
             }
         }
         if ($state->get('spentPrepaid')) {
             try {
                 $this->spendPrepaid();
-            } catch (OneGoAPI_Exception $e) { 
+            } catch (Exception $e) { 
                 // ignore
             }
         }
+        OneGoTransactionState::getCurrent()->set('buyerAnonymous', $state->get('buyerAnonymous'));
+        OneGoTransactionState::getCurrent()->set('agreedToDiscloseEmail', $state->get('agreedToDiscloseEmail'));
+        OneGoTransactionState::getCurrent()->set('transaction', $state->get('transaction'));
+        OneGoTransactionState::getCurrent()->set('cartHash', $state->get('cartHash'));
     }
 }
 
@@ -1214,6 +1213,11 @@ class OneGoTransactionState extends OneGoPersistentState
     const AGREED_DISCLOSE_EMAIL = 'agreedToDiscloseEmail';
     const BUYER_ANONYMOUS = 'buyerAnonymous';
     
+    protected $transaction;
+    protected $oAuthToken;
+    protected $cartHash;
+    protected $anonymousModifiedCart;
+    protected $anonymousModifiedCartHash;
     protected $spentPrepaid;
     protected $redeemedVGC;
     protected $agreedToDiscloseEmail;
@@ -1226,10 +1230,41 @@ class OneGoTransactionState extends OneGoPersistentState
     
     protected function initialize()
     {
+        $this->transaction = null;
+        $this->oAuthToken = null;
+        $this->cartHash = null;
+        $this->anonymousModifiedCart = null;
+        $this->anonymousModifiedCartHash = null;
         $this->spentPrepaid = false;
         $this->redeemedVGC = false;
         $this->agreedToDiscloseEmail = false;
-        $this->buyerAnonymous = false;
+        $this->buyerAnonymous = true;
+    }
+    
+    /**
+     *
+     * @return OneGoTransactionState 
+     */
+    public static function getCurrent()
+    {
+        return parent::loadCurrent(new self());
+    }
+}
+
+class OneGoOAuthTokenState extends OneGoPersistentState
+{
+    protected $token;
+    protected $buyerAnonymous;
+    
+    protected function getStorageKey()
+    {
+        return 'OAuthTokenState';
+    }
+    
+    protected function initialize()
+    {
+        $this->oAuthToken = null;
+        $this->buyerAnonymous = true;
     }
     
     /**
