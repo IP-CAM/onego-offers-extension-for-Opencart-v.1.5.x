@@ -198,13 +198,14 @@ END;
     public function success()
     {
         $onego = $this->getModel();
-        $this->data['onego_claim'] = $onego->getConfig('anonymousRegistrationURI');
+        $this->data['onego_claim'] = $this->url->link('total/onego/claimbenefits');
         
         $this->language->load('total/onego');
         $orderInfo = $onego->getCompletedOrder();
+        dbg($orderInfo->toArray(), 'oi');
         
-        $this->data['onego_funds_received'] = !empty($orderInfo['funds_received']) ?
-                sprintf($this->language->get('funds_received'), $this->currency->format($orderInfo['funds_received'])) 
+        $this->data['onego_funds_received'] = $orderInfo->get('prepaidReceived') ?
+                sprintf($this->language->get('funds_received'), $this->currency->format($orderInfo->get('prepaidReceived'))) 
                 : false;
         $this->data['onego_suggest_disclose'] = $this->language->get('suggest_disclose');
         $this->data['onego_button_agree'] = $this->language->get('button_agree_disclose');
@@ -425,25 +426,25 @@ END;
     {
         $onego = $this->getModel();
         $agreed = (bool) !empty($this->request->post['agree']);
-        OneGoTransactionState::set(OneGoTransactionState::AGREED_DISCLOSE_EMAIL, $agreed);
+        OneGoTransactionState::getCurrent()->set(OneGoTransactionState::AGREED_DISCLOSE_EMAIL, $agreed);
     }
     
     public function claimbenefits()
     {
         $this->language->load('total/onego');
         $onego = $this->getModel();
-        $lastOrder = $onego->getCompletedOrder();
-        if (!$lastOrder || !empty($lastOrder['benefits_applied']))
-        {
+        $lastOrder = OneGoCompletedOrderState::getCurrent();
+        if ($lastOrder->get('benefitsApplied')) {
             $this->redirect($this->url->link('checkout/success'));
         }
         
-        if (empty($lastOrder['new_buyer_registered'])) {
+        if (!$lastOrder->get('newBuyerRegistered')) {
             try {
-                $orderCart = !empty($lastOrder['cart']) ? $lastOrder['cart'] : array();
+                $orderCart = $lastOrder->get('cart') ? $lastOrder->get('cart') : array();
                 $cart = $onego->collectCartEntries($orderCart);
-                $fundsReceived = $onego->bindEmail($lastOrder['buyer_email'], $cart);
-                $onego->saveCompletedOrder($lastOrder['order_id'], false, true, $fundsReceived);
+                $fundsReceived = $onego->bindEmail($lastOrder->get('buyerEmail'), $cart);
+                $lastOrder->set('newBuyerRegistered', true);
+                $lastOrder->set('prepaidReceived', $fundsReceived);
             } catch (OneGoAPI_InvalidInputException $e) {
                 $this->data['onego_error'] = $this->language->get('error_bindnew_invalid_email');
             } catch (Exception $e) {
@@ -451,10 +452,10 @@ END;
                 $this->data['show_try_again'] = true;
             }
         } else {
-            $fundsReceived = $lastOrder['funds_received'];
+            $fundsReceived = $lastOrder->get('prepaidReceived');
         }
         $this->data['onego_rewarded'] = !empty($fundsReceived) ?
-                sprintf($this->language->get('anonymous_rewarded'), $this->currency->format($lastOrder['funds_received']))
+                sprintf($this->language->get('anonymous_rewarded'), $this->currency->format($fundsReceived))
                 : false;
         $this->data['onego_anonymous_buyer_created'] = 
                 sprintf($this->language->get('anonymous_buyer_created'), $onego->getConfig('anonymousRegistrationURI'));
@@ -545,10 +546,7 @@ END;
                         $response = array('success' => true);
                     }
                 } else {
-                    $token = $onego->requestOAuthAccessTokenByVGC($request->post['cardnumber']);
-                    $onego->beginTransaction($token);
-                    $onego->redeemVirtualGiftCard($request->post['cardnumber']);
-                    
+                    $onego->redeemAnonymousVirtualGiftCard($request->post['cardnumber']);
                     
                     $response = array('success' => true);
                 }
@@ -559,17 +557,14 @@ END;
                     'error' => get_class($e),
                     'message' => $errorMessage,
                 );
+            } catch (OneGoVirtualGiftCardNumberInvalidException $e) {
+                $errorMessage = $this->language->get('error_redeem_cardnumber_invalid');
+                $response = array(
+                    'error' => get_class($e),
+                    'message' => $errorMessage,
+                );
             } catch (Exception $e) {
-                if (in_array(get_class($e), array(
-                    'OneGoAPI_VirtualGiftCardNotFoundException',
-                    'OneGoAPI_InvalidInputException',
-                    'OneGoAPI_OAuthInvalidGrantException'
-                ))) 
-                {
-                    $errorMessage = $this->language->get('error_redeem_cardnumber_invalid');
-                } else {
-                    $errorMessage = $this->language->get('error_redeem_failed');
-                }
+                $errorMessage = $this->language->get('error_redeem_failed');
                 $response = array(
                     'error' => get_class($e),
                     'message' => $errorMessage,

@@ -160,16 +160,16 @@ class ModelTotalOnego extends Model
     public function confirm($order_info, $order_total)
     {
         $orderId = $order_info['order_id'];
-        $lastOrder = $this->getCompletedOrder();
-        if (empty($lastOrder) || ($lastOrder['order_id'] != $orderId)) {
-            $this->saveCompletedOrder($orderId, true);
+        $lastOrder = OneGoCompletedOrderState::getCurrent();
+        if ($lastOrder->get('orderId') != $orderId) {
+            $this->saveCompletedOrder($orderId);
             if ($this->isTransactionStarted()) {
                 $api = $this->getApi();
                 $transactionId = $this->getTransactionId()->id;
                 try {
                     $transaction = $this->confirmTransaction();
-                    $this->saveCompletedOrder($orderId, true, false, 
-                            $transaction->getPrepaidAmountReceived());
+                    $lastOrder->set('benefitsApplied', true);
+                    $lastOrder->set('prepaidReceived', $transaction->getPrepaidAmountReceived());
                 } catch (Exception $e) {
                     $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
                     $this->throwError($e->getMessage());
@@ -178,45 +178,34 @@ class ModelTotalOnego extends Model
                 if ($this->hasAgreedToDiscloseEmail()) {
                     try {
                         $receivedFunds = $this->bindEmail($order_info['email'], $this->collectCartEntries());
-                        $this->saveCompletedOrder($orderId, true, true, $receivedFunds);
+                        $lastOrder->set('benefitsApplied', true);
+                        $lastOrder->set('newBuyerRegistered', true);
+                        $lastOrder->set('prepaidReceived', $receivedFunds);
                     } catch (OneGoException $e) {
                         $transactionId = 'UNKNOWN';
                         $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
                     }
-                } else {
-                    $this->saveCompletedOrder($orderId, false);
                 }
             }
         }
     }
     
-    public function saveCompletedOrder($orderId, $benefitsApplied = true, 
-            $newBuyerRegistered = false, $fundsReceived = false)
+    public function saveCompletedOrder($orderId)
     {
         $this->load->model('account/order');		
         $orderInfo = $this->model_account_order->getOrder($orderId);
         
-        $completedOrder = array(
-            'order_id'          => $orderId,
-            'confirmed_on'      => time(),
-            'benefits_applied'  => $benefitsApplied,
-            'buyer_email'       => $orderInfo['email'],
-            'new_buyer_registered' => $newBuyerRegistered,
-            'funds_received'    => $fundsReceived,
-            'cart'              => $this->getEshopCart()
-        );
-        OneGoUtils::saveToSession('completedOrder', $completedOrder);
+        $completedOrder = OneGoCompletedOrderState::getCurrent();
+        $completedOrder->reset();
+        $completedOrder->set('orderId', $orderId);
+        $completedOrder->set('completedOn', time());
+        $completedOrder->set('buyerEmail', $orderInfo['email']);
+        $completedOrder->set('cart', $this->getEshopCart());
     }
     
     public function getCompletedOrder()
     {
-        $completedOrder = OneGoUtils::getFromSession('completedOrder');
-        return !empty($completedOrder) ? $completedOrder : false;
-    }
-    
-    public function clearCompletedOrder()
-    {
-        OneGoUtils::saveToSession('completedOrder', null);
+        return OneGoCompletedOrderState::getCurrent();
     }
     
     public function registerFailedTransaction($orderId, $errorMessage, $transactionId)
@@ -265,14 +254,13 @@ echo $text;
     
     public function isAnonymousRewardsApplied()
     {
-        $lastOrder = $this->getCompletedOrder();
-        return !empty($lastOrder['new_buyer_registered']);
+        return OneGoCompletedOrderState::getCurrent()->get('newBuyerRegistered');
     }
     
     public function isAnonymousRewardsApplyable()
     {
         $lastOrder = $this->getCompletedOrder();
-        return !$this->hasAgreedToDiscloseEmail() && !$lastOrder['benefits_applied'];
+        return !$this->hasAgreedToDiscloseEmail() && !$lastOrder->get('benefitsApplied');
     }
     
     public function bindEmail($email, OneGoAPI_Impl_Cart $cart)
@@ -1097,11 +1085,12 @@ echo $text;
     {
         $lastOrder = $this->getCompletedOrder();
         if (!empty($lastOrder)) {
-            $cart = !empty($lastOrder['cart']) ? $lastOrder['cart'] : array();
+            $cart = $lastOrder->get('cart') ? $lastOrder->get('cart') : array();
             try {
-                $awards = $this->getApi()
+                $prepaidReceived = $awards = $this->getApi()
                         ->getAnonymousAwards($this->collectCartEntries($cart))
-                        ->getPrepaidReceived()->getAmount()->visible;
+                        ->getPrepaidReceived();
+                $awards = !empty($prepaidReceived) ? $prepaidReceived->getAmount()->visible : null;
             } catch (OneGoAPI_Exception $e) {
                 OneGoUtils::logCritical('Failed retrieving anonymous awards', $e);
                 throw $e;
@@ -1122,20 +1111,47 @@ echo $text;
             return true;
         } catch (OneGoAPI_Exception $e) {
             OneGoUtils::log('redeemVirtualGiftCard failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
-            throw $e;
+            if (in_array(get_class($e), array(
+                'OneGoAPI_VirtualGiftCardNotFoundException',
+                'OneGoAPI_InvalidInputException'
+            ))) 
+            {
+                throw new OneGoVirtualGiftCardNumberInvalidException($e);
+            } else {
+                throw $e;
+            }
+        }
+    }
+    
+    public function redeemAnonymousVirtualGiftCard($cardNumber)
+    {
+        try {
+            $token = $this->requestOAuthAccessTokenByVGC($cardNumber);
+            $this->beginTransaction($token);
+            $this->redeemVirtualGiftCard($cardNumber);
+        } catch (OneGoAPI_Exception $e) {
+            if (in_array(get_class($e), array(
+                'OneGoAPI_OAuthInvalidGrantException',
+                'OneGoAPI_OAuthInvalidRequestException'
+            ))) 
+            {
+                throw new OneGoVirtualGiftCardNumberInvalidException($e);
+            } else {
+                throw $e;
+            }
         }
     }
     
     public function restoreTransactionToState(OneGoTransactionState $state)
     {
-        if ($state->redeemedVGC) {
+        if ($state->get('redeemedVGC')) {
             try {
-                $this->redeemVirtualGiftCard($state->redeemedVGC);
+                $this->redeemVirtualGiftCard($state->get('redeemedVGC'));
             } catch (OneGoAPI_Exception $e) {
                 // ignore
             }
         }
-        if ($state->spentPrepaid) {
+        if ($state->get('spentPrepaid')) {
             try {
                 $this->spendPrepaid();
             } catch (OneGoAPI_Exception $e) { 
@@ -1169,6 +1185,11 @@ abstract class OneGoPersistentState
     
     public function __construct() {
         $this->initialize();
+    }
+    
+    public function toArray()
+    {
+        return get_object_vars($this);
     }
     
     protected function save()
@@ -1214,6 +1235,42 @@ class OneGoTransactionState extends OneGoPersistentState
     /**
      *
      * @return OneGoTransactionState 
+     */
+    public static function getCurrent()
+    {
+        return parent::loadCurrent(new self());
+    }
+}
+
+class OneGoCompletedOrderState extends OneGoPersistentState
+{
+    protected $orderId;
+    protected $completedOn;
+    protected $benefitsApplied;
+    protected $buyerEmail;
+    protected $newBuyerRegistered;
+    protected $prepaidReceived;
+    protected $cart;
+    
+    protected function getStorageKey()
+    {
+        return 'CompletedOrderState';
+    }
+    
+    protected function initialize()
+    {
+        $this->orderId = false;
+        $this->completedOn = false;
+        $this->benefitsApplied = false;
+        $this->buyerEmail = false;
+        $this->newBuyerRegistered = false;
+        $this->prepaidReceived = false;
+        $this->cart = false;
+    }
+    
+    /**
+     *
+     * @return OneGoCompletedOrderState 
      */
     public static function getCurrent()
     {
@@ -1270,11 +1327,11 @@ class OneGoUtils
      * @param string $key
      * @return mixed null if no such data is available 
      */
-    public static function getFromRegistry($key)
+    public static function getFromRegistry($key, $default = null)
     {
         $registry = self::getRegistry();
         $onego_data = $registry->get(self::STORAGE_KEY);
-        return isset($onego_data[$key]) ? $onego_data[$key] : null;
+        return isset($onego_data[$key]) ? $onego_data[$key] : $default;
     }
     
     /**
@@ -1297,11 +1354,11 @@ class OneGoUtils
      * @param string $key
      * @return mixed 
      */
-    public static function getFromSession($key)
+    public static function getFromSession($key, $default = null)
     {
         $session = self::getSession();
         $onego_data = isset($session->data[self::STORAGE_KEY]) ? $session->data[self::STORAGE_KEY] : array();
-        $data = isset($onego_data[$key]) ? unserialize($onego_data[$key]) : null;
+        $data = isset($onego_data[$key]) ? unserialize($onego_data[$key]) : $default;
         return $data;
     }
     
@@ -1472,4 +1529,5 @@ class OneGoConfig
 
 class OneGoException extends Exception {}
 class OneGoAuthenticationRequiredException extends OneGoException {}
+class OneGoVirtualGiftCardNumberInvalidException extends OneGoException {}
 class OneGoAPICallFailedException extends OneGoException {}
