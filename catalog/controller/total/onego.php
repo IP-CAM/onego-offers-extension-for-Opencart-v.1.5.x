@@ -121,17 +121,18 @@ END;
                     $html .= "\r\n";
                 }
             }
+            $html .= 'var transactionState = {\'transactionState\' : $.parseJSON('.json_encode(json_encode(OneGoTransactionState::getCurrent()->toArray())).')};'."\r\n";
+            $html .= 'console.dir(transactionState);'."\r\n";
+            $html .= 'var tokenState = {\'oauthTokenState\' : $.parseJSON('.json_encode(json_encode(OneGoOAuthTokenState::getCurrent()->toArray())).')};'."\r\n";
+            $html .= 'console.dir(tokenState);'."\r\n";
             if ($transaction = $onego->getTransaction()) {
                 $html .= 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction->getTransactionDto())).')};'."\r\n";
                 $html .= 'console.dir(transaction);'."\r\n";
                 $html .= 'var transactionTtl = {\'expires\' : $.parseJSON('.json_encode(json_encode(date('Y-m-d H:i:s', time() + $transaction->getTtl()))).')};'."\r\n";
                 $html .= 'console.dir(transactionTtl);'."\r\n";
-            }        
-            if ($token = $onego->getSavedOAuthToken()) {
-                $token->isAnonymous = !$onego->isUserAuthenticated();
-                $html .= 'var scopes = {\'token\' : $.parseJSON('.json_encode(json_encode($token)).')};'."\r\n";
-                $html .= 'console.dir(scopes);'."\r\n";
             }
+            $html .= 'var orderState = {\'CompletedOrderState\' : $.parseJSON('.json_encode(json_encode(OneGoCompletedOrderState::getCurrent()->toArray())).')};'."\r\n";
+            $html .= 'console.dir(orderState);'."\r\n";
             $html .= '}</script>'."\r\n";
         }
         $this->data['debuggingCode'] = $html;
@@ -196,7 +197,6 @@ END;
         
         $this->language->load('total/onego');
         $orderInfo = $onego->getCompletedOrder();
-        dbg($orderInfo->toArray(), 'oi');
         
         $this->data['onego_funds_received'] = $orderInfo->get('prepaidReceived') ?
                 sprintf($this->language->get('funds_received'), $this->currency->format($orderInfo->get('prepaidReceived'))) 
@@ -390,9 +390,7 @@ END;
         $this->language->load('total/onego');
         $onego = $this->getModel();
         
-        if ($onego->cancelTransaction()) {
-            OneGoUtils::getSession()->data['success'] = $this->language->get('benefits_disabled');
-        }
+        $onego->cancelTransaction(true);
         $onego->deleteOAuthToken();
         
         if (!OneGoUtils::isAjaxRequest()) {
