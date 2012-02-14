@@ -432,15 +432,12 @@ END;
         
         if (!$lastOrder->get('newBuyerRegistered')) {
             try {
-                $orderCart = $lastOrder->get('cart') ? $lastOrder->get('cart') : array();
-                $cart = $onego->collectCartEntries($orderCart);
-                $fundsReceived = $onego->bindEmail($lastOrder->get('buyerEmail'), $cart);
-                $lastOrder->set('newBuyerRegistered', true);
-                $lastOrder->set('prepaidReceived', $fundsReceived);
+                $fundsReceived = $onego->bindEmailForOrder($lastOrder);
             } catch (OneGoAPI_InvalidInputException $e) {
                 $this->data['onego_error'] = $this->language->get('error_bindnew_invalid_email');
             } catch (Exception $e) {
                 $this->data['onego_error'] = $this->language->get('error_bindnew_failed');
+                $this->data['onego_error'] = $e->getMessage();
                 $this->data['show_try_again'] = true;
             }
         } else {

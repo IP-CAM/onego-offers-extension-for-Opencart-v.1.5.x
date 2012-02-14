@@ -239,11 +239,5 @@ OneGoOpencart = {
 
 // initialize on load
 $(document).ready(function(){
-    $('input.onego_watermark').focus(function(){
-        $(this).addClass('focused');
-        $(this).val('');
-    })
-    $('input.onego_watermark').blur(function(){
-        $(this).removeClass('focused');
-    })
+    
 })

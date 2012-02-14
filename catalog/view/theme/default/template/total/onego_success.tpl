@@ -5,18 +5,14 @@
 <div id="onego_panel">
   <div id="onego_panel_label"></div>
   <div id="onego_panel_content">
-    <?php if (!empty($onego_funds_received)) { ?>
-    <?php echo $onego_funds_received ?><br />  
-    <?php } ?>
     
     <?php if (!empty($onego_benefits_applied)) { ?>
         <?php echo $onego_buyer_created ?>
         <br />
         <br />
         <div class="right"><a href="<?php echo $onego_claim; ?>" class="button"><span><?php echo $onego_button_register ?></span></a></div>
-    <?php } ?>
     
-    <?php if (!empty($onego_benefits_applyable)) { ?>
+    <?php } else if (!empty($onego_benefits_applyable)) { ?>
         <strong><?php echo $onego_claim_benefits ?></strong><br />
         <br />
         <?php if (!empty($onego_funds_receivable)) { ?>
@@ -26,6 +22,8 @@
         <?php } ?>
         &nbsp;&nbsp;
         <a href="<?php echo $onego_claim; ?>" class="button"><span><?php echo $onego_button_agree ?></span></a>
+    <?php } else if (!empty($onego_funds_received)) { ?>
+        <?php echo $onego_funds_received ?><br />  
     <?php } ?>
   </div>
 </div>

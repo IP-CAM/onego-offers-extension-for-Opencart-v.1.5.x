@@ -147,4 +147,12 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
 <?php if ($isAjaxRequest) { ?>
 OneGo.plugins.init();
 <?php } ?>
+    
+$('input.onego_watermark').focus(function(){
+    $(this).addClass('focused');
+    $(this).val('');
+})
+$('input.onego_watermark').blur(function(){
+    $(this).removeClass('focused');
+})
 </script>
