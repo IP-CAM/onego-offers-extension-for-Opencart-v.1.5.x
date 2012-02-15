@@ -32,3 +32,6 @@ $oneGoConfig['widgetFrozen'] = 'Y';
 
 // link to onego.com registration page for newly created buyers
 $oneGoConfig['anonymousRegistrationURI'] = 'http://register.onego.com';
+
+// HTTP connection timeout - seconds
+$oneGoConfig['httpConnectionTimeout'] = 10;

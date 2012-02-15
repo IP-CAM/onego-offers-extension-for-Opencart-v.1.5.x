@@ -392,7 +392,9 @@ END;
                 $this->getConfig('clientId'),
                 $this->getConfig('clientSecret'), 
                 $this->getConfig('terminalId'), 
-                $this->getConfig('transactionTTL')
+                $this->getConfig('transactionTTL'),
+                true,
+                $this->getConfig('httpConnectionTimeout')
         );
         $cfg->apiUri = $this->getConfig('apiURI');
         $cfg->currencyCode = OneGoUtils::getRegistry()->get('config')->get('config_currency');
@@ -436,7 +438,8 @@ END;
                 $this->getConfig('clientId'), 
                 $this->getConfig('clientSecret'), 
                 $this->getConfig('authorizationURI'), 
-                $this->getConfig('oAuthURI')
+                $this->getConfig('oAuthURI'),
+                $this->getConfig('httpConnectionTimeout')
         );
         $auth = OneGoAPI_Impl_SimpleOAuth::init($cfg);
         OneGoUtils::saveToRegistry('auth', $auth);
