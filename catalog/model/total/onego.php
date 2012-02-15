@@ -870,8 +870,8 @@ END;
         try {
             $res = $transaction->get();
             OneGoUtils::log('Transaction readable with new token', OneGoUtils::LOG_NOTICE);
-        } catch (OneGoAPI_Exception $e) {
-            OneGoUtils::log('Transaction does not accept token: '.$e->getMessage(), OneGoUtils::LOG_NOTICE);
+        } catch (OneGoAPI_OperationNotAllowedException $e) {
+            OneGoUtils::log('Transaction does not accept new token: '.$e->getMessage(), OneGoUtils::LOG_NOTICE);
             
             // getting transaction has failed, restart
             $receiptNumber = $transaction->getReceiptNumber();
