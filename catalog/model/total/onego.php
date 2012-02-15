@@ -177,15 +177,16 @@ class ModelTotalOnego extends Model
                 $transactionId = $this->getTransactionId()->id;
                 try {
                     $transaction = $this->confirmTransaction();
+                    $lastOrder->set('prepaidReceived', $transaction->getPrepaidAmountReceived());
+                    
+                    if (!$tokenState->isBuyerAnonymous()) {
+                        $lastOrder->set('benefitsApplied', true);
+                    }
                     
                     if ($transactionState->hasAgreedToDiscloseEmail() && $tokenState->isBuyerAnonymous()) {
                         $this->bindEmailForOrder($lastOrder);
                     }
                     
-                    if (!$tokenState->isBuyerAnonymous()) {
-                        $lastOrder->set('benefitsApplied', true);
-                    }
-                    $lastOrder->set('prepaidReceived', $transaction->getPrepaidAmountReceived());
                 } catch (Exception $e) {
                     $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
                     $this->throwError($e->getMessage());
@@ -303,7 +304,10 @@ END;
             $orderCart = $order->get('cart') ? $order->get('cart') : array();
             $cart = $this->collectCartEntries($orderCart);
             try {
-                $fundsReceived = $this->bindEmailNew($order->get('buyerEmail'), $cart);
+                $modifiedCart = $this->getApi()->bindEmailNew($order->get('buyerEmail'), $cart);
+                if ($modifiedCart->getPrepaidReceived()) {
+                    $fundsReceived = $modifiedCart->getPrepaidReceived()->getAmount()->visible;
+                }
                 $order->set('newBuyerRegistered', true);
                 $order->set('prepaidReceived', $fundsReceived);
             } catch (OneGoAPI_Exception $e) {

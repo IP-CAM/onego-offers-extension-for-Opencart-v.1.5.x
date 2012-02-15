@@ -91,7 +91,7 @@ END;
         $html = '';
         if ($onego->getConfig('debugModeOn')) {
             $html .= '<script type="text/javascript">';
-            $html .= 'if (typeof console != \'undefined\') { '."\r\n";
+            $html .= 'if (console && console.dir) { '."\r\n";
             if (!empty($log)) {
 
                 foreach ($log as $row) {
@@ -194,6 +194,7 @@ END;
     {
         $onego = $this->getModel();
         $this->data['onego_claim'] = $this->url->link('total/onego/claimbenefits');
+        $this->data['onego_register'] = $onego->getConfig('anonymousRegistrationURI');
         
         $this->language->load('total/onego');
         $orderInfo = $onego->getCompletedOrder();
