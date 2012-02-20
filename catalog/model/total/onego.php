@@ -41,7 +41,11 @@ class ModelTotalOnego extends Model
         $this->load->language('total/onego');
         
         if ($this->isTransactionStarted() || $this->hasAgreedToDiscloseEmail()) {
-            $initial_total = $total;
+            if ($total) {
+                $initial_total = $total;
+            } else {
+                $initial_total = ($total += $this->cart->getSubTotal());
+            }
 
             // items discounts
             // TODO

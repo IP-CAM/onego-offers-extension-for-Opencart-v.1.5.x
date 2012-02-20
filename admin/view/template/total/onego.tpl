@@ -44,11 +44,15 @@
                 <option value="1"><?php echo $text_enabled; ?></option>
                 <option value="0" selected="selected"><?php echo $text_disabled; ?></option>
                 <?php } ?>
-              </select></td>
+              </select>
+            </td>
           </tr>
           <tr>
             <td><?php echo $entry_sort_order; ?></td>
-            <td><input type="text" name="onego_sort_order" value="<?php echo $onego_sort_order; ?>" size="1" /></td>
+            <td>
+                <input type="text" name="onego_sort_order" value="<?php echo $onego_sort_order; ?>" size="1" />
+                <div style="display: inline; color: gray; margin-left: 10px;"><?php echo $onego_sortorder_text ?></div>
+            </td>
           </tr>
         </table>
       </form>

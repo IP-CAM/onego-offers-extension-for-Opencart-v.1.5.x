@@ -70,7 +70,11 @@ class ControllerTotalOnego extends Controller {
             $this->data['onego_sort_order'] = $this->request->post['onego_sort_order'];
         } else {
             $this->data['onego_sort_order'] = $this->config->get('onego_sort_order');
+            if (is_null($this->data['onego_sort_order'])) {
+                $this->data['onego_sort_order'] = 1;
+            }
         }
+        $this->data['onego_sortorder_text'] = $this->language->get('entry_help_sortorder');
         
         $config_fields = array('clientId', 'clientSecret', 'terminalId', 'transactionTTL',
             'shippingCode', 'widgetShow', 'widgetFrozen', 'widgetTopOffset', 'autologinOn');

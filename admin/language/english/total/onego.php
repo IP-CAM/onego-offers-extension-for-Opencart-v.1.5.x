@@ -35,6 +35,7 @@ $_['entry_help_autologinOn']  = 'Detect returning buyers (if they are logged in 
 $_['entry_help_widgetShow']  = 'Enable sliding-in OneGo widget, where buyer can view his account details and your currently active offers.';
 $_['entry_help_widgetFrozen']  = 'Widget stays on the same place when user scrolls page.';
 $_['entry_help_widgetTopOffset']  = 'How far off the top should the widget be placed (in pixels).';
+$_['entry_help_sortorder'] = 'Set a low enough value to appear buyer benefits before "taxes" and "total" rows, best to set the same as for "sub-total".';
 
 // Error
 $_['error_permission'] = 'Warning: You do not have permission to modify OneGo total!';
