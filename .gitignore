@@ -1,19 +1,19 @@
-/*
-!/.gitignore
-!/admin/controller/total/onego.php
-!/admin/language/english/total/onego.php
-!/admin/view/template/total/onego.tpl
-!/system/library/onego/*
-!/vwmod/xml
-!/vqmod/xml/onego_benefits.xml
-!/catalog/controller/total/onego.php
-!/catalog/language/english/total/onego.php
-!/catalog/model/total/onego.php
-!/catalog/view/javascript/onego.js
-!/catalog/view/theme/default/image/onego*
-!/catalog/view/theme/default/stylesheet/onego.css
-!/catalog/view/theme/default/template/common/onego_header.tpl
-!/catalog/view/theme/default/template/total/onego*
+*
+!.gitignore
+!admin/controller/total/onego.php
+!admin/language/english/total/onego.php
+!admin/view/template/total/onego.tpl
+!system/library/onego/*
+!vwmod/xml
+!vqmod/xml/onego_benefits.xml
+!catalog/controller/total/onego.php
+!catalog/language/english/total/onego.php
+!catalog/model/total/onego.php
+!catalog/view/javascript/onego.js
+!catalog/view/theme/default/image/onego*
+!catalog/view/theme/default/stylesheet/onego.css
+!catalog/view/theme/default/template/common/onego_header.tpl
+!catalog/view/theme/default/template/total/onego*
 
 
 #.idea
