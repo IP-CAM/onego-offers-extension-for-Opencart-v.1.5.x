@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modification>
+    <id>OneGo buyer benefits extension</id>
+    <version>1.0.0</version>
+    <vqmver>1.0.9</vqmver>
+    <author>onego.com</author>
+    <file name="catalog/controller/common/header.php">
+        <operation>
+            <search position="before"><![CDATA[
+            $this->render();
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status')) {
+                $this->data['onego_header'] = $this->getChild('total/onego/header');
+            } else {
+                $this->data['onego_header'] = '';
+            }
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="catalog/controller/checkout/confirm.php">
+        <operation>
+            <search position="before"><![CDATA[
+            $json['output'] = $this->render();
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status')) {
+                $this->data['onego_panel'] = $this->getChild('total/onego/panel');
+            } else {
+                $this->data['onego_panel'] = '';
+            }
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="catalog/controller/checkout/success.php">
+        <operation>
+            <search position="after"><![CDATA[
+            public function index() {
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status')) {
+                $this->data['onego_info'] = $this->getChild('total/onego/success');
+            } else {
+                $this->data['onego_info'] = '';
+            }
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="catalog/view/theme/*/template/checkout/confirm.tpl">
+        <operation>
+            <search position="top"><![CDATA[
+            ]]></search>
+
+            <add><![CDATA[
+            <?php echo $onego_panel ?>
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="catalog/view/theme/*/template/common/header.tpl">
+        <operation>
+            <search position="before"><![CDATA[
+            </head>
+            ]]></search>
+            
+            <add><![CDATA[
+            <?php echo $onego_header; ?>
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="catalog/view/theme/*/template/common/success.tpl">
+        <operation>
+        <search position="after"><![CDATA[
+            <?php echo $text_message; ?>
+            ]]></search>
+            
+            <add><![CDATA[
+            <?php echo $onego_info ?>
+            ]]></add>
+        </operation>
+    </file>
+    
+
+
+
+</modification>

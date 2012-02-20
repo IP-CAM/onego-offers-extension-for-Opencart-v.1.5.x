@@ -4,6 +4,7 @@
 !/admin/language/english/total/onego.php
 !/admin/view/template/total/onego.tpl
 !/system/library/onego/*
+!/vwmod/xml
 !/vqmod/xml/onego_benefits.xml
 !/catalog/controller/total/onego.php
 !/catalog/language/english/total/onego.php
