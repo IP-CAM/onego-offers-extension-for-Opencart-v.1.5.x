@@ -1,6 +1,6 @@
 <?php
 // do not change or remove this
-define('ONEGO_EXTENSION_VERSION', '1.0.0b');
+define('ONEGO_EXTENSION_VERSION', '0.9.4');
 
 $oneGoConfig = array();
 

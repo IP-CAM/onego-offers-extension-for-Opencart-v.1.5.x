@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <modification>
     <id>OneGo buyer benefits extension</id>
-    <version>1.0.0</version>
+    <version>0.9.4</version>
     <vqmver>1.0.9</vqmver>
     <author>onego.com</author>
     <file name="catalog/controller/common/header.php">
@@ -87,7 +87,4 @@
         </operation>
     </file>
     
-
-
-
 </modification>
