@@ -132,11 +132,15 @@ class ModelTotalOnego extends Model
                     if ($product['tax_class_id']) {
                         // discount part for this product
                         $discount = $onego_discount * ($product['total'] / $initial_total);
-                        $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
-                        foreach ($tax_rates as $tax_rate) {
-                            if ($tax_rate['type'] == 'P') {
-                                $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                        if (method_exists($this->tax, 'getRates')) { // OpenCart v1.5.3
+                            $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
+                            foreach ($tax_rates as $tax_rate) {
+                                if ($tax_rate['type'] == 'P') {
+                                    $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                                }
                             }
+                        } else {
+                            $taxes[$product['tax_class_id']] -= ($product['total'] / 100 * $this->tax->getRate($product['tax_class_id'])) - (($product['total'] - $discount) / 100 * $this->tax->getRate($product['tax_class_id']));
                         }
                     }
                 }
@@ -144,10 +148,14 @@ class ModelTotalOnego extends Model
                 if ($free_shipping && isset($this->session->data['shipping_method'])) {
                     if (!empty($this->session->data['shipping_method']['tax_class_id'])) {
                         // tax rates that will be applied (or were already) to shipping
-                        $tax_rates = $this->tax->getRates($this->session->data['shipping_method']['cost'], $this->session->data['shipping_method']['tax_class_id']);
-                        // subtract them
-                        foreach ($tax_rates as $tax_rate) {
-                            $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                        if (method_exists($this->tax, 'getRates')) {  // OpenCart v1.5.3
+                            $tax_rates = $this->tax->getRates($this->session->data['shipping_method']['cost'], $this->session->data['shipping_method']['tax_class_id']);
+                            // subtract them
+                            foreach ($tax_rates as $tax_rate) {
+                                $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                            }
+                        } else {
+                            $taxes[$this->session->data['shipping_method']['tax_class_id']] -= $this->session->data['shipping_method']['cost'] / 100 * $this->tax->getRate($this->session->data['shipping_method']['tax_class_id']);
                         }
                     }
                 }

@@ -51,7 +51,7 @@ class ControllerTotalOnego extends Controller {
 var OneGoWidget = OneGo.plugins.slideInWidget.init({
     topOffset: {$topOffset}, 
     isFixed: {$isFrozen},
-    handleImage: '/catalog/view/theme/{$this->config->get('config_template')}/image/onego_handle.png'
+    handleImage: 'catalog/view/theme/{$this->config->get('config_template')}/image/onego_handle.png'
 });
 
 END;
