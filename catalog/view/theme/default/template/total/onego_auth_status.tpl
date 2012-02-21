@@ -2,20 +2,18 @@
 <html>
 <head>
 <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
-<link rel="stylesheet" type="text/css" href="catalog/view/theme/default/stylesheet/stylesheet.css" />
 <script type="text/javascript" src="catalog/view/javascript/jquery/jquery-1.6.1.min.js"></script>
-<!--<script type="text/javascript" src="catalog/view/javascript/onego.js"></script>-->
 <script type="text/javascript">
-function closeFancybox()
+function closeWindow()
 {
-    window.parent.$.fancybox.close();
+    self.close();
 }
 
 var status = {
     authenticated: <?php echo (!empty($onego_authenticated) ? 'true' : 'false') ?>
 }
 <?php if (!empty($onego_authenticated)) { ?>
-window.parent.OneGoOpencart.loginPromptSuccess = true;
+window.opener.OneGoOpencart.loginPromptSuccess = true;
 <?php } ?>    
 
 </script>
@@ -32,18 +30,18 @@ html {
     <?php echo $onego_error ?>
 </div>
 <script type="text/javascript">
-window.parent.OneGoOpencart.flashWarningBefore(window.parent.$('#onego_panel'), '<?php echo str_replace('\'', '\\\'', $onego_error) ?>');
+window.opener.OneGoOpencart.flashWarningBefore(window.opener.$('#onego_panel'), '<?php echo str_replace('\'', '\\\'', $onego_error) ?>');
 </script>
 <?php } else { ?>
 Authorization successful.
 <?php } ?>
 
 <div style="text-align: center;">
-    <a href="#" class="button" onclick="closeFancybox();"><span>Close</span></a>
+    <a href="#" class="button" onclick="closeWindow();"><span>Close</span></a>
 </div>
 
 <script type="text/javascript">
-closeFancybox();
+closeWindow();
 </script>
 
 </body>

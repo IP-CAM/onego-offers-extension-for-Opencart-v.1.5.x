@@ -118,13 +118,11 @@ $('#onego_agree').unbind().change(function(e){
 $('#onego_login').unbind().click(function(e){
     e.preventDefault();
     OneGoOpencart.promptLogin(<?php echo $js_page_reload_callback ?>);
-    //OneGoOpencart.promptLogin2();
 });
 <?php } ?>
 
 $('#onego_giftcard_redeem').unbind('click').click(function(e) {
     e.preventDefault();
-    //OneGoOpencart.promptAnonymousGiftCardRedeem();
     
     var cardNumber = $('#onego_giftcard_number').val();
     if (!cardNumber.length || (cardNumber == '<?php echo $onego_vgc_number ?>')) {

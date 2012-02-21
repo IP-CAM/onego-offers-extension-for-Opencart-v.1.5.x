@@ -80,7 +80,7 @@ OneGoOpencart = {
         $.ajax({
             url: $('base').attr('href') + 'index.php?route=total/onego/redeemgiftcard', 
             type: 'post',
-            data: { cardnumber: cardNumber },
+            data: {cardnumber: cardNumber},
             dataType: 'json',
             beforeSend: function(jqXHR, settings) {
                 OneGoOpencart.setAsLoading(redeemButton);
@@ -149,16 +149,8 @@ OneGoOpencart = {
     },
     promptLogin: function(onSuccess, onCancel, onClose){
         OneGoOpencart.loginPromptSuccess = false;
-        $.fancybox({
-            'width': 500,
-            'height': 380,
-            'autoScale': true,
-            'autoDimensions': true,
-            'transitionIn': 'none',
-            'transitionOut': 'none',
-            'type': 'iframe',
-            'href': OneGoOpencart.config.loginUri,
-            'onClosed': function() {
+        OneGoOpencart.openPopup(500, 380, 'onego_login', OneGoOpencart.config.loginUri,
+            function() {
                 if (OneGoOpencart.loginPromptSuccess) {
                     if (onSuccess) {
                         onSuccess();
@@ -170,14 +162,6 @@ OneGoOpencart = {
                     onClose();
                 }
             }
-        });
-    },
-    promptLogin2: function(onSuccess, onCancel, onClose)
-    {
-        OneGo.user.authorizeFull(
-            function() { alert('autorization success') },
-            function() { alert('autorization canceled') },
-            function() { alert('autorization error') }
         );
     },
     reloadWidget: function(){
@@ -234,10 +218,27 @@ OneGoOpencart = {
             container.remove();
         }
         element.css('visibility', 'visible');
+    },
+    openPopup: function(width, height, name, uri, onClose)
+    {
+        var centerWidth = (window.screen.width - width) / 2;
+        var centerHeight = (window.screen.height - height) / 2;
+
+        var popup = window.open(uri, name, 'resizable=0,width=' + width + 
+            ',height=' + height + 
+            ',left=' + centerWidth + 
+            ',top=' + centerHeight + ',modal=yes'+
+            'toolbar=no,directories=no,status=no,menubar=no,scrollbars=no,resizable=no');
+        
+        if (onClose) {
+            var timer = setInterval(function(){
+                if (popup.closed) {
+                    clearInterval(timer);  
+                    onClose();
+                }
+            }, 100);
+        }
+        
+        return popup.name;
     }
 }
-
-// initialize on load
-$(document).ready(function(){
-    
-})
