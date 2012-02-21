@@ -70,7 +70,7 @@
             ]]></search>
             
             <add><![CDATA[
-            <?php echo $onego_header; ?>
+            <?php echo !empty($onego_header) ? $onego_header : ''; ?>
             ]]></add>
         </operation>
     </file>
@@ -82,7 +82,7 @@
             ]]></search>
             
             <add><![CDATA[
-            <?php echo $onego_info ?>
+            <?php echo !empty($onego_info) ? $onego_info : ''; ?>
             ]]></add>
         </operation>
     </file>
