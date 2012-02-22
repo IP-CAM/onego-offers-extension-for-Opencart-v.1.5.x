@@ -67,66 +67,78 @@ $('#use_onego_funds').unbind('change').change(function(e) {
 
 function promptLoginForFundsUse()
 {
+    OneGoOpencart.setAsLoading($('#use_onego_funds'));
     OneGoOpencart.promptLogin(
         spendPrepaid,
-        cancelUseFundsCheck
+        function() { 
+            cancelCheck($('#use_onego_funds'));
+            OneGoOpencart.unsetAsLoading($('#use_onego_funds'));
+        }
     )
 }
 
 function spendPrepaid()
 {
+    OneGoOpencart.setAsLoading($('#use_onego_funds'));
     OneGoOpencart.spendPrepaid(
-        $('#use_onego_funds'),
+        $('#use_onego_funds').is(':checked'),
         function(data) {
             <?php echo $js_page_reload_callback ?>();
         },
         function (errorMessage, error) {
             if (error && error == 'OneGoAuthenticationRequiredException') {
-                cancelUseFundsCheck();
                 promptLoginForFundsUse();
             } else if (errorMessage) {
                 OneGoOpencart.flashWarningBefore($('#onego_panel'), errorMessage);
             } else {
                 OneGoOpencart.flashWarningBefore($('#onego_panel'), '<?php echo $onego_error_spend_prepaid ?>');
             }
+            OneGoOpencart.unsetAsLoading($('#use_onego_funds'));
+            cancelCheck($('#use_onego_funds'));
         }
     );
-}
-
-function cancelUseFundsCheck()
-{
-    $('#use_onego_funds').attr('checked', !$('#use_onego_funds').attr('checked'));
 }
 
 <?php } else { // when user is not authenticated ?>
     
 $('#onego_agree').unbind().change(function(e){
+    OneGoOpencart.setAsLoading($('#onego_agree'));
     $.ajax({
         url: 'index.php?route=total/onego/agree', 
         type: 'post',
         data: { 'agree': $(this).is(':checked') ? 1 : 0 },
         dataType: 'json',
-        beforeSend: function() {
-            OneGoOpencart.setAsLoading($('#onego_agree'));
-        },	
         success: function() {
             <?php echo $js_page_reload_callback ?>();
+        },
+        error: function() {
+            OneGoOpencart.unsetAsLoading($('#onego_agree'));
+            cancelCheck($('#onego_agree'));
         }
     });
 })
 
 $('#onego_login').unbind().click(function(e){
     e.preventDefault();
-    OneGoOpencart.promptLogin(<?php echo $js_page_reload_callback ?>);
+    OneGoOpencart.setAsLoading($('#onego_login'));
+    OneGoOpencart.promptLogin(
+            <?php echo $js_page_reload_callback ?>, 
+            function() { 
+                OneGoOpencart.unsetAsLoading($('#onego_login')) 
+            }
+   );
 });
 <?php } ?>
 
 $('#onego_giftcard_redeem').unbind('click').click(function(e) {
     e.preventDefault();
     
+    OneGoOpencart.setAsLoading($('#onego_giftcard_redeem'));
+    
     var cardNumber = $('#onego_giftcard_number').val();
     if (!cardNumber.length || (cardNumber == '<?php echo $onego_vgc_number ?>')) {
         $('#onego_giftcard_number').focus();
+        OneGoOpencart.unsetAsLoading($('#onego_giftcard_redeem'));
         return false;
     } else {
         OneGoOpencart.redeemGiftCard(
@@ -135,12 +147,18 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
                 <?php echo $js_page_reload_callback ?>();
             },
             function(errorMessage) {
+                OneGoOpencart.unsetAsLoading($('#onego_giftcard_redeem'));
                 var errorMessage = errorMessage || '<?php echo $onego_redeem_failed ?>';
                 OneGoOpencart.flashWarningBefore($('#onego_panel'), errorMessage);
             }
         );
     }
 });
+
+function cancelCheck(checkboxElement)
+{
+    checkboxElement.attr('checked', !checkboxElement.attr('checked'));
+}
 
 <?php if ($isAjaxRequest) { ?>
 OneGo.plugins.init();

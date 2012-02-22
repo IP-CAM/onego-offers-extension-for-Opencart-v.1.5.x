@@ -76,15 +76,11 @@ OneGoOpencart = {
         });
     },
     redeemGiftCard: function(cardNumber, onSuccess, onError) {
-        var redeemButton = $('#onego_giftcard_redeem');
         $.ajax({
             url: $('base').attr('href') + 'index.php?route=total/onego/redeemgiftcard', 
             type: 'post',
             data: {cardnumber: cardNumber},
             dataType: 'json',
-            beforeSend: function(jqXHR, settings) {
-                OneGoOpencart.setAsLoading(redeemButton);
-            },
             success: function(data, textStatus, jqXHR) {
                 if (data.error) {
                     onError(data.message);
@@ -93,45 +89,35 @@ OneGoOpencart = {
                         onSuccess(data);
                     }
                 }
-                OneGoOpencart.unsetAsLoading(redeemButton);
             },
             error: function(xhr, ajaxOptions, thrownError) {
                 if (onError) {
                     onError();
                 }
-                OneGoOpencart.unsetAsLoading(redeemButton);
             }
         })
     },
-    spendPrepaid: function(checkboxElement, onSuccess, onError){
-        var isChecked = checkboxElement.is(':checked');
+    spendPrepaid: function(doSpend, onSuccess, onError){
         $.ajax({
             url: $('base').attr('href') + 'index.php?route=total/onego/spendprepaid', 
             type: 'post',
-            data: {'use_funds': isChecked},
+            data: {'use_funds': doSpend},
             dataType: 'json',
-            beforeSend: function(jqXHR, settings) {
-                OneGoOpencart.setAsLoading(checkboxElement);
-            },
             success: function(data, textStatus, jqXHR) {
                 if (data.error) {
                     if (onError) {
                         onError(data.message, data.error);
                     }
-                    checkboxElement.attr('checked', !isChecked);
                 } else {
                     if (onSuccess) {
                         onSuccess(data);
                     }
                 }
-                OneGoOpencart.unsetAsLoading(checkboxElement);
             },
             error: function(xhr, ajaxOptions, thrownError) {
                 if (onError) {
                     onError();
                 }
-                OneGoOpencart.unsetAsLoading(checkboxElement);
-                checkboxElement.attr('checked', !isChecked);
             }
         })
     },
@@ -206,10 +192,12 @@ OneGoOpencart = {
         });
     },
     setAsLoading: function(element) {
-        var curtain = $('<span class="onego_loading_container"></span>')
-        element.before(curtain);
-        curtain.append(element);
-        element.css('visibility', 'hidden');
+        if (!element.parent().hasClass('onego_loading_container')) {
+            var curtain = $('<span class="onego_loading_container"></span>')
+            element.before(curtain);
+            curtain.append(element);
+            element.css('visibility', 'hidden');
+        }
     },
     unsetAsLoading: function(element) {
         var container = element.parent();
@@ -229,6 +217,7 @@ OneGoOpencart = {
             ',left=' + centerWidth + 
             ',top=' + centerHeight + ',modal=yes'+
             'toolbar=no,directories=no,status=no,menubar=no,scrollbars=no,resizable=no');
+        popup.focus();
         
         if (onClose) {
             var timer = setInterval(function(){
@@ -238,7 +227,5 @@ OneGoOpencart = {
                 }
             }, 100);
         }
-        
-        return popup.name;
     }
 }
