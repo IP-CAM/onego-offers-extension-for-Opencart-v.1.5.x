@@ -340,8 +340,14 @@ END;
             $orderCart = $order->get('cart') ? $order->get('cart') : array();
             $cart = $this->collectCartEntries($orderCart);
             try {
-                $modifiedCart = $this->getApi()->bindEmailNew($order->get('buyerEmail'), $cart);
-                if ($modifiedCart->getPrepaidReceived()) {
+                $receiptNumber = '#'.$order->get('orderId');
+                $transaction = $this->getApi()->bindEmailNew(
+                        $order->get('buyerEmail'), 
+                        $receiptNumber,
+                        false,
+                        $cart);
+                $modifiedCart = $transaction->getModifiedCart();
+                if ($modifiedCart && $modifiedCart->getPrepaidReceived()) {
                     $fundsReceived = $modifiedCart->getPrepaidReceived()->getAmount()->visible;
                 }
                 $order->set('newBuyerRegistered', true);
