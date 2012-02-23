@@ -8,11 +8,18 @@ $oneGoConfig['debugModeOn'] = true;
 
 $oneGoConfig['autologinOn'] = true;
 
-// transaction timeout, in seconds
-$oneGoConfig['transactionTTL'] = 900;
+// transaction timeout, in minutes
+$oneGoConfig['transactionTTL'] = 15;
 
 // itemCode for shipping
 $oneGoConfig['shippingCode'] = 'shipping';
+
+// Opencart order statuses on which to apply OneGo transaction/end operations (CONFIRM or CANCEL)
+$oneGoConfig['confirmOnOrderStatus'] = array(5);
+$oneGoConfig['cancelOnOrderStatus'] = array(7, 9, 13, 8, 14, 10, 11, 12, 16);
+
+// delayed transaction timeout, in hours
+$oneGoConfig['delayedTransactionTTL'] = 2400; // 100 days
 
 // itemCode prefix, added to cart items having no SKU specified
 $oneGoConfig['cartItemCodePrefix'] = 'eshopitem_';
