@@ -11,12 +11,13 @@ $_['button_onego_login']  = 'Apply my Benefits';
 $_['onego_cart_discount'] = 'Your personal discount';
 $_['onego_cart_discount_percents'] = 'Your personal discount (%s%%)';
 $_['text_sub_total'] = 'Sub-Total with your benefits applied';
-$_['prepaid_spent'] = 'Prepaid funds spent';
+$_['prepaid_spent'] = 'Prepaid spent';
+$_['vgc_spent'] = 'Gift Card funds spent';
 $_['funds_receivable'] = 'Your reward';
 $_['text_shipping_discount'] = 'Your shipping discount';
 
-$_['no_funds_available'] = 'You have no funds available.';
-$_['funds_prepaid'] = 'Use my prepaid funds: %s';
+$_['no_funds_available'] = 'You have no prepaid available.';
+$_['funds_prepaid'] = 'Use my prepaid: %s';
 
 $_['auth_widget_text_loading'] = 'Benefits by:';
 $_['auth_widget_text'] = 'Benefits by: {%NAME%}. {%LOGOUT|Not you?%}';
@@ -40,6 +41,11 @@ $_['vgc_number'] = 'Gift Card Number';
 $_['or'] = 'or';
 $_['button_try_again'] = 'Try again';
 $_['vgc_funds_redeemed'] = 'Virtual gift card funds';
+$_['vgc_remainder_plus_prepaid_available'] = 'Attention: you have not fully spent your virtual gift card funds.
+    You will retain the remaining %s and also receive a %s reward if you agree to disclose
+    your e-mail address to create your personal benefits account.';
+$_['vgc_remainder_available'] = 'You will receive a %s reward if you agree to disclose
+    your e-mail address to create your personal benefits account.';
 
 // Error
 $_['benefits_applied']  = 'Success: Your personal benefits applied.';

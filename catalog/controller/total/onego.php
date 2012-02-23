@@ -164,7 +164,7 @@ END;
             $this->data['authWidgetTextLoading'] = $this->language->get('auth_widget_text_loading');
 
             if ($this->data['onego_applied'] = $onego->isTransactionStarted()) {
-                $this->data['onego_funds'] = $onego->getFundsAvailable();
+                $this->data['onego_funds'] = $onego->getPrepaidAvailable();
                 $this->data['use_funds'] = $this->language->get('use_funds');
                 $this->data['no_funds_available'] = $this->language->get('no_funds_available');                    
             }
@@ -198,9 +198,6 @@ END;
         $this->language->load('total/onego');
         $orderInfo = $onego->getCompletedOrder();
         
-        $this->data['onego_funds_received'] = $orderInfo->get('prepaidReceived') ?
-                sprintf($this->language->get('funds_received'), $this->currency->format($orderInfo->get('prepaidReceived'))) 
-                : false;
         $this->data['onego_suggest_disclose'] = $this->language->get('suggest_disclose');
         $this->data['onego_button_agree'] = $this->language->get('button_agree_disclose');
         $this->data['onego_claim_benefits'] = $this->language->get('title_claim_your_benefits');
@@ -208,20 +205,41 @@ END;
                 sprintf($this->language->get('anonymous_buyer_created'), $onego->getConfig('anonymousRegistrationURI'));
         $this->data['onego_button_register'] = $this->language->get('button_register_anonymous');
         
-        if ($onego->isAnonymousRewardsApplied()) {
-            $this->data['onego_benefits_applied'] = true;
-        } else if ($onego->isAnonymousRewardsApplyable()) {
+        if ($onego->isAnonymousRewardsApplyable()) {
             $this->data['onego_benefits_applyable'] = true;
             
             // get reward amount
             try {
-                $receivable = $onego->getAnonymousPrepaidReceivableForLastOrder();
+                $receivable = $onego->getPrepaidReceivableForLastOrder();
             } catch (OneGoAPI_Exception $e) {
                 // TODO error handling
                 $receivable = false;
             }
-            $this->data['onego_funds_receivable'] = $receivable ? 
-                    sprintf($this->language->get('funds_receivable_descr'), $this->currency->format($receivable)) : false;
+            if (!empty($receivable['vgcRemainder'])) {
+                // VGC funds not fully used
+                if ($receivable['prepaid']) {
+                    $this->data['onego_funds_receivable'] = sprintf(
+                        $this->language->get('vgc_remainder_plus_prepaid_available'), 
+                        $this->currency->format($receivable['vgcRemainder']),
+                        $this->currency->format($receivable['prepaid']));
+                } else {
+                    $this->data['onego_funds_receivable'] = sprintf(
+                        $this->language->get('vgc_remainder_available'), 
+                        $this->currency->format($receivable['vgcRemainder']));
+                }                
+            } else if (!empty($receivable['prepaid'])) {
+                // prepaid is available to receive
+                $this->data['onego_funds_receivable'] = sprintf(
+                        $this->language->get('funds_receivable_descr'), 
+                        $this->currency->format($receivable['prepaid']));
+            }
+        } else {
+            if ($onego->isAnonymousRewardsApplied()) {
+                $this->data['onego_benefits_applied'] = true;
+            }
+            $this->data['onego_funds_received'] = $orderInfo->get('prepaidReceived') ?
+                sprintf($this->language->get('funds_received'), $this->currency->format($orderInfo->get('prepaidReceived'))) 
+                : false;
         }
         
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_success.tpl')) {

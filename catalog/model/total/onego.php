@@ -92,19 +92,33 @@ class ModelTotalOnego extends Model
                 $modified = true;
             }
             
-            // funds spent
+            // virtual gift card spent
+            if ($this->isTransactionStarted()) {
+                $vgc = $this->getTransaction()->getVirtualGiftCard();
+                if ($vgc && $vgc->spent) {
+                    $total_data[] = array(
+                        'code' => 'onego',
+                        'title' => $this->language->get('vgc_spent'),
+                        'text' => $this->currency->format(-$vgc->spent),
+                        'value' => 0,
+                        'sort_order' => $this->config->get('onego_sort_order').'p'
+                    );
+                }
+            }
+            
+            // prepaid spent
             $spent = $this->getPrepaidSpent();
-            if (!empty($spent)) {
+            if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::PREPAID_SPENT)) {
                 $total_data[] = array(
                     'code' => 'onego',
                     'title' => $this->language->get('prepaid_spent'),
                     'text' => $this->currency->format(-$spent),
                     'value' => 0,
-                    'sort_order' => $this->config->get('onego_sort_order').'p'
+                    'sort_order' => $this->config->get('onego_sort_order').'r'
                 );
             }
         
-            // funds received
+            // prepaid received
             $received = $this->getPrepaidReceivedAmount();
             if (!empty($received)) {
                 $receivables = array(
@@ -722,7 +736,7 @@ END;
      *
      * @return array Prepaid available to buyer
      */
-    public function getFundsAvailable()
+    public function getPrepaidAvailable()
     {
         $funds = array();
         $transaction = $this->getTransaction();
@@ -733,6 +747,10 @@ END;
                 $spent = $transaction->getPrepaidSpent();
                 if ($spent) {
                     $available += $spent;
+                }
+                $vgc = $transaction->getVirtualGiftCard();
+                if ($vgc) {
+                    $available -= $vgc->spent;
                 }
                 $funds = array(
                     'title'     => sprintf($this->language->get('funds_prepaid'), 
@@ -751,9 +769,9 @@ END;
      * @param string $fundstype
      * @return float total amount of funds of specified type owned by buyer
      */
-    public function getFundsAmountAvailable()
+    public function getPrepaidAmountAvailable()
     {
-        $funds = $this->getFundsAvailable();
+        $funds = $this->getPrepaidAvailable();
         return isset($funds['amount']) ? $funds['amount'] : false;
     }
     
@@ -851,7 +869,7 @@ END;
             return false;
         }
         try {
-            $amount = $this->getFundsAmountAvailable();
+            $amount = $this->getPrepaidAmountAvailable();
             $transaction->spendPrepaid($amount);
             OneGoTransactionState::getCurrent()->set(OneGoTransactionState::PREPAID_SPENT, $amount);
             OneGoUtils::log('Spent prepaid: '.$amount, OneGoUtils::LOG_NOTICE);
@@ -1022,7 +1040,10 @@ END;
     {
         // TODO actual value
         if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::VGC_REDEEMED)) {
-            return $this->getPrepaidSpent();
+            $vgc = $this->getTransaction()->getVirtualGiftCard();
+            if ($vgc) {
+                return $vgc->original;
+            }
         }
         return false;
     }
@@ -1040,6 +1061,12 @@ END;
     {
         $cart = $this->getModifiedCart();
         if ($cart && ($prepaidSpent = $cart->getPrepaidSpent())) {
+            if ($this->isTransactionStarted()) {
+                $vgc = $this->getTransaction()->getVirtualGiftCard();
+                if ($vgc) {
+                    $prepaidSpent -= $vgc->spent;
+                }
+            }
             return $prepaidSpent;
         }
         return false;
@@ -1155,19 +1182,24 @@ END;
         return $token;        
     }
     
-    public function getAnonymousPrepaidReceivableForLastOrder()
+    public function getPrepaidReceivableForLastOrder()
     {
         $lastOrder = $this->getCompletedOrder();
         if (!empty($lastOrder)) {
-            if ($lastOrder->get('oAuthTokenState')->isBuyerAnonymous() &&
-                    $lastOrder->get('transactionState')->get('transaction'))
-            {
+            if ($lastOrder->get('transactionState')->get('transaction')) {
                 $transaction = $lastOrder->get('transactionState')->get('transaction');
-                return (float) $transaction->getPrepaidAmountReceived();
+                $vgcRemainder = $transaction->getVirtualGiftCard() ?
+                        (float) $transaction->getVirtualGiftCard()->remaining : 0;
+                $prepaidReceivable = (float) $transaction->getPrepaidAmountReceived() - $vgcRemainder;
+                $receivable = array(
+                    'vgcRemainder'  => round($vgcRemainder, 2),
+                    'prepaid'       => round($prepaidReceivable, 2),
+                );
+                return $receivable;
             } else {
                 $cart = $lastOrder->get('cart') ? $lastOrder->get('cart') : array();
                 try {
-                    $prepaidReceived = $awards = $this->getApi()
+                    $prepaidReceivable = $awards = $this->getApi()
                             ->getAnonymousAwards($this->collectCartEntries($cart))
                             ->getPrepaidReceived();
                     $awards = !empty($prepaidReceived) ? $prepaidReceived->getAmount()->visible : null;
@@ -1175,7 +1207,11 @@ END;
                     OneGoUtils::logCritical('Failed retrieving anonymous awards', $e);
                     throw $e;
                 }
-                return (float) $awards;
+                $receivable = array(
+                    'vgcRemainder'  => 0,
+                    'prepaid'       => round((float) $awards, 2),
+                );
+                return $receivable;
             }
         }
         return false;

@@ -15,12 +15,8 @@
     <?php } else if (!empty($onego_benefits_applyable)) { ?>
         <strong><?php echo $onego_claim_benefits ?></strong><br />
         <br />
-        <?php if (!empty($onego_funds_receivable)) { ?>
-            <?php echo $onego_funds_receivable ?>
-        <?php } else { ?>
-            <?php echo $onego_suggest_disclose ?>
-        <?php } ?>
-        &nbsp;&nbsp;
+        <?php echo (!empty($onego_funds_receivable)) ? $onego_funds_receivable : $onego_suggest_disclose; ?>
+        <br /><br />
         <a href="<?php echo $onego_claim; ?>" class="button"><span><?php echo $onego_button_agree ?></span></a>
     <?php } else if (!empty($onego_funds_received)) { ?>
         <?php echo $onego_funds_received ?><br />  
