@@ -404,7 +404,7 @@ END;
                 $this->getConfig('clientId'),
                 $this->getConfig('clientSecret'), 
                 $this->getConfig('terminalId'), 
-                $this->getConfig('transactionTTL'),
+                $this->getConfig('transactionTTL')*60,
                 true,
                 $this->getConfig('httpConnectionTimeout')
         );
@@ -521,7 +521,8 @@ END;
     public function confirmTransaction()
     {
         $api = $this->getApi();
-        if ($transaction = $this->getTransaction()) {
+        $transaction = $this->getTransaction();
+        if ($transaction) {
             try {
                 OneGoUtils::log('Transaction confirm', OneGoUtils::LOG_NOTICE);
                 $transaction->confirm();
@@ -547,7 +548,8 @@ END;
     public function cancelTransaction($silent = false)
     {
         $api = $this->getApi();
-        if ($transaction = $this->getTransaction()) {
+        $transaction = $this->getTransaction();
+        if ($transaction) {
             try {
                 $transaction->cancel();
                 $this->deleteTransaction();
@@ -560,6 +562,34 @@ END;
             }
         }
         $this->deleteTransaction();
+        return false;
+    }
+    
+    /**
+     * Delay OneGo transaction, unset saved transaction
+     *
+     * @return mixed OneGoAPI_Impl_Transaction on success, false on fail 
+     */
+    public function delayTransaction()
+    {
+        $api = $this->getApi();
+        $transaction = $this->getTransaction();
+        if ($transaction) {
+            $delayTtl = $this->getConfig('delayedTransactionTTL') * 3600; // convert hours to seconds
+            try {
+                $transaction->delay($delayTtl);
+                OneGoUtils::log('Transaction delayed for '.($delayTtl / 3600).'h', OneGoUtils::LOG_NOTICE);
+                $this->deleteTransaction();
+                if (OneGoOAuthTokenState::getCurrent()->isBuyerAnonymous()) {
+                    // unset token if transaction was started using VGC
+                    $this->deleteOAuthToken();
+                }
+                return $transaction;
+            } catch (Exception $e) {
+                OneGoUtils::log('Transaction delay failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
+                $this->deleteTransaction();
+            }
+        }
         return false;
     }
     
@@ -682,7 +712,8 @@ END;
      */
     protected function addShippingToCart(&$transaction_cart)
     {
-        if ($shipping = $this->getShippingAsItem()) {
+        $shipping = $this->getShippingAsItem();
+        if ($shipping) {
             $transaction_cart['shipping'] = $shipping;
         }
     }

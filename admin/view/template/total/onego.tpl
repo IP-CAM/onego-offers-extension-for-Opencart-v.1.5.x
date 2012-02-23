@@ -18,17 +18,35 @@
         <table class="form">
           <?php foreach ($onego_config_fields as $field => $row) { ?>
           <tr id="cfgRow_<?php echo $field ?>">
+            <?php if (in_array('onego_'.$field, $invalid_fields)) { ?>
+            <td style="color: red;"><?php echo $row['title']; ?></td>
+            <?php } else { ?>
             <td><?php echo $row['title']; ?></td>
+            <?php } ?>
             <td>
                 <?php if (in_array($field, array('widgetShow', 'widgetFrozen', 'autologinOn'))) { ?>
-                
+
                 <input type="hidden" name="onego_<?php echo $field ?>" value="" />
                 <input type="checkbox" name="onego_<?php echo $field ?>" id="cfgField_<?php echo $field ?>" value="Y" <?php echo $row['value'] == 'Y' ? ' checked="checked"' : '' ?> />
+                <div style="display: inline; color: gray; margin-left: 10px;"><?php echo $row['help'] ?></div>
+                
+                <?php } else if (in_array($field, array('confirmOnOrderStatus', 'cancelOnOrderStatus'))) { ?>
+                
+                <?php $row['value'] = is_array($row['value']) ? $row['value'] : explode('|', $row['value']); ?>
+                
+                <div style="color: gray; margin-bottom: 5px;"><?php echo $row['help'] ?></div>
+                <?php foreach ($order_statuses as $status) { ?>
+                    <?php $st = in_array($status['order_status_id'], $row['value']) ? ' checked="true"' : '' ?>
+                    <input type="checkbox" name="onego_<?php echo $field ?>[]" value="<?php echo $status['order_status_id'] ?>" id="<?php echo $field.'_'.$status['order_status_id'] ?>" <?php echo $st ?> class="orderstatus_<?php echo $status['order_status_id'] ?> orderstatus" />
+                    <label for="<?php echo $field.'_'.$status['order_status_id'] ?>"><?php echo $status['name'] ?></label>&nbsp;
+                <?php } ?>
                 
                 <?php } else { ?>
+                
                 <input type="text" name="onego_<?php echo $field ?>" id="cfgField_<?php echo $field ?>" value="<?php echo $row['value']; ?>" />
-                <?php } ?>
                 <div style="display: inline; color: gray; margin-left: 10px;"><?php echo $row['help'] ?></div>
+                
+                <?php } ?>
             </td>
           </tr>
               <?php 
@@ -64,6 +82,12 @@
 $(document).ready(function(){
     hideCfgParams();
     $('#cfgField_widgetShow').click(hideCfgParams);
+    $('input.orderstatus').click(function(){
+        if ($(this).is(':checked')) {
+            $('input.orderstatus_'+$(this).val()).attr('checked', false);
+            $(this).attr('checked', true);
+        }
+    })
 })
 function hideCfgParams()
 {

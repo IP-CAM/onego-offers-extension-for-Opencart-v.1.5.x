@@ -3,6 +3,7 @@
 class ControllerTotalOnego extends Controller {
 
     private $error = array();
+    private $errorFields = array();
 
     public function index() {
         $this->load->language('total/onego');
@@ -21,6 +22,8 @@ class ControllerTotalOnego extends Controller {
 
         $this->data['heading_title'] = $this->language->get('heading_title');
 
+        $this->data['invalid_fields'] = $this->errorFields;
+        
         $this->data['text_enabled'] = $this->language->get('text_enabled');
         $this->data['text_disabled'] = $this->language->get('text_disabled');
 
@@ -76,8 +79,9 @@ class ControllerTotalOnego extends Controller {
         }
         $this->data['onego_sortorder_text'] = $this->language->get('entry_help_sortorder');
         
-        $config_fields = array('clientId', 'clientSecret', 'terminalId', 'transactionTTL',
-            'shippingCode', 'widgetShow', 'widgetFrozen', 'widgetTopOffset', 'autologinOn');
+        $config_fields = array('clientId', 'clientSecret', 'terminalId', 'shippingCode', 
+            'transactionTTL', 'confirmOnOrderStatus', 'delayedTransactionTTL', 'cancelOnOrderStatus',
+            'widgetShow', 'widgetFrozen', 'widgetTopOffset', 'autologinOn');
         $fields = array();
         foreach ($config_fields as $field) {
             $help_key = 'entry_help_'.$field;
@@ -91,6 +95,9 @@ class ControllerTotalOnego extends Controller {
             $fields[$field] = $row;
         }
         $this->data['onego_config_fields'] = $fields;
+        
+        $this->load->model('localisation/order_status');
+        $this->data['order_statuses'] = $this->model_localisation_order_status->getOrderStatuses();
         
 
         $this->template = 'total/onego.tpl';
@@ -111,15 +118,22 @@ class ControllerTotalOnego extends Controller {
         $this->request->post['onego_clientId'] = trim($this->request->post['onego_clientId']);
         $this->request->post['onego_clientSecret'] = trim($this->request->post['onego_clientSecret']);
         $this->request->post['onego_terminalId'] = trim($this->request->post['onego_terminalId']);
+        $this->request->post['onego_transactionTTL'] = (int) trim($this->request->post['onego_transactionTTL']) > 0 ? 
+                (int) trim($this->request->post['onego_transactionTTL']) : '';
         
         // validate
         $post = $this->request->post;
-        if (empty($post['onego_clientId']) || 
-            empty($post['onego_clientSecret']) ||
-            empty($post['onego_terminalId'])) 
-        {
-            $this->error['warning'] = $this->language->get('error_missing_required_fields');
+        $requiredFields = array('onego_clientId', 'onego_clientSecret', 'onego_terminalId',
+            'onego_transactionTTL', 'onego_confirmOnOrderStatus', 'onego_cancelOnOrderStatus');
+        foreach ($requiredFields as $field) {
+            if (empty($post[$field])) {
+                $this->error['warning'] = $this->language->get('error_missing_required_fields');
+                $this->errorFields[] = $field;
+            }
         }
+        
+        $this->request->post['onego_confirmOnOrderStatus'] = implode('|', empty($post['onego_confirmOnOrderStatus']) ? array() : $post['onego_confirmOnOrderStatus']);
+        $this->request->post['onego_cancelOnOrderStatus'] = implode('|', empty($post['onego_cancelOnOrderStatus']) ? array() : $post['onego_cancelOnOrderStatus']);
 
         return $this->error ? false : true;
     }
