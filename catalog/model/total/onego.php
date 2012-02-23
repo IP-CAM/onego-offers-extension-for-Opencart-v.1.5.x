@@ -233,6 +233,16 @@ class ModelTotalOnego extends Model
         }
     }
     
+    // wrapper to be always called from ModelCheckoutOrder::confirm()
+    public function confirmOrder($orderId)
+    {
+        $this->load->model('account/order');		
+        $orderInfo = $this->model_account_order->getOrder($orderId);
+        if ($orderInfo) {
+            $this->confirm($orderInfo, false);
+        }
+    }
+    
     public function saveCompletedOrderState($orderId)
     {
         $this->load->model('account/order');		
@@ -1202,7 +1212,7 @@ END;
                     $prepaidReceivable = $awards = $this->getApi()
                             ->getAnonymousAwards($this->collectCartEntries($cart))
                             ->getPrepaidReceived();
-                    $awards = !empty($prepaidReceived) ? $prepaidReceived->getAmount()->visible : null;
+                    $awards = !empty($prepaidReceivable) ? $prepaidReceivable->getAmount()->visible : null;
                 } catch (OneGoAPI_Exception $e) {
                     OneGoUtils::logCritical('Failed retrieving anonymous awards', $e);
                     throw $e;
