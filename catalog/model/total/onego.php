@@ -4,6 +4,10 @@ require_once DIR_ONEGO.'php-api/src/OneGoAPI/init.php';
 
 class ModelTotalOnego extends Model 
 {   
+    const TRANSACTION_CONFIRM = 'CONFIRM';
+    const TRANSACTION_DELAY = 'DELAY';
+    const TRANSACTION_CANCEL = 'CANCEL';
+    
     protected static $current_eshop_cart = false;
     
     /**
@@ -202,7 +206,14 @@ class ModelTotalOnego extends Model
                 $api = $this->getApi();
                 $transactionId = $this->getTransactionId()->id;
                 try {
-                    $transaction = $this->confirmTransaction();
+                    if ($this->isOrderStatusConfirmable($orderInfo['order_status_id'])) {
+                        $transaction = $this->confirmTransaction();
+                        $this->logTransaction($orderId, $this->getTransactionId()->id, self::TRANSACTION_CONFIRM);
+                    } else {
+                        $doDelay = true;
+                        $transaction = $this->delayTransaction();
+                        $this->logTransaction($orderId, $this->getTransactionId()->id, self::TRANSACTION_DELAY, $this->getDelayTtl());
+                    }
                     $lastOrder->set('prepaidReceived', $transaction->getPrepaidAmountReceived());
                     
                     if (!$tokenState->isBuyerAnonymous()) {
@@ -215,6 +226,13 @@ class ModelTotalOnego extends Model
                     
                 } catch (Exception $e) {
                     $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
+                    if (!empty($doDelay)) {
+                        $this->logTransaction($orderId, $this->getTransactionId()->id, 
+                                self::TRANSACTION_DELAY, $this->getDelayTtl(), true, $e->getMessage());
+                    } else {
+                        $this->logTransaction($orderId, $this->getTransactionId()->id, 
+                                self::TRANSACTION_CONFIRM, null, true, $e->getMessage());
+                    }
                     $this->throwError($e->getMessage());
                 }
             } else {
@@ -223,7 +241,7 @@ class ModelTotalOnego extends Model
                         $receivedFunds = $this->bindEmailForOrder($lastOrder);
                         $lastOrder->set('benefitsApplied', true);
                     } catch (OneGoException $e) {
-                        $transactionId = 'UNKNOWN';
+                        $transactionId = '-undefined-';
                         $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
                     }
                 }
@@ -236,18 +254,24 @@ class ModelTotalOnego extends Model
     // wrapper to be always called from ModelCheckoutOrder::confirm()
     public function confirmOrder($orderId)
     {
-        $this->load->model('account/order');		
-        $orderInfo = $this->model_account_order->getOrder($orderId);
+        $orderInfo = $this->getOrderInfo($orderId);
         if ($orderInfo) {
             $this->confirm($orderInfo, false);
         }
     }
     
+    protected function isOrderStatusConfirmable($orderStatusId)
+    {
+        $confirmedStatuses = $this->getConfig('confirmOnOrderStatus');
+        if (!is_array($confirmedStatuses)) {
+            $confirmedStatuses = explode('|', $confirmedStatuses);
+        }
+        return in_array($orderStatusId, $confirmedStatuses);
+    }
+    
     public function saveCompletedOrderState($orderId)
     {
-        $this->load->model('account/order');		
-        $orderInfo = $this->model_account_order->getOrder($orderId);
-        
+        $orderInfo = $this->getOrderInfo($orderId);
         $completedOrder = OneGoCompletedOrderState::getCurrent();
         $completedOrder->reset();
         $completedOrder->set('orderId', $orderId);
@@ -264,8 +288,7 @@ class ModelTotalOnego extends Model
     
     public function registerFailedTransaction($orderId, $errorMessage, $transactionId)
     {
-        $this->load->model('account/order');		
-        $orderInfo = $this->model_account_order->getOrder($orderId);
+        $orderInfo = $this->getOrderInfo($orderId);
         
         $version = ONEGO_EXTENSION_VERSION;
         $text = <<<END
@@ -341,23 +364,54 @@ END;
             $cart = $this->collectCartEntries($orderCart);
             try {
                 $receiptNumber = '#'.$order->get('orderId');
+                
+                // detect whether transaction is to be confirmed or delayed
+                $orderInfo = $this->getOrderInfo($order->get('orderId'));
+                if ($this->isOrderStatusConfirmable($orderInfo['order_status_id'])) {
+                    $delayTtl = false;
+                } else {
+                    $delayTtl = $this->getDelayTtl();
+                }
+                
                 $transaction = $this->getApi()->bindEmailNew(
                         $order->get('buyerEmail'), 
                         $receiptNumber,
-                        false,
+                        $delayTtl,
                         $cart);
+                $this->saveTransaction($transaction);
                 $modifiedCart = $transaction->getModifiedCart();
                 if ($modifiedCart && $modifiedCart->getPrepaidReceived()) {
                     $fundsReceived = $modifiedCart->getPrepaidReceived()->getAmount()->visible;
                 }
                 $order->set('newBuyerRegistered', true);
                 $order->set('prepaidReceived', $fundsReceived);
+                
+                // log transaction complete
+                if ($delayTtl) {
+                    $this->logTransaction($order->get('orderId'), $transaction->getId()->id, self::TRANSACTION_DELAY, $delayTtl);
+                } else {
+                    $this->logTransaction($order->get('orderId'), $transaction->getId()->id, self::TRANSACTION_CONFIRM);
+                }
             } catch (OneGoAPI_Exception $e) {
                 OneGoUtils::logCritical('bindEmailNew() failed', $e);
+                // log failed transaction complete
+                if ($delayTtl) {
+                    $this->logTransaction($order->get('orderId'), $transaction->getId()->id, self::TRANSACTION_DELAY, $delayTtl,
+                            true, $e->getMessage());
+                } else {
+                    $this->logTransaction($order->get('orderId'), $transaction->getId()->id, self::TRANSACTION_CONFIRM, null,
+                            true, $e->getMessage());
+                }
                 throw $e;
             }
         }
         return $fundsReceived;
+    }
+    
+    public function getOrderInfo($orderId)
+    {
+        $this->load->model('account/order');		
+        return $this->model_account_order->getOrder($orderId);
     }
     
     /**
@@ -401,7 +455,7 @@ END;
     
     /**
      *
-     * @return Object OneGo transaction's id value
+     * @return OneGoAPI_DTO_TransactionIdDto OneGo transaction's id value
      */
     protected function getTransactionId()
     {
@@ -605,7 +659,7 @@ END;
         $api = $this->getApi();
         $transaction = $this->getTransaction();
         if ($transaction) {
-            $delayTtl = $this->getConfig('delayedTransactionTTL') * 3600; // convert hours to seconds
+            $delayTtl = $this->getDelayTtl();
             try {
                 $transaction->delay($delayTtl);
                 OneGoUtils::log('Transaction delayed for '.($delayTtl / 3600).'h', OneGoUtils::LOG_NOTICE);
@@ -621,6 +675,11 @@ END;
             }
         }
         return false;
+    }
+    
+    protected function getDelayTtl()
+    {
+        return $this->getConfig('delayedTransactionTTL') * 3600; // convert hours to seconds
     }
     
     /**
@@ -1284,6 +1343,31 @@ END;
         OneGoTransactionState::getCurrent()->set('agreedToDiscloseEmail', $state->get('agreedToDiscloseEmail'));
         OneGoTransactionState::getCurrent()->set('transaction', $state->get('transaction'));
         OneGoTransactionState::getCurrent()->set('cartHash', $state->get('cartHash'));
+    }
+    
+    private function logTransaction(
+        $orderId, $transactionId, $operation,
+        $delayTtl = null, $failed = false, $errorMessage = null)
+    {
+        $db = OneGoUtils::getRegistry()->get('db');
+        
+        $orderId = (int) $orderId;
+        $transactionId = $db->escape($transactionId);
+        if (!in_array($operation, array(self::TRANSACTION_CONFIRM, self::TRANSACTION_CANCEL, 
+            self::TRANSACTION_DELAY))) 
+        {
+            throw new OneGoException('Invalid transaction operation: '.$operation);
+        }
+        $delayTtl = (int) $delayTtl ? (int) $delayTtl : 'NULL';
+        $success = !$failed ? '1' : '0';
+        $error = !empty($errorMessage) ? '\''.$db->escape($errorMessage).'\'' : 'NULL';
+        
+        $sql = "INSERT INTO ".DB_PREFIX."onego_transactions_log
+                    (order_id, transaction_id, operation, success, error_message, inserted_on, expires_in)
+                VALUES 
+                    ({$orderId}, '{$transactionId}', '{$operation}', {$success},
+                    {$error}, NOW(), {$delayTtl})";
+        $db->query($sql);
     }
 }
 

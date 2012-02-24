@@ -97,19 +97,15 @@
             // wrapper for original confirm(), which always calls ModelTotalOnego::confirm() in the end
             public function confirm($order_id)
             {
-                $args = func_get_args();
-                print_r($args);
-                
                 call_user_func_array(
                     array($this, '_confirm_onego_wrapped'),
-                    $args
+                    func_get_args()
                 );
                 
                 if ($this->config->get('onego_status')) {
                     $this->load->model('total/onego');
                     $this->model_total_onego->confirmOrder($order_id);
                 }
-                echo 'overtaken!!';
             }
             
             private function _confirm_onego_wrapped($order_id
