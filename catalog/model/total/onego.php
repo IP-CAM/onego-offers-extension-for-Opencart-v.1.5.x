@@ -759,9 +759,10 @@ END;
             $eshopCart = $this->getEshopCart();
         }
         $cart = $this->getApi()->newCart();
-        foreach ($eshopCart as $product) {
+        foreach ($eshopCart as $key => $product) {
+            $ignored = $this->isShippingItemCode($key);
             $cart->setEntry($product['key'], $product['_item_code'], $product['price'], 
-                    $product['quantity'], $product['total'], $product['name']);
+                    $product['quantity'], $product['total'], $product['name'], false, $ignored);
         }
         return $cart;
     }
@@ -934,7 +935,12 @@ END;
     
     public function isShippingItem(OneGoAPI_DTO_CartEntryDto $transactionCartEntry)
     {
-        return in_array($transactionCartEntry->itemCode, array($this->getConfig('shippingCode')));
+        return $this->isShippingItemCode($transactionCartEntry->itemCode);
+    }
+    
+    public function isShippingItemCode($itemCode)
+    {
+        return in_array($itemCode, array($this->getConfig('shippingCode')));
     }
     
     public function spendPrepaid()

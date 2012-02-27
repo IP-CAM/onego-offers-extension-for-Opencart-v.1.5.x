@@ -13,6 +13,8 @@ class ControllerTotalOnego extends Controller {
         $this->load->model('setting/setting');
 
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && ($this->validate())) {
+            $this->createDbTable();
+            
             $this->model_setting_setting->editSetting('onego', $this->request->post);
 
             $this->session->data['success'] = $this->language->get('text_success');
@@ -109,6 +111,10 @@ class ControllerTotalOnego extends Controller {
         $this->response->setOutput($this->render());
     }
 
+    /**
+     *
+     * @return boolean Are configuration values valid
+     */
     private function validate() {
         if (!$this->user->hasPermission('modify', 'total/onego')) {
             $this->error['warning'] = $this->language->get('error_permission');
@@ -138,6 +144,14 @@ class ControllerTotalOnego extends Controller {
         return $this->error ? false : true;
     }
     
+    /**
+     * Return setting configured through admin interface; if not available -
+     * from config file.
+     *
+     * @global type $oneGoConfig
+     * @param string $key
+     * @return mixed 
+     */
     private function getConfigValue($key)
     {
         global $oneGoConfig;
@@ -152,6 +166,26 @@ class ControllerTotalOnego extends Controller {
             return $oneGoConfig[$key];
         }
         return false;
+    }
+    
+    /**
+     * Create DB table for storing OneGo transactions information
+     */
+    private function createDbTable()
+    {
+        $sql = "CREATE TABLE IF NOT EXISTS `onego_transactions_log` (
+                  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                  `order_id` int(11) NOT NULL COMMENT 'Opencart order ID',
+                  `transaction_id` varchar(100) NOT NULL COMMENT 'OneGo transaction ID',
+                  `operation` enum('CONFIRM','CANCEL','DELAY') NOT NULL COMMENT 'OneGo operation',
+                  `success` tinyint(1) NOT NULL COMMENT 'Is operation successful',
+                  `error_message` text COMMENT 'Error message (optional)',
+                  `inserted_on` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                  `expires_in` int(11) DEFAULT NULL COMMENT 'Delayed transaction TTL',
+                  PRIMARY KEY (`id`),
+                  KEY `order_id` (`order_id`)
+                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='OneGo transactions for orders'";
+        $this->registry->get('db')->query($sql);
     }
 
 }
