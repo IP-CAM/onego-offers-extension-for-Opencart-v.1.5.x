@@ -113,4 +113,33 @@
         </operation>
     </file>
     
+    <file name="admin/view/template/common/header.tpl">
+        <operation>
+        <search position="before"><![CDATA[
+            </head>
+            ]]></search>
+            
+            <add><![CDATA[
+            <link rel="stylesheet" type="text/css" href="view/stylesheet/onego.css" />
+            <script type="text/javascript" src="view/javascript/onego.js"></script>
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="admin/view/template/sale/order_info.tpl">
+        <operation>
+        <search position="after"><![CDATA[
+            <div id="history"></div>
+            ]]></search>
+            
+            <add><![CDATA[
+            <script type="text/javascript">
+            $('document').ready(function(){
+                OneGoOpencart.loadOrderStatus('<?php echo $token ?>', <?php echo $order_id ?>);
+            })
+            </script>
+            ]]></add>
+        </operation>
+    </file>
+    
 </modification>

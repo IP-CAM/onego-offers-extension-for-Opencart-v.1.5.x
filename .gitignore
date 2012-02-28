@@ -21,6 +21,12 @@ admin/view/template/*
 !admin/view/template/total/
 admin/view/template/total/*
 !admin/view/template/total/onego.tpl
+!admin/view/javascript/
+admin/view/javascript/*
+!admin/view/javascript/onego.js
+!admin/view/stylesheet/
+admin/view/stylesheet/*
+!admin/view/stylesheet/onego.css
 
 !system/
 system/*

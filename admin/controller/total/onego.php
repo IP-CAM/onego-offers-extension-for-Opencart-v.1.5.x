@@ -1,4 +1,6 @@
 <?php
+define('DIR_ONEGO', DIR_SYSTEM.'library/onego/');
+require_once DIR_ONEGO.'common.lib.php';
 
 class ControllerTotalOnego extends Controller {
 
@@ -13,7 +15,7 @@ class ControllerTotalOnego extends Controller {
         $this->load->model('setting/setting');
 
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && ($this->validate())) {
-            $this->createDbTable();
+            OneGoTransactionsLog::init();
             
             $this->model_setting_setting->editSetting('onego', $this->request->post);
 
@@ -91,7 +93,7 @@ class ControllerTotalOnego extends Controller {
             $row = array(
                 'title' => $this->language->get('entry_'.$field),
                 'value' => isset($this->request->post['onego_'.$field]) ?
-                    $this->request->post['onego_'.$field] : $this->getConfigValue($field),
+                    $this->request->post['onego_'.$field] : OneGoConfig::getInstance()->get($field),
                 'help'  => $help == $help_key ? '' : $help,
             );
             $fields[$field] = $row;
@@ -109,6 +111,137 @@ class ControllerTotalOnego extends Controller {
         );
 
         $this->response->setOutput($this->render());
+    }
+    
+    public function status()
+    {
+        if (!$this->config->get('onego_status') || !$this->user->hasPermission('modify', 'sale/order')) {
+            $this->response->setOutput('');
+            return;
+        }
+        
+        $this->language->load('total/onego');
+        
+        $orderId = (int) $this->request->get['order_id'];
+        $operations = OneGoTransactionsLog::getListForOrder($orderId);
+        foreach ($operations as $row) {
+            if ($row['success'] && empty($statusSuccess)) {
+                $statusSuccess = $row;
+                break;
+            } else if (!$row['success'] && empty($statusFailure)) {
+                $statusFailure = $row;
+            }
+        }
+        if (!empty($statusSuccess)) {
+            if ($statusSuccess['operation'] == OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY) {
+                // delayed transaction
+                $expiresOn = strtotime($statusSuccess['inserted_on']) + $statusSuccess['expires_in'];
+                if ($expiresOn <= time()) {
+                    // transaction expired
+                    $this->data['onego_status_success'] = sprintf(
+                        $this->language->get('transaction_status_expired'), date('Y-m-d H:i:s', $expiresOn));
+                } else {
+                    // transaction delayed
+                    $this->data['onego_status_success'] = sprintf(
+                        $this->language->get('transaction_status_delayed'), 
+                        date('Y-m-d H:i', strtotime($statusSuccess['inserted_on'])),
+                        date('Y-m-d H:i:s', $expiresOn));
+                    
+                    // enable transaction completion actions
+                    $this->data['onego_btn_confirm'] = $this->language->get('button_confirm_transaction');
+                    $this->data['onego_btn_cancel'] = $this->language->get('button_cancel_transaction');
+                    $this->data['confirm_confirm'] = $this->language->get('confirm_transaction_confirm');
+                    $this->data['confirm_cancel'] = $this->language->get('confirm_transaction_cancel');
+                    $this->data['delay_periods'] = $this->language->get('delay_period');
+                    $this->data['delay_for_period'] = $this->language->get('delay_for_period');
+                    $this->data['onego_btn_delay'] = $this->language->get('button_delay_transaction');                   
+                    $this->data['confirm_delay'] = $this->language->get('confirm_transaction_delay');
+                    
+                }
+            } else {
+                $this->data['onego_status_success'] = sprintf(
+                        $this->language->get('transaction_status_'.strtolower($statusSuccess['operation'])),
+                        date('Y-m-d H:i', strtotime($statusSuccess['inserted_on'])));
+            }
+        } 
+        if (!empty($statusFailure)) {
+            $this->data['onego_status_failure'] = sprintf(
+                    $this->language->get('transaction_operation_failed'),
+                    date('Y-m-d H:i', strtotime($statusFailure['inserted_on'])),
+                    $statusFailure['operation'],
+                    $statusFailure['error_message']);
+        } else if (empty($statusSuccess)) {
+            $this->data['onego_status_undefined'] = $this->language->get('transaction_status_undefined');
+        }
+        $this->data['onego_status'] = $this->language->get('onego_status');
+        $this->data['order_id'] = $orderId;
+        $this->data['token'] = $this->session->data['token'];
+        
+        $this->template = 'total/onego_status.tpl';
+        $this->response->setOutput($this->render());
+    }
+    
+    public function endTransaction()
+    {
+        $this->language->load('total/onego');
+        
+        $orderId = (int) $this->request->post['order_id'];
+        $action = $this->request->post['action'];
+        
+        if (!$this->config->get('onego_status') || 
+                !$this->user->hasPermission('modify', 'sale/order') ||
+                empty($orderId) || empty($action) ||
+                !in_array($action, OneGoAPI_DTO_TransactionEndDto::getStatusesAvailable()))
+        {
+            $ret = array('error' => 'Unauthorized call');
+        }
+        
+        $operations = OneGoTransactionsLog::getListForOrder($orderId, true);
+        if (empty($operations) || !($operation = $operations[0]) || empty($operation['transaction_id'])) {
+            $ret = array('error' => $this->language->get('error_transaction_id_unknown'));
+        } else {
+            // get transaction
+            $api = OneGoUtils::initAPI();
+            try {
+                $transactionId = $operation['transaction_id'];
+                $transaction = $api->fetchById($transactionId);
+                   
+                try {
+                    $delayTtl = null;
+                    if ($action == OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY) {
+                        $delayDays = (int) $this->request->post['duration'];
+                        $delayPeriodEnd = mktime(23, 59, 59, date('m'), date('d')+$delayDays, date('Y'));
+                        $delayTtl = $delayPeriodEnd - time();
+                        
+                        $transaction->delay($delayTtl);
+                        
+                    } else if ($action == OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM) {
+                        
+                        $transaction->confirm();
+                        
+                    } else if ($action == OneGoAPI_DTO_TransactionEndDto::STATUS_CANCEL) {
+                        
+                        $transaction->cancel();
+                        
+                    }
+                    $ret = array(
+                        'success' => true
+                    );
+                    OneGoTransactionsLog::log($orderId, $transactionId, $action, $delayTtl);
+                } catch (OneGoAPI_Exception $e) {
+                    // log operation
+                    OneGoTransactionsLog::log($orderId, $transactionId, $action, $delayTtl, 
+                            true, $e->getMessage());                    
+                    throw $e;
+                }
+            } catch (Exception $e) {
+                $ret = array(
+                    'error' => $e->getMessage()
+                );
+            }
+        }
+        
+        $this->response->setOutput(json_encode($ret));
     }
 
     /**
@@ -143,49 +276,4 @@ class ControllerTotalOnego extends Controller {
 
         return $this->error ? false : true;
     }
-    
-    /**
-     * Return setting configured through admin interface; if not available -
-     * from config file.
-     *
-     * @global type $oneGoConfig
-     * @param string $key
-     * @return mixed 
-     */
-    private function getConfigValue($key)
-    {
-        global $oneGoConfig;
-        if (!isset($oneGoConfig)) {
-            require_once DIR_SYSTEM.'library/onego/config.inc.php';
-        }
-        
-        $val = $this->config->get('onego_'.$key);
-        if (!is_null($val)) {
-            return $val;
-        } else if (isset($oneGoConfig[$key])) {
-            return $oneGoConfig[$key];
-        }
-        return false;
-    }
-    
-    /**
-     * Create DB table for storing OneGo transactions information
-     */
-    private function createDbTable()
-    {
-        $sql = "CREATE TABLE IF NOT EXISTS `onego_transactions_log` (
-                  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-                  `order_id` int(11) NOT NULL COMMENT 'Opencart order ID',
-                  `transaction_id` varchar(100) NOT NULL COMMENT 'OneGo transaction ID',
-                  `operation` enum('CONFIRM','CANCEL','DELAY') NOT NULL COMMENT 'OneGo operation',
-                  `success` tinyint(1) NOT NULL COMMENT 'Is operation successful',
-                  `error_message` text COMMENT 'Error message (optional)',
-                  `inserted_on` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-                  `expires_in` int(11) DEFAULT NULL COMMENT 'Delayed transaction TTL',
-                  PRIMARY KEY (`id`),
-                  KEY `order_id` (`order_id`)
-                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='OneGo transactions for orders'";
-        $this->registry->get('db')->query($sql);
-    }
-
 }
