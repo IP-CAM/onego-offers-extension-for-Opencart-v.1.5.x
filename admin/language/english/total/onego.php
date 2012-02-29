@@ -51,11 +51,12 @@ $_['entry_help_cancelOnOrderStatus'] = 'OneGo transactions are canceled when ord
     he does not receive rewards.';
 
 $_['onego_status'] = 'OneGo transaction status:';
+$_['onego_status_short'] = 'OneGo:';
 $_['transaction_status_undefined'] = 'Not initiated';
-$_['transaction_status_confirm'] = 'Confirmed on %s, buyer\'s benefits used/rewarded';
-$_['transaction_status_cancel'] = 'Canceled on %s, buyer\'s benefits not used/rewarded';
+$_['transaction_status_confirm'] = 'Confirmed on %s (buyer\'s benefits used/rewarded)';
+$_['transaction_status_cancel'] = 'Canceled on %s (buyer\'s benefits not used/rewarded)';
 $_['transaction_status_delayed'] = 'Delayed on %s, expires %s';
-$_['transaction_status_expired'] = 'Expired on %s, buyer\'s benefits not used/rewarded';
+$_['transaction_status_expired'] = 'Expired on %s (buyer\'s benefits not used/rewarded)';
 $_['transaction_operation_failed'] = 'Transaction operation failed: [%s] %s - %s';
 $_['button_confirm_transaction'] = 'Confirm';
 $_['button_cancel_transaction'] = 'Cancel';
@@ -73,6 +74,10 @@ $_['delay_for_period'] = 'Delay for';
 $_['button_delay_transaction'] = 'Delay';
 $_['transaction_will_confirm'] = 'Transaction will be confirmed when you click "Add History". Buyer\\\'s benefits will be used and/or rewards received.';
 $_['transaction_will_cancel'] = 'Transaction will be canceled when you click "Add History". Buyer\\\'s benefits will not be used and/or rewards received.';
+$_['status_failure'] = 'failed';
+$_['status_delayed'] = 'delayed until %s';
+$_['status_confirmed'] = 'confirmed';
+$_['status_canceled'] = 'canceled';
 
 // Error
 $_['error_permission'] = 'Warning: You do not have permission to modify OneGo total!';

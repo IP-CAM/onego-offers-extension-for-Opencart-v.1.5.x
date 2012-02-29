@@ -14,6 +14,11 @@ admin/language/english/*
 !admin/language/english/total/
 admin/language/english/total/*
 !admin/language/english/total/onego.php
+!admin/model/
+admin/model/*
+!admin/model/total/
+admin/model/total/*
+!admin/model/total/onego.php
 !admin/view/
 admin/view/*
 !admin/view/template/

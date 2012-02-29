@@ -84,7 +84,6 @@ $(document).ready(function(){
         <?php if (!empty($onego_allow_status_change)) { ?>
                 
         var st = detectStatusChange();
-        console.log('status', st);
         var shouldConfirm = (st == 'confirm');
         var shouldCancel = (st == 'cancel');
         if (shouldConfirm || shouldCancel) {

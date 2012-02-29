@@ -563,6 +563,54 @@ class OneGoTransactionsLog
         }
         return $log;
     }
+    
+    /**
+     *
+     * @param array $ordersIds List of Opencart orders IDs
+     * @return array List of last successful operations (or failures) for orders
+     */
+    public static function getStatusesForOrders($ordersIds)
+    {
+        $list = array();
+        if (!empty($ordersIds)) {
+            $db = OneGoUtils::getRegistry()->get('db');
+            foreach ($ordersIds as $key => $val) {
+                $ordersIds[$key] = (int) $val;
+            }
+            $ordersIds = array_unique($ordersIds);
+            $ids = implode(',', $ordersIds);
+            $sql = "SELECT *
+                    FROM ".DB_PREFIX."onego_transactions_log otl
+                    WHERE otl.order_id IN ({$ids})
+                    ORDER BY inserted_on DESC";
+            $res = $db->query($sql);
+            if (!empty($res->rows)) {
+                $statuses = array();
+                foreach ($res->rows as $row) {
+                    if (!isset($statuses[$row['order_id']]) ||
+                        !$statuses[$row['order_id']]['success']) 
+                    {
+                        $statuses[$row['order_id']] = $row;
+                    }
+                }
+                foreach ($ordersIds as $id) {
+                    $list[$id] = isset($statuses[$id]) ? $statuses[$id] : null;
+                }
+            }
+        }
+        return $list;
+    }
+    
+    /**
+     *
+     * @param integer $orderId Opencart order ID
+     * @return array Last transaction operation from log
+     */
+    public static function getStatusForOrder($orderId)
+    {
+        $statuses = self::getStatusesForOrders(array($orderId));
+        return isset($statuses[$orderId]) ? $statuses[$orderId] : false;
+    }
 }
 
 class OneGoException extends Exception {}

@@ -46,9 +46,3 @@ OneGoOpencart.loadOrderStatus = function(token, orderId){
         container.load('index.php?route=total/onego/status&token='+token+'&order_id='+orderId);
     }
 }
-
-// ==========
-
-$(document).ready(function(){
-    
-});

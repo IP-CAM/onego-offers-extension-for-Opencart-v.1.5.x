@@ -11,3 +11,9 @@
     color: orange;
     font-weight: bold;
 }
+.onego_transaction_status_failed {
+    color: red;
+}
+.onego_transaction_status_ok {
+    color: gray;
+}
