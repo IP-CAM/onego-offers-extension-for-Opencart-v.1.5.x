@@ -173,83 +173,75 @@ class ModelTotalOnego extends Model
     }
     
     /**
-     * Method is called from Opencart code on order confirmation
+     * Processes order confirmation. Is always called after ModelCheckoutOrder::confirm()
      *
-     * @param array $order_info
-     * @param type $order_total 
+     * @param integer $orderId Opencart order ID
      */
-    public function confirm($orderInfo, $orderTotal)
-    {
-        $orderId = $orderInfo['order_id'];
-        $lastOrder = OneGoCompletedOrderState::getCurrent();
-        if ($lastOrder->get('orderId') != $orderId) {
-            $lastOrder->reset();
-            $lastOrder->set('orderId', $orderId);
-            $lastOrder->set('completedOn', time());
-            $lastOrder->set('buyerEmail', $orderInfo['email']);
-            $lastOrder->set('cart', $this->getEshopCart());
-            $tokenState = OneGoOAuthTokenState::getCurrent();
-            $transactionState = OneGoTransactionState::getCurrent();
-            $lastOrder->set('transactionState', $transactionState);
-            $lastOrder->set('oAuthTokenState', $tokenState);
-            
-            if ($this->isTransactionStarted()) {
-                $api = $this->getApi();
-                $transactionId = $this->getTransactionId()->id;
-                try {
-                    if ($this->isOrderStatusConfirmable($orderInfo['order_status_id'])) {
-                        $transaction = $this->confirmTransaction();
-                        OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
-                                OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM);
-                    } else {
-                        $doDelay = true;
-                        $transaction = $this->delayTransaction();
-                        OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
-                                OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl());
-                    }
-                    $lastOrder->set('prepaidReceived', $transaction->getPrepaidAmountReceived());
-                    
-                    if (!$tokenState->isBuyerAnonymous()) {
-                        $lastOrder->set('benefitsApplied', true);
-                    }
-                    
-                    if ($transactionState->hasAgreedToDiscloseEmail() && $tokenState->isBuyerAnonymous()) {
-                        $this->bindEmailForOrder($lastOrder);
-                    }
-                    
-                } catch (Exception $e) {
-                    $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
-                    if (!empty($doDelay)) {
-                        OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
-                                OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl(), true, $e->getMessage());
-                    } else {
-                        OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
-                                OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM, null, true, $e->getMessage());
-                    }
-                    $this->throwError($e->getMessage());
-                }
-            } else {
-                if ($transactionState->hasAgreedToDiscloseEmail()) {
-                    try {
-                        $receivedFunds = $this->bindEmailForOrder($lastOrder);
-                        $lastOrder->set('benefitsApplied', true);
-                    } catch (OneGoException $e) {
-                        $transactionId = '-undefined-';
-                        $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
-                    }
-                }
-            }
-            
-            OneGoTransactionState::getCurrent()->reset();
-        }
-    }
-    
-    // wrapper to be always called from ModelCheckoutOrder::confirm()
     public function confirmOrder($orderId)
     {
         $orderInfo = $this->getOrderInfo($orderId);
         if ($orderInfo) {
-            $this->confirm($orderInfo, false);
+            $lastOrder = OneGoCompletedOrderState::getCurrent();
+            if ($lastOrder->get('orderId') != $orderId) {
+                $lastOrder->reset();
+                $lastOrder->set('orderId', $orderId);
+                $lastOrder->set('completedOn', time());
+                $lastOrder->set('buyerEmail', $orderInfo['email']);
+                $lastOrder->set('cart', $this->getEshopCart());
+                $tokenState = OneGoOAuthTokenState::getCurrent();
+                $transactionState = OneGoTransactionState::getCurrent();
+                $lastOrder->set('transactionState', $transactionState);
+                $lastOrder->set('oAuthTokenState', $tokenState);
+
+                if ($this->isTransactionStarted()) {
+                    $api = $this->getApi();
+                    $transactionId = $this->getTransactionId()->id;
+                    try {
+                        if ($this->isOrderStatusConfirmable($orderInfo['order_status_id'])) {
+                            $transaction = $this->confirmTransaction();
+                            OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
+                                    OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM);
+                        } else {
+                            $doDelay = true;
+                            $transaction = $this->delayTransaction();
+                            OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
+                                    OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl());
+                        }
+                        $lastOrder->set('prepaidReceived', $transaction->getPrepaidAmountReceived());
+
+                        if (!$tokenState->isBuyerAnonymous()) {
+                            $lastOrder->set('benefitsApplied', true);
+                        }
+
+                        if ($transactionState->hasAgreedToDiscloseEmail() && $tokenState->isBuyerAnonymous()) {
+                            $this->bindEmailForOrder($lastOrder);
+                        }
+
+                    } catch (Exception $e) {
+                        $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
+                        if (!empty($doDelay)) {
+                            OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
+                                    OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl(), true, $e->getMessage());
+                        } else {
+                            OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
+                                    OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM, null, true, $e->getMessage());
+                        }
+                        $this->throwError($e->getMessage());
+                    }
+                } else {
+                    if ($transactionState->hasAgreedToDiscloseEmail()) {
+                        try {
+                            $receivedFunds = $this->bindEmailForOrder($lastOrder);
+                            $lastOrder->set('benefitsApplied', true);
+                        } catch (OneGoException $e) {
+                            $transactionId = '-undefined-';
+                            $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
+                        }
+                    }
+                }
+
+                OneGoTransactionState::getCurrent()->reset();
+            }
         }
     }
     
