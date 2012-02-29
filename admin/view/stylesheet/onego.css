@@ -1,3 +1,13 @@
 .onego_loading_container {
     background: transparent url(../image/onego_loading.gif) no-repeat center center;
 }
+#onego_transaction_status_error {
+    color: red;
+}
+.onego_notification {
+    color: gray;
+}
+#onego_transaction_change_notification {
+    color: orange;
+    font-weight: bold;
+}

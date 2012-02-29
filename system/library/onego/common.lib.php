@@ -39,6 +39,15 @@ class OneGoConfig
         }
         return null;
     }
+    
+    public function getArray($key)
+    {
+        $val = $this->get($key);
+        if (!is_null($val) && !is_array($val)) {
+            $val = explode('|', $val);
+        }
+        return $val;
+    }
 }
 
 abstract class OneGoPersistentState
@@ -375,7 +384,7 @@ class OneGoUtils
      */
     public static function log($str, $level = self::LOG_INFO, $max_length = 25)
     {
-        if (ModelTotalOnego::getInstance()->getConfig('debugModeOn')) {
+        if (OneGoConfig::getInstance()->get('debugModeOn')) {
             $log = self::getLog();
             $log[] = array(
                 'time'      => microtime(),

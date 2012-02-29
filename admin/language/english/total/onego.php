@@ -71,6 +71,8 @@ $_['delay_period'] = array(1 => 'One day', 2 => 'Two days', 3 => 'Three days',
     5 => 'Five days', 7 => 'One week', 14 => 'Two weeks', 30 => '30 days', 60 => '60 days');
 $_['delay_for_period'] = 'Delay for';
 $_['button_delay_transaction'] = 'Delay';
+$_['transaction_will_confirm'] = 'Transaction will be confirmed when you click "Add History". Buyer\\\'s benefits will be used and/or rewards received.';
+$_['transaction_will_cancel'] = 'Transaction will be canceled when you click "Add History". Buyer\\\'s benefits will not be used and/or rewards received.';
 
 // Error
 $_['error_permission'] = 'Warning: You do not have permission to modify OneGo total!';

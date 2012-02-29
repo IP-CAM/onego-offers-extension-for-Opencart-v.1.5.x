@@ -17,11 +17,6 @@ class ModelTotalOnego extends Model
         return new self(OneGoUtils::getRegistry());
     }
     
-    public function getConfig($key)
-    {
-        return OneGoConfig::getInstance()->get($key);
-    }
-
     /**
      * Modifies Opencart's totals list by adding OneGo benefits and receivables
      *
@@ -260,10 +255,7 @@ class ModelTotalOnego extends Model
     
     protected function isOrderStatusConfirmable($orderStatusId)
     {
-        $confirmedStatuses = $this->getConfig('confirmOnOrderStatus');
-        if (!is_array($confirmedStatuses)) {
-            $confirmedStatuses = explode('|', $confirmedStatuses);
-        }
+        $confirmedStatuses = OneGoConfig::getInstance()->getArray('confirmOnOrderStatus');
         return in_array($orderStatusId, $confirmedStatuses);
     }
     
@@ -643,7 +635,7 @@ END;
     
     protected function getDelayTtl()
     {
-        return $this->getConfig('delayedTransactionTTL') * 3600; // convert hours to seconds
+        return OneGoConfig::getInstance()->get('delayedTransactionTTL') * 3600; // convert hours to seconds
     }
     
     /**
@@ -693,7 +685,7 @@ END;
                     self::$current_eshop_cart[$product['product_id']]['_item_code'] = 
                         !empty($product['sku']) ? 
                             $product['sku'] : 
-                            $this->getConfig('cartItemCodePrefix').$product['product_id'];
+                            OneGoConfig::getInstance()->get('cartItemCodePrefix').$product['product_id'];
                 }
                 
                 // add shipping as an item
@@ -748,8 +740,8 @@ END;
             $shipping->getTotal($total_data, $total, $taxes);
             if ($total > 0) {
                 return array(
-                    'key'           => $this->getConfig('shippingCode'),
-                    '_item_code'    => $this->getConfig('shippingCode'),
+                    'key'           => OneGoConfig::getInstance()->get('shippingCode'),
+                    '_item_code'    => OneGoConfig::getInstance()->get('shippingCode'),
                     'price'         => $total,
                     'quantity'      => 1,
                     'total'         => $total,
@@ -904,7 +896,7 @@ END;
     
     public function isShippingItemCode($itemCode)
     {
-        return in_array($itemCode, array($this->getConfig('shippingCode')));
+        return in_array($itemCode, array(OneGoConfig::getInstance()->get('shippingCode')));
     }
     
     public function spendPrepaid()

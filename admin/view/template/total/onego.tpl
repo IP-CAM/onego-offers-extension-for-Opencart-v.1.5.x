@@ -32,8 +32,6 @@
                 
                 <?php } else if (in_array($field, array('confirmOnOrderStatus', 'cancelOnOrderStatus'))) { ?>
                 
-                <?php $row['value'] = is_array($row['value']) ? $row['value'] : explode('|', $row['value']); ?>
-                
                 <div style="color: gray; margin-bottom: 5px;"><?php echo $row['help'] ?></div>
                 <?php foreach ($order_statuses as $status) { ?>
                     <?php $st = in_array($status['order_status_id'], $row['value']) ? ' checked="true"' : '' ?>
