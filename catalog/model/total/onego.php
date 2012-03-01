@@ -69,8 +69,7 @@ class ModelTotalOnego extends Model
             $discount = $this->getTotalDiscount();
             $discountAmount = !empty($discount) ? $discount->getAmount() : null;
             if (!empty($discountAmount) && ($discountAmount != $shipping_discount)) {
-                // (TEMPORARY FIX)
-                $discountPercents = $discount->getPercents();
+                $discountPercents = $this->calculateDiscountPercentage();
                 if (!empty($discountPercents)) {
                     $title = sprintf($this->language->get('onego_cart_discount_percents'), 
                             round($discountPercents, 2));
@@ -799,7 +798,24 @@ END;
         return isset($funds['amount']) ? $funds['amount'] : false;
     }
     
-    
+    public function calculateDiscountPercentage()
+    {
+        $cart = $this->getModifiedCart();
+        if ($cart && !empty($cart->entries)) {
+            $total = 0;
+            foreach ($cart->entries as $entry) {
+                if (!$this->isShippingItemCode($entry->itemCode)) {
+                    $total += $entry->cash;
+                }
+            }
+            $discount = $this->getTotalDiscount();
+            if ($total) {
+                return round($discount->getAmount() * 100 / $total, 2);
+            }
+        }
+        return false;
+    }
+        
     /**
      *
      * @return OneGoAPI_Impl_OAuthToken 

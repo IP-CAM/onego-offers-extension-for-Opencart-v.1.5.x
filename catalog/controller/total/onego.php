@@ -131,6 +131,9 @@ END;
                 $html .= 'console.dir(transaction);'."\r\n";
                 $html .= 'var transactionTtl = {\'expires\' : $.parseJSON('.json_encode(json_encode(date('Y-m-d H:i:s', time() + $transaction->getTtl()))).')};'."\r\n";
                 $html .= 'console.dir(transactionTtl);'."\r\n";
+                /*
+                $html .= 'var cart = {\'modifiedCart\' : $.parseJSON('.json_encode(json_encode($transaction->getModifiedCart())).')};'."\r\n";
+                $html .= 'console.dir(cart);'."\r\n";*/
             }
             $html .= 'var orderState = {\'CompletedOrderState\' : $.parseJSON('.json_encode(json_encode(OneGoCompletedOrderState::getCurrent()->toArray())).')};'."\r\n";
             $html .= 'console.dir(orderState);'."\r\n";

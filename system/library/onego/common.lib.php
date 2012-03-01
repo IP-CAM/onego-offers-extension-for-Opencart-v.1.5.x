@@ -471,6 +471,18 @@ class OneGoUtils
         
         return array_slice($simple, 2, $limit);
     }
+    
+    public static function dbg($variable, $title = false)
+    {
+        if (OneGoConfig::getInstance()->get('debugModeOn')) {
+            if ($title) {
+                echo '<strong>'.$title.':</strong><br />';
+            }
+            echo '<pre>';
+            print_r($variable);
+            echo '</pre>';
+        }
+    }
 }
 
 class OneGoTransactionsLog
