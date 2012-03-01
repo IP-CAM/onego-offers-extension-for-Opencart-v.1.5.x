@@ -1,6 +1,7 @@
 <td><?php echo $onego_status ?></td>
 <td>
 
+<div id="onego_transaction_status_info">
 <?php if (!empty($onego_status_undefined)) { ?>
 <div class="onego_notification"><?php echo $onego_status_undefined ?></div>
 <?php } else { ?>
@@ -36,6 +37,8 @@
     
 <?php } ?>
     
+</div>
+<div id="onego_transaction_status_loading"><img src="view/image/loading.gif" /></div>
     
 <script type="text/javascript">
 $(document).ready(function(){
@@ -139,6 +142,10 @@ $(document).ready(function(){
         var st = detectStatusChange();
         var shouldConfirm = (st == 'confirm');
         var shouldCancel = (st == 'cancel');
+        if (st) {
+            $('#onego_transaction_status_info').hide();
+            $('#onego_transaction_status_loading').show();
+        }
         if (shouldConfirm) {
             endTransaction('<?php echo OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM ?>');
         } else if (shouldCancel) {

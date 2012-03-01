@@ -17,3 +17,6 @@
 .onego_transaction_status_ok {
     color: gray;
 }
+#onego_transaction_status_loading {
+    display: none;
+}
