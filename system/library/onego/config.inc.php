@@ -4,8 +4,6 @@ define('ONEGO_EXTENSION_VERSION', '0.9.4');
 
 $oneGoConfig = array();
 
-$oneGoConfig['debugModeOn'] = true;
-
 $oneGoConfig['autologinOn'] = true;
 
 // transaction timeout, in minutes
@@ -42,3 +40,13 @@ $oneGoConfig['anonymousRegistrationURI'] = 'http://register.onego.com';
 
 // HTTP connection timeout - seconds
 $oneGoConfig['httpConnectionTimeout'] = 10;
+
+$oneGoConfig['logFile'] = DIR_LOGS.'onego.log';
+
+// show extension activity details in browser console
+// ATTENTION: do not use on live e-shop, because revealing debug info may be a 
+// security threat
+$oneGoConfig['debugModeOn'] = true;
+
+// log API calls to logFile (works only if debugModeOn=true)
+$oneGoConfig['logAPICalls'] = true;

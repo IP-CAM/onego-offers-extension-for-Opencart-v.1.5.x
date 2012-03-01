@@ -1,5 +1,6 @@
 <?php
 require_once 'php-api/src/OneGoAPI/init.php';
+OneGoUtils::initAPILogging();
 
 /**
  * OneGo Opencart extension configuration class - combines settings in config file
@@ -334,6 +335,14 @@ class OneGoUtils
         return OneGoAPI_Impl_SimpleOAuth::init($cfg);
     }
     
+    public static function initAPILogging()
+    {
+        if (OneGoConfig::getInstance()->get('debugModeOn')) {
+            OneGoAPI_Log::setLevel(OneGoAPI_Log::DEBUG);
+            OneGoAPI_Log::setCallback(array('OneGoUtils', 'logAPICall'));
+        }
+    }
+    
     /**
      *
      * @param string $str
@@ -403,14 +412,22 @@ class OneGoUtils
      *
      * @param string $str Error message
      */
-    public static function writeLog($str)
+    public static function writeLog($str, $addBacktrace = true)
     {
-        $fh = fopen(DIR_LOGS.'onego_error.log', 'a');
+        $fh = fopen(OneGoConfig::getInstance()->get('logFile'), 'a');
         if ($fh) {
-            $ln = date('Y-m-d H:i:s').' '.$str.' => '.implode(' / ', self::debugBacktrace());
-            fwrite($fh, $ln."\n");
+            $str = date('Y-m-d H:i:s').' '.$str;
+            if ($addBacktrace) {
+                $str .= "\n".'--BACKTRACE: '.implode(' / ', self::debugBacktrace());
+            }
+            fwrite($fh, $str."\n");
             fclose($fh);
         }
+    }
+    
+    public static function logAPICall($message, $level)
+    {
+        self::writeLog($message, false);
     }
     
     /**

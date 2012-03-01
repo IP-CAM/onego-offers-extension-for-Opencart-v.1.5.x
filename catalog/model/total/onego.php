@@ -142,6 +142,7 @@ class ModelTotalOnego extends Model
                         $discount = $onego_discount * ($product['total'] / $initial_total);
                         if (method_exists($this->tax, 'getRates')) { // OpenCart v1.5.3
                             $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
+//OneGoUtils::dbg($tax_rates, $product['tax_class_id']);
                             foreach ($tax_rates as $tax_rate) {
                                 if ($tax_rate['type'] == 'P') {
                                     $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
@@ -167,6 +168,7 @@ class ModelTotalOnego extends Model
                         }
                     }
                 }
+//OneGoUtils::dbg($taxes);
             }
         }
     }
@@ -917,7 +919,7 @@ END;
             $amount = $this->getPrepaidAmountAvailable();
             $transaction->spendPrepaid($amount);
             OneGoTransactionState::getCurrent()->set(OneGoTransactionState::PREPAID_SPENT, $amount);
-            OneGoUtils::log('Spent prepaid: '.$amount, OneGoUtils::LOG_NOTICE);
+            OneGoUtils::log('Spent prepaid: '.$transaction->getPrepaidSpent(), OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
         } catch (OneGoAPI_Exception $e) {
