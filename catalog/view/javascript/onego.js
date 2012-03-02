@@ -5,11 +5,11 @@ if (typeof 'OneGo' == 'undefined') {
 OneGoOpencart = {
     config: {
         debug: true,
-        loginUri: $('base').attr('href') + 'index.php?route=total/onego/loginDialog',
+        loginUri: $('base').attr('href') + 'index.php?route=total/onego/logindialog',
         autologinUri: $('base').attr('href') + 'index.php?route=total/onego/autologin',
         logoffUri: $('base').attr('href') + 'index.php?route=total/onego/cancel',
-        widgetUri: $('base').attr('href') + 'index.php?route=total/onego/widget',
-        agreeRegisterUri: $('base').attr('href') + 'index.php?route=total/onego/agree'
+        agreeRegisterUri: $('base').attr('href') + 'index.php?route=total/onego/agree',
+        transactionRefreshUri: $('base').attr('href') + 'index.php?route=total/onego/refreshtransaction'
     },
     loginPromptSuccess: false,
     processLoginDynamic: function(){
@@ -36,10 +36,14 @@ OneGoOpencart = {
     processLogoff: function(){
         window.location.href = OneGoOpencart.config.logoffUri;
     },
-    reloadCheckoutOrderInfo: function(){
+    reloadCheckoutOrderInfo: function(warnCartChange){
         if ($('#confirm .checkout-content').length && $('#confirm .checkout-content').is(':visible')) {
             $.ajax({
                 url: $('base').attr('href') + 'index.php?route=checkout/confirm',
+                data: {
+                    'warn_change': warnCartChange || 0,
+                    'cart_hash': $('#onego_cart_hash').val()
+                },
                 dataType: 'json',
                 success: function(json) {
                     if (json['redirect']) {
@@ -226,6 +230,63 @@ OneGoOpencart = {
                     onClose();
                 }
             }, 100);
+        }
+    },
+    catchOrderConfirmAction: function()
+    {
+        if ($('#confirm .payment').length) {
+            var originalConfirmButton = $('#confirm .payment .buttons a');
+            if (originalConfirmButton.length == 1) {
+                var onegoButton = originalConfirmButton.clone(false);
+                originalConfirmButton.hide().after(onegoButton);
+                onegoButton.bind('click', function(){
+                    OneGoOpencart.setAsLoading(onegoButton);
+                    OneGoOpencart.refreshTransaction(
+                        function() {
+                            if (confirm('ok. proceed?'))
+                            originalConfirmButton.trigger('click');
+                        },
+                        function() {
+                            OneGoOpencart.reloadCheckoutOrderInfo(true);
+                        }
+                    );
+                })
+            } else {
+                OneGoOpencart.warnExtensionIncompatible();
+            }
+        }
+    },
+    refreshTransaction: function(onSuccess, onError)
+    {
+        function error() {
+            if (onError) onError();
+        }
+        function ok() {
+            if (onSuccess) onSuccess();
+        }
+        $.ajax({
+            url: OneGoOpencart.config.transactionRefreshUri,
+            type: 'post',
+            data: null,
+            dataType: 'json',
+            success: function(data) {
+                if (data.success) {
+                    ok();
+                } else {
+                    error();
+                }
+            },
+            error: function() {
+                error();
+            }
+        });
+    },
+    warnExtensionIncompatible: function()
+    {
+        if (console.error) {
+            console.error('OneGo extension is not compatible with selected payment type and may not function correctly!');
+        } else {
+            alert('OneGo extension is not compatible with selected payment type and may not function correctly!');
         }
     }
 }

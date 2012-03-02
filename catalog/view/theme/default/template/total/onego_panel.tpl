@@ -1,7 +1,12 @@
+<?php if (!empty($onego_warning)) { ?>
+<div id="onego_warning" class="warning"><?php echo $onego_warning ?></div>
+<?php } ?>
+
 <div id="onego_panel">
   <div id="onego_panel_label"></div>
   <div id="onego_panel_content">
       <form action="" method="post" id="onego_account">
+          <input type="hidden" name="onego_cart_hash" id="onego_cart_hash" value="<?php echo $onego_modified_cart_hash ?>" />
           <?php if (empty($onego_user_authenticated)) { ?>
           <div id="onego_login_container">
               <div style="padding-bottom: 5px;"><?php echo $onego_login_invitation ?></div>
@@ -104,7 +109,7 @@ function spendPrepaid()
 $('#onego_agree').unbind().change(function(e){
     OneGoOpencart.setAsLoading($('#onego_agree'));
     $.ajax({
-        url: 'index.php?route=total/onego/agree', 
+        url: OneGoOpencart.config.agreeRegisterUri,
         type: 'post',
         data: { 'agree': $(this).is(':checked') ? 1 : 0 },
         dataType: 'json',
@@ -163,7 +168,11 @@ function cancelCheck(checkboxElement)
 <?php if ($isAjaxRequest) { ?>
 OneGo.plugins.init();
 <?php } ?>
-    
+
+<?php if (!empty($onego_catch_confirm)) { ?>
+OneGoOpencart.catchOrderConfirmAction();
+<?php } ?>
+
 $('input.onego_watermark').focus(function(){
     $(this).addClass('focused');
     $(this).val('');

@@ -46,6 +46,7 @@ $_['vgc_remainder_plus_prepaid_available'] = 'Attention: you have not fully spen
     your e-mail address to create your personal benefits account.';
 $_['vgc_remainder_available'] = 'You will receive a %s reward if you agree to disclose
     your e-mail address to create your personal benefits account.';
+$_['warning_cart_changed'] = 'Your benefits session has expired and was restarted, please re-check your order details.';
 
 // Error
 $_['benefits_applied']  = 'Success: Your personal benefits applied.';

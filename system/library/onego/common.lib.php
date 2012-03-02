@@ -491,7 +491,7 @@ class OneGoUtils
     
     public static function dbg($variable, $title = false)
     {
-        if (OneGoConfig::getInstance()->get('debugModeOn')) {
+        if (OneGoConfig::getInstance()->get('debugModeOn') && !OneGoUtils::isAjaxRequest()) {
             if ($title) {
                 echo '<strong>'.$title.':</strong><br />';
             }
@@ -499,6 +499,20 @@ class OneGoUtils
             print_r($variable);
             echo '</pre>';
         }
+    }
+
+    public static function objectToArray($object, $sortProperties = false)
+    {
+        $array = get_object_vars($object);
+        foreach ($array as $key => $val) {
+            if (is_object($val)) {
+                $array[$key] = self::objectToArray($val, $sortProperties);
+            }
+        }
+        if ($sortProperties) {
+            ksort($array);
+        }
+        return $array;
     }
 }
 

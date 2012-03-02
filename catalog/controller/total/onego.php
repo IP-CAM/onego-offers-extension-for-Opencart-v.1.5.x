@@ -136,6 +136,8 @@ END;
             }
             $html .= 'var orderState = {\'CompletedOrderState\' : $.parseJSON('.json_encode(json_encode(OneGoCompletedOrderState::getCurrent()->toArray())).')};'."\r\n";
             $html .= 'console.dir(orderState);'."\r\n";
+            $html .= 'var cartHash = {\'modifiedCartHash\' : $.parseJSON('.json_encode(json_encode($onego->getModifiedCartHash())).')};'."\r\n";
+            $html .= 'console.dir(cartHash);'."\r\n";
             $html .= '}</script>'."\r\n";
         }
         $this->data['debuggingCode'] = $html;
@@ -183,6 +185,15 @@ END;
         $this->data['isAjaxRequest'] = OneGoUtils::isAjaxRequest();
         $this->data['js_page_reload_callback'] = OneGoUtils::isAjaxRequest() ?
                 'OneGoOpencart.reloadCheckoutOrderInfo' : 'OneGoOpencart.reloadPage';
+
+        $this->data['onego_catch_confirm'] = OneGoUtils::isAjaxRequest();
+        $this->data['onego_modified_cart_hash'] = $onego->getModifiedCartHash();
+
+        if (!empty($this->request->get['warn_change']) && !empty($this->request->get['cart_hash'])) {
+            if ($onego->getModifiedCartHash() != $this->request->get['cart_hash']) {
+                $this->data['onego_warning'] = $this->language->get('warning_cart_changed');
+            }
+        }
         
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_panel.tpl')) {
             $this->template = $this->config->get('config_template') . '/template/total/onego_panel.tpl';
@@ -385,7 +396,7 @@ END;
         $this->redirect($referer);
     }
     
-    public function loginDialog()
+    public function logindialog()
     {
         $status_page = $this->url->link('total/onego/authStatus');
         
@@ -584,6 +595,26 @@ END;
             
             $this->response->setOutput(OneGoAPI_JSON::encode($response));
         }
+    }
+
+    public function refreshtransaction()
+    {
+        $onego = $this->getModel();
+        $response = array('success' => true);
+        if ($onego->isTransactionStarted()) {
+            $hashBefore = $onego->getModifiedCartHash();
+            try {
+                $onego->refreshTransaction(true);
+                if ($hashBefore != $onego->getModifiedCartHash()) {
+                    $response['error'] = 'Failed to silently restart transaction';
+                    unset($response['success']);
+                }
+            } catch (Exception $e) {
+                $response['error'] = $e->getMessage();
+                unset($response['success']);
+            }
+        }
+        $this->response->setOutput(OneGoAPI_JSON::encode($response));
     }
     
     

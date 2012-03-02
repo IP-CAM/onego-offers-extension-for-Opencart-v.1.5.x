@@ -1003,8 +1003,15 @@ END;
             }
         }
     }
-    
-    public function refreshTransaction()
+
+    /**
+     * Refreshes expired OAuth token and transaction
+     *
+     * @throws OneGoAPICallFailedException|OneGoAuthenticationRequiredException
+     * @param bool $forceUpdate Update transaction even if not expired
+     * @return OneGoAPI_Impl_Transaction refreshed transaction
+     */
+    public function refreshTransaction($forceUpdate = false)
     {
         if ($this->isTransactionStarted()) {
             // unset anonymous awards
@@ -1042,11 +1049,15 @@ END;
         if ($this->isTransactionStarted()) {
             $stateBeforeRestart = OneGoTransactionState::getCurrent();
         }
-        
-        if ($transaction && $transaction->isExpired()) {
-            OneGoUtils::log('Transaction expired, delete', OneGoUtils::LOG_NOTICE);
-            $this->cancelTransaction(true);
-            $transactionCanceled = true;
+
+        if ($transaction) {
+            if ($transaction->isExpired()) {
+                OneGoUtils::log('Transaction expired, delete', OneGoUtils::LOG_NOTICE);
+                $this->cancelTransaction(true);
+                $transactionCanceled = true;
+            } else if ($forceUpdate) {
+                $this->updateTransactionCart();
+            }
         }
         
         $transaction = $this->getTransaction();
@@ -1070,8 +1081,11 @@ END;
         if (empty($transactionAutostarted) && $this->isTransactionStale()) {
             $this->updateTransactionCart();
         }
-        
-        return $this->getTransaction();
+
+        $transaction = $this->getTransaction();
+        $this->saveTransaction($transaction);
+
+        return $transaction;
     }
     
     public function getPrepaidReceivedAmount()
@@ -1139,8 +1153,19 @@ END;
     {
         if ($this->isTransactionStarted()) {
             return $this->getTransaction()->getModifiedCart();
-        } else {
+        } else if ($this->hasAgreedToDiscloseEmail()) {
             return $this->getAnonymousModifiedCart();
+        }
+        return false;
+    }
+
+    public function getModifiedCartHash()
+    {
+        $cart = $this->getModifiedCart();
+        if ($cart) {
+            $arr = OneGoUtils::objectToArray($cart, true);
+            $hash = md5(serialize($arr));
+            return $hash;
         }
         return false;
     }
