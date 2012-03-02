@@ -62,8 +62,14 @@ class ModelTotalOnego extends Model {
         } else if ($transactionsLogRow['operation'] == OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM) {
             $title = $this->language->get('status_confirmed');
         } else if ($transactionsLogRow['operation'] == OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY) {
-            $expiresOn = date('Y-m-d H:i', strtotime($transactionsLogRow['inserted_on']) + $transactionsLogRow['expires_in']);
-            $title = sprintf($title = $this->language->get('status_delayed'), $expiresOn);
+            $expiresOnTs = strtotime($transactionsLogRow['inserted_on']) + $transactionsLogRow['expires_in'];
+            $expiresOn = date('Y-m-d H:i', $expiresOnTs);
+            if ($expiresOnTs <= time()) {
+                $class = 'onego_transaction_status_expired';
+                $title = sprintf($title = $this->language->get('status_expired'), $expiresOn);
+            } else {
+                $title = sprintf($title = $this->language->get('status_delayed'), $expiresOn);
+            }
         }
         if (strlen($title)) {
             $titleHtml = '<span class="'.$class.'">['

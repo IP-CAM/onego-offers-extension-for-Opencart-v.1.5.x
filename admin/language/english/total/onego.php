@@ -68,7 +68,7 @@ $_['confirm_transaction_delay'] = 'By delaying transaction, it will not expire u
     .'the end of period and all buyer\\\'s benefits used/received for this order will stay '
     .'reserved.\nTransaction delay period can be changed anytime later, until it expires '
     .'or is confirmed/canceled.';
-$_['delay_period'] = array(1 => 'One day', 2 => 'Two days', 3 => 'Three days', 
+$_['delay_period'] = array(0 => 'Today', 1 => 'One day', 2 => 'Two days', 3 => 'Three days',
     5 => 'Five days', 7 => 'One week', 14 => 'Two weeks', 30 => '30 days', 60 => '60 days');
 $_['delay_for_period'] = 'Delay for';
 $_['button_delay_transaction'] = 'Delay';
@@ -78,6 +78,7 @@ $_['status_failure'] = 'failed';
 $_['status_delayed'] = 'delayed until %s';
 $_['status_confirmed'] = 'confirmed';
 $_['status_canceled'] = 'canceled';
+$_['status_expired'] = 'expired %s';
 
 // Error
 $_['error_permission'] = 'Warning: You do not have permission to modify OneGo total!';
