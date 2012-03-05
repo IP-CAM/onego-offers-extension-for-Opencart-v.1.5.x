@@ -7,6 +7,9 @@
   <div id="onego_panel_content">
     
     <?php if (!empty($onego_benefits_applied)) { ?>
+        <?php if (!empty($onego_funds_received)) { ?>
+            <?php echo $onego_funds_received ?><br />
+        <?php } ?>
         <?php echo $onego_buyer_created ?>
         <br />
         <br />

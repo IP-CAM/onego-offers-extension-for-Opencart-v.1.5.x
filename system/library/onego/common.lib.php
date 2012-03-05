@@ -190,6 +190,7 @@ class OneGoCompletedOrderState extends OneGoPersistentState
     protected $cart;
     protected $transactionState;
     protected $oAuthTokenState;
+    protected $transactionDelayed;
     
     protected function getStorageKey()
     {
@@ -207,6 +208,7 @@ class OneGoCompletedOrderState extends OneGoPersistentState
         $this->cart = false;
         $this->transactionState = null;
         $this->oAuthTokenState = null;
+        $this->transactionDelayed = null;
     }
     
     /**

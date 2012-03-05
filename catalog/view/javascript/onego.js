@@ -243,7 +243,6 @@ OneGoOpencart = {
                     OneGoOpencart.setAsLoading(onegoButton);
                     OneGoOpencart.refreshTransaction(
                         function() {
-                            if (confirm('ok. proceed?'))
                             originalConfirmButton.trigger('click');
                         },
                         function() {

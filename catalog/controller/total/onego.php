@@ -88,14 +88,8 @@ END;
 
         $initParams = array();
         
-        // enable debugging
-        if (OneGoConfig::get('debugModeOn')) {
-            //$initParams[] = "debug: true";
-        }
-        
         $this->data['initParamsStr'] = implode(",\n", $initParams);
         $this->data['html'] = $html;
-        
         
         // logging output
         $log = OneGoUtils::getLog(true);
@@ -276,9 +270,11 @@ END;
             if ($onego->isAnonymousRewardsApplied()) {
                 $this->data['onego_benefits_applied'] = true;
             }
+            $text = $orderInfo->get('transactionDelayed') ?
+                    $this->language->get('funds_to_be_received') :
+                    $this->language->get('funds_received');
             $this->data['onego_funds_received'] = $orderInfo->get('prepaidReceived') ?
-                sprintf($this->language->get('funds_received'), $this->currency->format($orderInfo->get('prepaidReceived'))) 
-                : false;
+                sprintf($text, $this->currency->format($orderInfo->get('prepaidReceived'))) : false;
         }
         
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_success.tpl')) {
@@ -500,9 +496,9 @@ END;
         } else {
             $fundsReceived = $lastOrder->get('prepaidReceived');
         }
+        $text = $lastOrder->get('transactionDelayed') ? $this->language->get('funds_to_be_received') : $this->language->get('funds_received');
         $this->data['onego_rewarded'] = !empty($fundsReceived) ?
-                sprintf($this->language->get('anonymous_rewarded'), $this->currency->format($fundsReceived))
-                : false;
+                sprintf($text, $this->currency->format($fundsReceived)) : false;
         $this->data['onego_anonymous_buyer_created'] = 
                 sprintf($this->language->get('anonymous_buyer_created'), OneGoConfig::get('anonymousRegistrationURI'));
         $this->data['onego_button_register'] = $this->language->get('button_register_anonymous');

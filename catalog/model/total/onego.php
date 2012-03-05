@@ -195,18 +195,19 @@ class ModelTotalOnego extends Model
                 $lastOrder->set('oAuthTokenState', $tokenState);
 
                 if ($this->isTransactionStarted()) {
-                    $api = $this->getApi();
                     $transactionId = $this->getTransactionId()->id;
                     try {
                         if ($this->isOrderStatusConfirmable($orderInfo['order_status_id'])) {
                             $transaction = $this->confirmTransaction();
-                            OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
+                            OneGoTransactionsLog::log($orderId, $transactionId,
                                     OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM);
+                            $lastOrder->set('transactionDelayed', false);
                         } else {
                             $doDelay = true;
                             $transaction = $this->delayTransaction();
-                            OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
+                            OneGoTransactionsLog::log($orderId, $transactionId,
                                     OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl());
+                            $lastOrder->set('transactionDelayed', true);
                         }
                         $lastOrder->set('prepaidReceived', $transaction->getPrepaidAmountReceived());
 
@@ -221,10 +222,10 @@ class ModelTotalOnego extends Model
                     } catch (Exception $e) {
                         $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
                         if (!empty($doDelay)) {
-                            OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
+                            OneGoTransactionsLog::log($orderId, $transactionId,
                                     OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl(), true, $e->getMessage());
                         } else {
-                            OneGoTransactionsLog::log($orderId, $this->getTransactionId()->id, 
+                            OneGoTransactionsLog::log($orderId, $transactionId,
                                     OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM, null, true, $e->getMessage());
                         }
                         $this->throwError($e->getMessage());
@@ -232,7 +233,7 @@ class ModelTotalOnego extends Model
                 } else {
                     if ($transactionState->hasAgreedToDiscloseEmail()) {
                         try {
-                            $receivedFunds = $this->bindEmailForOrder($lastOrder);
+                            $this->bindEmailForOrder($lastOrder);
                             $lastOrder->set('benefitsApplied', true);
                         } catch (OneGoException $e) {
                             $transactionId = '-undefined-';
@@ -373,9 +374,11 @@ END;
                 if ($delayTtl) {
                     OneGoTransactionsLog::log($order->get('orderId'), $transaction->getId()->id, 
                             OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $delayTtl);
+                    $order->set('transactionDelayed', true);
                 } else {
                     OneGoTransactionsLog::log($order->get('orderId'), $transaction->getId()->id, 
                             OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM);
+                    $order->set('transactionDelayed', false);
                 }
             } catch (OneGoAPI_Exception $e) {
                 OneGoUtils::logCritical('bindEmailNew() failed', $e);
@@ -1064,8 +1067,6 @@ END;
             }
         }
         
-        $transaction = $this->getTransaction();
-        
         $action = !empty($transactionCanceled) ? 'restart' : 'autostart';
         if (!$this->isTransactionStarted() && count($this->getEshopCart()) > 0) {
             try {
@@ -1087,7 +1088,9 @@ END;
         }
 
         $transaction = $this->getTransaction();
-        $this->saveTransaction($transaction);
+        if ($transaction) {
+            $this->saveTransaction($transaction);
+        }
 
         return $transaction;
     }
