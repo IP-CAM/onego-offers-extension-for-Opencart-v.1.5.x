@@ -301,13 +301,8 @@ class OneGoUtils
         return isset($session->data[self::STORAGE_KEY][$key]) ? 
                 unserialize($session->data[self::STORAGE_KEY][$key]) : $default;
     }
-    
-    /**
-     * Initializes OneGoAPI_Impl_SimpleAPI
-     *
-     * @return OneGoAPI_Impl_SimpleAPI 
-     */
-    public static function initAPI()
+
+    public static function getAPIConfig()
     {
         $cfg = new OneGoAPI_APIConfig(
                 OneGoConfig::get('clientId'),
@@ -319,6 +314,17 @@ class OneGoUtils
         );
         $cfg->apiUri = OneGoConfig::get('apiURI');
         $cfg->currencyCode = OneGoUtils::getRegistry()->get('config')->get('config_currency');
+        return $cfg;
+    }
+    
+    /**
+     * Initializes OneGoAPI_Impl_SimpleAPI
+     *
+     * @return OneGoAPI_Impl_SimpleAPI 
+     */
+    public static function initAPI()
+    {
+        $cfg = self::getAPIConfig();
         return OneGoAPI_Impl_SimpleAPI::init($cfg);
     }
     

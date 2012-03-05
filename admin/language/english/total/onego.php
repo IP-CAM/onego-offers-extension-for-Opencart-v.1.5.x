@@ -23,6 +23,7 @@ $_['entry_widgetFrozen']  = 'Widget frozen: ';
 $_['entry_autologinOn']  = 'Autologin enabled';
 $_['entry_confirmOnOrderStatus'] = 'Order status on which OneGo transaction gets confirmed: *';
 $_['entry_cancelOnOrderStatus'] = 'Order status on which OneGo transaction gets canceled: *';
+$_['entry_checkCredentials'] = 'Check configuration:';
 
 $_['entry_help_clientId']  = 'Client ID assigned to you on OneGo merchant sign up.';
 $_['entry_help_clientSecret']  = 'Client secret assigned to you on OneGo merchant sign up.';
@@ -60,6 +61,7 @@ $_['transaction_status_expired'] = 'Expired on %s (buyer\'s benefits not used/re
 $_['transaction_operation_failed'] = 'Transaction operation failed: [%s] %s - %s';
 $_['button_confirm_transaction'] = 'Confirm';
 $_['button_cancel_transaction'] = 'Cancel';
+$_['button_check_credentials'] = 'Check';
 $_['confirm_transaction_confirm'] = 'If you confirm this transaction, buyer\\\'s '
     .'benefits will be used/rewarded.\nIMPORTANT: this action cannot be undone.';
 $_['confirm_transaction_cancel'] = 'If you cancel this transaction, buyer\\\'s '
@@ -80,8 +82,14 @@ $_['status_confirmed'] = 'confirmed';
 $_['status_canceled'] = 'canceled';
 $_['status_expired'] = 'expired %s';
 
+$_['check_credentials'] = 'Credentials check';
+$_['ok'] = 'OK';
+$_['failed'] = 'FAILED';
+
 // Error
 $_['error_permission'] = 'Warning: You do not have permission to modify OneGo total!';
 $_['error_missing_required_fields'] = 'Error: please fill in all required fields';
 $_['error_transaction_id_unknown'] = 'Unknown transaction ID';
 $_['error_transaction_state_invalid'] = 'Invalid transaction state';
+$_['error_connection_timeout'] = 'HTTP connection timeout, try again later';
+$_['error_forbidden'] = 'Invalid credentials and/or account blocked';

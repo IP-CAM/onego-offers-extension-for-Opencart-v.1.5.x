@@ -83,8 +83,8 @@ class ControllerTotalOnego extends Controller {
         }
         $this->data['onego_sortorder_text'] = $this->language->get('entry_help_sortorder');
         
-        $config_fields = array('clientId', 'clientSecret', 'terminalId', 'shippingCode', 
-            'transactionTTL', 'confirmOnOrderStatus', 'delayedTransactionTTL', 'cancelOnOrderStatus',
+        $config_fields = array('clientId', 'clientSecret', 'terminalId', 'checkCredentials',
+            /*'shippingCode', */'transactionTTL', 'confirmOnOrderStatus', 'delayedTransactionTTL', 'cancelOnOrderStatus',
             'widgetShow', 'widgetFrozen', 'widgetTopOffset', 'autologinOn');
         $fields = array();
         foreach ($config_fields as $field) {
@@ -105,7 +105,9 @@ class ControllerTotalOnego extends Controller {
         
         $this->load->model('localisation/order_status');
         $this->data['order_statuses'] = $this->model_localisation_order_status->getOrderStatuses();
-        
+
+        $this->data['onego_button_check'] = $this->language->get('button_check_credentials');
+        $this->data['onego_check_uri'] = $this->url->link('total/onego/check', 'token=' . $this->session->data['token'], 'SSL');
 
         $this->template = 'total/onego.tpl';
         $this->children = array(
@@ -189,6 +191,37 @@ class ControllerTotalOnego extends Controller {
         
         $this->template = 'total/onego_status.tpl';
         $this->response->setOutput($this->render());
+    }
+
+    public function check()
+    {
+        $params = $this->request->get;
+        $this->language->load('total/onego');
+
+        // check credentials
+        $APIConfig = OneGoUtils::getAPIConfig();
+        $APIConfig->clientId = $params['onego_clientId'];
+        $APIConfig->clientSecret = $params['onego_clientSecret'];
+        $APIConfig->terminalId = $params['onego_terminalId'];
+        $api = OneGoAPI_Impl_SimpleAPI::init($APIConfig);
+
+        $resp = $this->language->get('check_credentials').': ';
+
+        try {
+            $api->getAnonymousAwards();
+            $resp .= '<span class="onego_ok">'.$this->language->get('ok').'</span>';
+        } catch (OneGoAPI_HTTPConnectionTimeoutException $e) {
+            $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
+            $resp .= ' ['.$this->language->get('error_connection_timeout').']';
+        } catch (OneGoAPI_ForbiddenException $e) {
+            $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
+            $resp .= ' ['.$this->language->get('error_forbidden').']';
+        } catch (OneGoAPI_Exception $e) {
+            $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
+            $resp .= ' ['.$e->getMessage().']';
+        }
+
+        $this->response->setOutput($resp);
     }
     
     public function endTransaction()

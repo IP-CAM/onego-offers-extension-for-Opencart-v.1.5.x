@@ -23,3 +23,17 @@
 #onego_transaction_status_loading {
     display: none;
 }
+#onego_check_results {
+    overflow: auto;
+    height: 50px;
+    display: none;
+    border: 1px solid silver;
+    margin-top: 5px;
+    padding: 5px;
+}
+.onego_ok {
+    color: green;
+}
+.onego_error {
+    color: red;
+}

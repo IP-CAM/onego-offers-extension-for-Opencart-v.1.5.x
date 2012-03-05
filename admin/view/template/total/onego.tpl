@@ -38,7 +38,12 @@
                     <input type="checkbox" name="onego_<?php echo $field ?>[]" value="<?php echo $status['order_status_id'] ?>" id="<?php echo $field.'_'.$status['order_status_id'] ?>" <?php echo $st ?> class="orderstatus_<?php echo $status['order_status_id'] ?> orderstatus" />
                     <label for="<?php echo $field.'_'.$status['order_status_id'] ?>"><?php echo $status['name'] ?></label>&nbsp;
                 <?php } ?>
-                
+
+                <?php } else if (in_array($field, array('checkCredentials'))) { ?>
+
+                <input type="button" id="btn_onego_check" value="<?php echo $onego_button_check; ?>" />
+                <div id="onego_check_results"><?php echo $route ?></div>
+
                 <?php } else { ?>
                 
                 <input type="text" name="onego_<?php echo $field ?>" id="cfgField_<?php echo $field ?>" value="<?php echo $row['value']; ?>" />
@@ -85,6 +90,17 @@ $(document).ready(function(){
             $('input.orderstatus_'+$(this).val()).attr('checked', false);
             $(this).attr('checked', true);
         }
+    })
+    $('#btn_onego_check').click(function(){
+        $('#onego_check_results').html('');
+        OneGoOpencart.setAsLoading($('#btn_onego_check'));
+        $.get(
+            '<?php echo str_replace('&amp;', '&', $onego_check_uri) ?>&'+$('#form').serialize(),
+            function(data){
+                $('#onego_check_results').html(data).slideDown();
+                OneGoOpencart.unsetAsLoading($('#btn_onego_check'));
+            }
+        );
     })
 })
 function hideCfgParams()
