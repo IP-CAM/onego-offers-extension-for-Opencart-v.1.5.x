@@ -169,9 +169,24 @@ function cancelCheck(checkboxElement)
 OneGo.plugins.init();
 <?php } ?>
 
-<?php if (!empty($onego_catch_confirm)) { ?>
+<?php if (!empty($onego_is_checkout_page)) { ?>
 OneGoOpencart.catchOrderConfirmAction();
+<?php if (!empty($trigger_refresh_in)) { ?>
+setTimeout(refreshTransactionSilent, <?php echo $trigger_refresh_in * 1000 ?>);
+function refreshTransactionSilent()
+{
+    OneGoOpencart.refreshTransaction();
+    setTimeout(refreshTransactionSilent, <?php echo $trigger_refresh_in_next * 1000 ?>);
+}
 <?php } ?>
+<?php } ?>
+
+<?php if (!empty($enable_autorefresh)) { ?>
+OneGoOpencart.setTransactionAutorefresh(<?php echo $enable_autorefresh[0]*1000 ?>, <?php echo $enable_autorefresh[1]*1000 ?>);
+<?php } else if (!empty($disable_autorefresh)) { ?>
+OneGoOpencart.resetTransactionAutorefresh();
+<?php } ?>
+
 
 $('input.onego_watermark').focus(function(){
     $(this).addClass('focused');

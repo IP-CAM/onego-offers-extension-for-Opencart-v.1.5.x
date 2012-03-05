@@ -248,7 +248,7 @@ class ModelTotalOnego extends Model
     
     protected function isOrderStatusConfirmable($orderStatusId)
     {
-        $confirmedStatuses = OneGoConfig::getInstance()->getArray('confirmOnOrderStatus');
+        $confirmedStatuses = OneGoConfig::getArray('confirmOnOrderStatus');
         return in_array($orderStatusId, $confirmedStatuses);
     }
     
@@ -628,7 +628,7 @@ END;
     
     protected function getDelayTtl()
     {
-        return OneGoConfig::getInstance()->get('delayedTransactionTTL') * 3600; // convert hours to seconds
+        return OneGoConfig::get('delayedTransactionTTL') * 3600; // convert hours to seconds
     }
     
     /**
@@ -678,7 +678,7 @@ END;
                     self::$current_eshop_cart[$product['product_id']]['_item_code'] = 
                         !empty($product['sku']) ? 
                             $product['sku'] : 
-                            OneGoConfig::getInstance()->get('cartItemCodePrefix').$product['product_id'];
+                            OneGoConfig::get('cartItemCodePrefix').$product['product_id'];
                 }
                 
                 // add shipping as an item
@@ -733,8 +733,8 @@ END;
             $shipping->getTotal($total_data, $total, $taxes);
             if ($total > 0) {
                 return array(
-                    'key'           => OneGoConfig::getInstance()->get('shippingCode'),
-                    '_item_code'    => OneGoConfig::getInstance()->get('shippingCode'),
+                    'key'           => OneGoConfig::get('shippingCode'),
+                    '_item_code'    => OneGoConfig::get('shippingCode'),
                     'price'         => $total,
                     'quantity'      => 1,
                     'total'         => $total,
@@ -906,7 +906,7 @@ END;
     
     public function isShippingItemCode($itemCode)
     {
-        return in_array($itemCode, array(OneGoConfig::getInstance()->get('shippingCode')));
+        return in_array($itemCode, array(OneGoConfig::get('shippingCode')));
     }
     
     public function spendPrepaid()
@@ -1055,7 +1055,11 @@ END;
                 OneGoUtils::log('Transaction expired, delete', OneGoUtils::LOG_NOTICE);
                 $this->cancelTransaction(true);
                 $transactionCanceled = true;
+            } else if ($this->isTransactionAboutToExpire()) {
+                OneGoUtils::log('Transaction is about to expire');
+                $this->updateTransactionCart();
             } else if ($forceUpdate) {
+                OneGoUtils::log('Force transaction update');
                 $this->updateTransactionCart();
             }
         }
@@ -1086,6 +1090,18 @@ END;
         $this->saveTransaction($transaction);
 
         return $transaction;
+    }
+
+    /**
+     * @return boolean True if there is less time left until transaction expiration than configured
+     */
+    protected function isTransactionAboutToExpire()
+    {
+        if ($this->isTransactionStarted() && OneGoConfig::get('transactionRefreshIn')) {
+            $transaction = $this->getTransaction();
+            return ($transaction->getExpiresIn() - OneGoConfig::get('transactionRefreshIn')) <= 0;
+        }
+        return false;
     }
     
     public function getPrepaidReceivedAmount()

@@ -29,21 +29,23 @@ class OneGoConfig
         return self::$instance;
     }
     
-    public function get($key)
+    public static function get($key)
     {
-        $val = $this->config->get('onego_'.$key);
+        $cfg = self::getInstance();
+        $val = $cfg->config->get('onego_'.$key);
         if (!is_null($val)) {
             return $val;
         }
-        if (isset($this->onegoConfig[$key])) {
-            return $this->onegoConfig[$key];
+        if (isset($cfg->onegoConfig[$key])) {
+            return $cfg->onegoConfig[$key];
         }
         return null;
     }
     
-    public function getArray($key)
+    public static function getArray($key)
     {
-        $val = $this->get($key);
+        $cfg = self::getInstance();
+        $val = $cfg->get($key);
         if (!is_null($val) && !is_array($val)) {
             $val = explode('|', $val);
         }
@@ -306,14 +308,14 @@ class OneGoUtils
     public static function initAPI()
     {
         $cfg = new OneGoAPI_APIConfig(
-                OneGoConfig::getInstance()->get('clientId'),
-                OneGoConfig::getInstance()->get('clientSecret'), 
-                OneGoConfig::getInstance()->get('terminalId'), 
-                OneGoConfig::getInstance()->get('transactionTTL')*60,
+                OneGoConfig::get('clientId'),
+                OneGoConfig::get('clientSecret'),
+                OneGoConfig::get('terminalId'),
+                OneGoConfig::get('transactionTTL')*60,
                 true,
-                OneGoConfig::getInstance()->get('httpConnectionTimeout')
+                OneGoConfig::get('httpConnectionTimeout')
         );
-        $cfg->apiUri = OneGoConfig::getInstance()->get('apiURI');
+        $cfg->apiUri = OneGoConfig::get('apiURI');
         $cfg->currencyCode = OneGoUtils::getRegistry()->get('config')->get('config_currency');
         return OneGoAPI_Impl_SimpleAPI::init($cfg);
     }
@@ -326,18 +328,18 @@ class OneGoUtils
     public static function initOAuth()
     {
         $cfg = new OneGoAPI_OAuthConfig(
-                OneGoConfig::getInstance()->get('clientId'), 
-                OneGoConfig::getInstance()->get('clientSecret'), 
-                OneGoConfig::getInstance()->get('authorizationURI'), 
-                OneGoConfig::getInstance()->get('oAuthURI'),
-                OneGoConfig::getInstance()->get('httpConnectionTimeout')
+                OneGoConfig::get('clientId'),
+                OneGoConfig::get('clientSecret'),
+                OneGoConfig::get('authorizationURI'),
+                OneGoConfig::get('oAuthURI'),
+                OneGoConfig::get('httpConnectionTimeout')
         );
         return OneGoAPI_Impl_SimpleOAuth::init($cfg);
     }
     
     public static function initAPILogging()
     {
-        if (OneGoConfig::getInstance()->get('debugModeOn')) {
+        if (OneGoConfig::get('debugModeOn')) {
             OneGoAPI_Log::setLevel(OneGoAPI_Log::DEBUG);
             OneGoAPI_Log::setCallback(array('OneGoUtils', 'logAPICall'));
         }
@@ -393,7 +395,7 @@ class OneGoUtils
      */
     public static function log($str, $level = self::LOG_INFO, $max_length = 25)
     {
-        if (OneGoConfig::getInstance()->get('debugModeOn')) {
+        if (OneGoConfig::get('debugModeOn')) {
             $log = self::getLog();
             $log[] = array(
                 'time'      => microtime(),
@@ -414,7 +416,7 @@ class OneGoUtils
      */
     public static function writeLog($str, $addBacktrace = true)
     {
-        $fh = fopen(OneGoConfig::getInstance()->get('logFile'), 'a');
+        $fh = fopen(OneGoConfig::get('logFile'), 'a');
         if ($fh) {
             $str = date('Y-m-d H:i:s').' '.$str;
             if ($addBacktrace) {
@@ -491,7 +493,7 @@ class OneGoUtils
     
     public static function dbg($variable, $title = false)
     {
-        if (OneGoConfig::getInstance()->get('debugModeOn') && !OneGoUtils::isAjaxRequest()) {
+        if (OneGoConfig::get('debugModeOn') && !OneGoUtils::isAjaxRequest()) {
             if ($title) {
                 echo '<strong>'.$title.':</strong><br />';
             }

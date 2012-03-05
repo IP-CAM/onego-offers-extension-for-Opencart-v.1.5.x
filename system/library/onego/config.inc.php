@@ -9,6 +9,10 @@ $oneGoConfig['autologinOn'] = true;
 // transaction timeout, in minutes
 $oneGoConfig['transactionTTL'] = 15;
 
+// seconds until transaction expiration, when AJAX transaction refresh will be triggered, to prevent it from expiration
+// set 0 to disable
+$oneGoConfig['transactionRefreshIn'] = 15;
+
 // itemCode for shipping
 $oneGoConfig['shippingCode'] = 'shipping';
 

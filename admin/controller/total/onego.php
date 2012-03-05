@@ -95,8 +95,8 @@ class ControllerTotalOnego extends Controller {
                 'value' => isset($this->request->post['onego_'.$field]) ?
                     $this->request->post['onego_'.$field] : 
                     in_array($field, array('confirmOnOrderStatus', 'cancelOnOrderStatus')) ?
-                        OneGoConfig::getInstance()->getArray($field) : 
-                        OneGoConfig::getInstance()->get($field),
+                        OneGoConfig::getArray($field) :
+                        OneGoConfig::get($field),
                 'help'  => $help == $help_key ? '' : $help,
             );
             $fields[$field] = $row;
@@ -160,8 +160,8 @@ class ControllerTotalOnego extends Controller {
                     $this->data['onego_btn_delay'] = $this->language->get('button_delay_transaction');                   
                     $this->data['confirm_delay'] = $this->language->get('confirm_transaction_delay');
                     $this->data['onego_allow_status_change'] = true;
-                    $confirmStatuses = OneGoConfig::getInstance()->getArray('confirmOnOrderStatus');
-                    $cancelStatuses = OneGoConfig::getInstance()->getArray('cancelOnOrderStatus');
+                    $confirmStatuses = OneGoConfig::getArray('confirmOnOrderStatus');
+                    $cancelStatuses = OneGoConfig::getArray('cancelOnOrderStatus');
                     $this->data['confirm_statuses'] = $confirmStatuses;
                     $this->data['cancel_statuses'] = $cancelStatuses;
                     $this->data['status_will_confirm'] = $this->language->get('transaction_will_confirm');

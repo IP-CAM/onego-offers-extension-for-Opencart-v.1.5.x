@@ -281,6 +281,25 @@ OneGoOpencart = {
             }
         });
     },
+    transactionAutorefreshTimeout: false,
+    setTransactionAutorefresh: function(timeoutFirst, timeoutNext)
+    {
+        OneGoOpencart.resetTransactionAutorefresh();
+        function refreshTransactionSilent()
+        {
+            OneGoOpencart.refreshTransaction();
+            if (OneGoOpencart.transactionAutorefreshTimeout) {
+                OneGoOpencart.transactionAutorefreshTimeout = setTimeout(refreshTransactionSilent, timeoutNext);
+            }
+        }
+        OneGoOpencart.transactionAutorefreshTimeout = setTimeout(refreshTransactionSilent, timeoutFirst);
+    },
+    resetTransactionAutorefresh: function()
+    {
+        if (OneGoOpencart.transactionAutorefreshTimeout) {
+            clearTimeout(OneGoOpencart.transactionAutorefreshTimeout);
+        }
+    },
     warnExtensionIncompatible: function()
     {
         if (console.error) {

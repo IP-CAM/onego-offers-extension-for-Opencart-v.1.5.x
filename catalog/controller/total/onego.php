@@ -33,8 +33,8 @@ class ControllerTotalOnego extends Controller {
         $onego = $this->getModel();
         
         $this->data['theme'] = $this->config->get('config_template');
-        $clientId = OneGoConfig::getInstance()->get('clientId');
-        $terminalId = OneGoConfig::getInstance()->get('terminalId');
+        $clientId = OneGoConfig::get('clientId');
+        $terminalId = OneGoConfig::get('terminalId');
         $this->data['onego_jssdk_url'] = "http://plugins-local.dev.onego.com/scripts/webapp/v0.1/{$clientId}/{$terminalId}/main.js";
         
         $html = '';
@@ -46,9 +46,9 @@ class ControllerTotalOnego extends Controller {
         }
         
         // widget plugin
-        if (OneGoConfig::getInstance()->get('widgetShow') == 'Y') {
-            $topOffset = (int) OneGoConfig::getInstance()->get('widgetTopOffset');
-            $isFrozen = (OneGoConfig::getInstance()->get('widgetFrozen') == 'Y') ? 'true' : 'false';
+        if (OneGoConfig::get('widgetShow') == 'Y') {
+            $topOffset = (int) OneGoConfig::get('widgetTopOffset');
+            $isFrozen = (OneGoConfig::get('widgetFrozen') == 'Y') ? 'true' : 'false';
             $html .= <<<END
 var OneGoWidget = OneGo.plugins.slideInWidget.init({
     topOffset: {$topOffset}, 
@@ -69,17 +69,27 @@ END;
                 "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);\n" :
                 "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoff);\n";
         } else {
-            if (OneGoConfig::getInstance()->get('autologinOn')) {
+            if (OneGoConfig::get('autologinOn')) {
                 $html .= $isAjaxCall ? 
                     "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);\n" :
                     "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processAutoLogin);\n";
             }
         }
-        
+
+        // transaction autorefresh
+        if (OneGoConfig::get('transactionRefreshIn') && $onego->isTransactionStarted()) {
+            $firstTimeout = $onego->getTransaction()->getExpiresIn() - OneGoConfig::get('transactionRefreshIn');
+            if ($firstTimeout < 0) {
+                $firstTimeout = 0;
+            }
+            $nextTimeout = $onego->getTransaction()->getTtl() - OneGoConfig::get('transactionRefreshIn');
+            $html .= 'OneGoOpencart.setTransactionAutorefresh('.($firstTimeout*1000).', '.($nextTimeout*1000).');'."\n";
+        }
+
         $initParams = array();
         
         // enable debugging
-        if (OneGoConfig::getInstance()->get('debugModeOn')) {
+        if (OneGoConfig::get('debugModeOn')) {
             //$initParams[] = "debug: true";
         }
         
@@ -90,7 +100,7 @@ END;
         // logging output
         $log = OneGoUtils::getLog(true);
         $html = '';
-        if (OneGoConfig::getInstance()->get('debugModeOn')) {
+        if (OneGoConfig::get('debugModeOn')) {
             $html .= '<script type="text/javascript">';
             $html .= 'if (console && console.dir) { '."\r\n";
             if (!empty($log)) {
@@ -129,7 +139,7 @@ END;
             if ($transaction = $onego->getTransaction()) {
                 $html .= 'var transaction = {\'transaction\' : $.parseJSON('.json_encode(json_encode($transaction->getTransactionDto())).')};'."\r\n";
                 $html .= 'console.dir(transaction);'."\r\n";
-                $html .= 'var transactionTtl = {\'expires\' : $.parseJSON('.json_encode(json_encode(date('Y-m-d H:i:s', time() + $transaction->getTtl()))).')};'."\r\n";
+                $html .= 'var transactionTtl = {\'expires\' : $.parseJSON('.json_encode(json_encode(date('Y-m-d H:i:s', time() + $transaction->getExpiresIn()))).')};'."\r\n";
                 $html .= 'console.dir(transactionTtl);'."\r\n";
                 $html .= 'var cart = {\'modifiedCart\' : $.parseJSON('.json_encode(json_encode($transaction->getModifiedCart())).')};'."\r\n";
                 $html .= 'console.dir(cart);'."\r\n";
@@ -186,7 +196,21 @@ END;
         $this->data['js_page_reload_callback'] = OneGoUtils::isAjaxRequest() ?
                 'OneGoOpencart.reloadCheckoutOrderInfo' : 'OneGoOpencart.reloadPage';
 
-        $this->data['onego_catch_confirm'] = OneGoUtils::isAjaxRequest();
+        $isCheckoutPage = OneGoUtils::isAjaxRequest();
+        $this->data['onego_is_checkout_page'] = $isCheckoutPage;
+        if ($isCheckoutPage && OneGoConfig::get('transactionRefreshIn')) {
+            // override transaction autorefresh
+            if ($onego->isTransactionStarted()) {
+                $firstTimeout = $onego->getTransaction()->getExpiresIn() - OneGoConfig::get('transactionRefreshIn');
+                if ($firstTimeout < 0) {
+                    $firstTimeout = 0;
+                }
+                $nextTimeout = $onego->getTransaction()->getTtl() - OneGoConfig::get('transactionRefreshIn');
+                $this->data['enable_autorefresh'] = array($firstTimeout, $nextTimeout);
+            } else {
+                $this->data['disable_autorefresh'] = true;
+            }
+        }
         $this->data['onego_modified_cart_hash'] = $onego->getModifiedCartHash();
 
         if (!empty($this->request->get['warn_change']) && !empty($this->request->get['cart_hash'])) {
@@ -208,7 +232,7 @@ END;
     {
         $onego = $this->getModel();
         $this->data['onego_claim'] = $this->url->link('total/onego/claimbenefits');
-        $this->data['onego_register'] = OneGoConfig::getInstance()->get('anonymousRegistrationURI');
+        $this->data['onego_register'] = OneGoConfig::get('anonymousRegistrationURI');
         
         $this->language->load('total/onego');
         $orderInfo = $onego->getCompletedOrder();
@@ -217,7 +241,7 @@ END;
         $this->data['onego_button_agree'] = $this->language->get('button_agree_disclose');
         $this->data['onego_claim_benefits'] = $this->language->get('title_claim_your_benefits');
         $this->data['onego_buyer_created'] = 
-                sprintf($this->language->get('anonymous_buyer_created'), OneGoConfig::getInstance()->get('anonymousRegistrationURI'));
+                sprintf($this->language->get('anonymous_buyer_created'), OneGoConfig::get('anonymousRegistrationURI'));
         $this->data['onego_button_register'] = $this->language->get('button_register_anonymous');
         
         if ($onego->isAnonymousRewardsApplyable()) {
@@ -480,9 +504,9 @@ END;
                 sprintf($this->language->get('anonymous_rewarded'), $this->currency->format($fundsReceived))
                 : false;
         $this->data['onego_anonymous_buyer_created'] = 
-                sprintf($this->language->get('anonymous_buyer_created'), OneGoConfig::getInstance()->get('anonymousRegistrationURI'));
+                sprintf($this->language->get('anonymous_buyer_created'), OneGoConfig::get('anonymousRegistrationURI'));
         $this->data['onego_button_register'] = $this->language->get('button_register_anonymous');
-        $this->data['onego_registration_uri'] = OneGoConfig::getInstance()->get('anonymousRegistrationURI');
+        $this->data['onego_registration_uri'] = OneGoConfig::get('anonymousRegistrationURI');
         
         // rest of page output
         $this->data['onego_claim_benefits'] = $this->language->get('title_claim_your_benefits');
