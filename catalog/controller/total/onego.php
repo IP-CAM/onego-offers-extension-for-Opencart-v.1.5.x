@@ -633,6 +633,8 @@ END;
                 $response['error'] = $e->getMessage();
                 unset($response['success']);
             }
+        } else {
+            $response['success'] = false;
         }
         $this->response->setOutput(OneGoAPI_JSON::encode($response));
     }
@@ -643,7 +645,7 @@ END;
      *
      * @return ModelTotalOnego
      */
-    protected function getModel()
+    private function getModel()
     {
         if (empty($this->model_total_onego)) {
             $this->load->model('total/onego');
@@ -651,23 +653,23 @@ END;
         return $this->model_total_onego;
     }
     
-    protected function getReferer()
+    private function getReferer()
     {
         $onego = $this->getModel();
         return OneGoUtils::getHttpReferer() ? OneGoUtils::getHttpReferer() : $this->getDefaultReferer();
     }
     
-    protected function getDefaultReferer()
+    private function getDefaultReferer()
     {
         return $this->url->link('checkout/cart');
     }
     
-    protected function setGlobalErrorMessage($error)
+    private function setGlobalErrorMessage($error)
     {
         $this->session->data['error'] = $error;
     }
     
-    protected function takeoverGlobalErrorMessage()
+    private function takeoverGlobalErrorMessage()
     {
         if (!isset($this->session->data['error'])) {
             return false;

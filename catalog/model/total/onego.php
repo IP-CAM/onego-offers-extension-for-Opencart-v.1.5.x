@@ -4,7 +4,7 @@ require_once DIR_ONEGO.'common.lib.php';
 
 class ModelTotalOnego extends Model 
 {   
-    protected static $current_eshop_cart = false;
+    private static $current_eshop_cart = false;
     
     /**
      * Instance factory
@@ -142,7 +142,6 @@ class ModelTotalOnego extends Model
                         $discount = $onego_discount * ($product['total'] / $initial_total);
                         if (method_exists($this->tax, 'getRates')) { // OpenCart v1.5.3
                             $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
-//OneGoUtils::dbg($tax_rates, $product['tax_class_id']);
                             foreach ($tax_rates as $tax_rate) {
                                 if ($tax_rate['type'] == 'P') {
                                     $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
@@ -168,7 +167,6 @@ class ModelTotalOnego extends Model
                         }
                     }
                 }
-//OneGoUtils::dbg($taxes);
             }
         }
     }
@@ -247,7 +245,7 @@ class ModelTotalOnego extends Model
         }
     }
     
-    protected function isOrderStatusConfirmable($orderStatusId)
+    private function isOrderStatusConfirmable($orderStatusId)
     {
         $confirmedStatuses = OneGoConfig::getArray('confirmOnOrderStatus');
         return in_array($orderStatusId, $confirmedStatuses);
@@ -269,7 +267,15 @@ class ModelTotalOnego extends Model
     {
         return OneGoCompletedOrderState::getCurrent();
     }
-    
+
+    /**
+     * Notify e-shop admin about transaction, which could not be confirmed, and log it to order history
+     *
+     * @param integer $orderId
+     * @param string $errorMessage
+     * @param string $transactionId
+     * @return void
+     */
     public function registerFailedTransaction($orderId, $errorMessage, $transactionId)
     {
         $orderInfo = $this->getOrderInfo($orderId);
@@ -324,7 +330,14 @@ END;
         $transactionState = $lastOrder->get('transactionState');
         return !$transactionState->get('agreedToDiscloseEmail') && !$lastOrder->get('benefitsApplied');
     }
-    
+
+    /**
+     * Wrapper for binding email for last order
+     *
+     * @throws OneGoAPI_Exception
+     * @param OneGoCompletedOrderState $order
+     * @return bool
+     */
     public function bindEmailForOrder(OneGoCompletedOrderState &$order)
     {
         $tokenState = $order->get('oAuthTokenState');
@@ -397,7 +410,11 @@ END;
         }
         return $fundsReceived;
     }
-    
+
+    /**
+     * @param integer $orderId
+     * @return Opencart order info
+     */
     public function getOrderInfo($orderId)
     {
         $this->load->model('account/order');		
@@ -447,7 +464,7 @@ END;
      *
      * @return OneGoAPI_DTO_TransactionIdDto OneGo transaction's id value
      */
-    protected function getTransactionId()
+    private function getTransactionId()
     {
         $transaction = $this->getTransaction();
         return !empty($transaction) ? $transaction->getId() : false;
@@ -628,8 +645,11 @@ END;
         }
         return false;
     }
-    
-    protected function getDelayTtl()
+
+    /**
+     * @return integer Configured transaction delayTTL (in seconds), for transaction/bind/email/new operation
+     */
+    private function getDelayTtl()
     {
         return OneGoConfig::get('delayedTransactionTTL') * 3600; // convert hours to seconds
     }
@@ -665,7 +685,7 @@ END;
      * @param boolean $reload Whether to force cart reload
      * @return array List of collected current cart items and shipping 
      */
-    protected function getEshopCart($reload = false)
+    private function getEshopCart($reload = false)
     {
         if ($reload || (self::$current_eshop_cart === false)) {
             // add Opencart cart items
@@ -695,7 +715,7 @@ END;
      *
      * @return string hash for current Opencart cart
      */
-    protected function getEshopCartHash()
+    private function getEshopCartHash()
     {
         return md5(serialize($this->getEshopCart()));
     }
@@ -723,7 +743,7 @@ END;
      *
      * @return array Shipping data for including as a cart item
      */
-    protected function getShippingAsItem()
+    private function getShippingAsItem()
     {
         if ($this->config->get('shipping_status') && $this->cart->hasShipping() 
                 && isset($this->session->data['shipping_method'])) 
@@ -829,7 +849,14 @@ END;
     {
         return OneGoOAuthTokenState::getCurrent()->get('token');
     }
-    
+
+    /**
+     * Persist OAuth token
+     *
+     * @param OneGoAPI_Impl_OAuthToken $token
+     * @param bool $isAnonymous
+     * @return void
+     */
     public function saveOAuthToken(OneGoAPI_Impl_OAuthToken $token, $isAnonymous = false)
     {
         OneGoOAuthTokenState::getCurrent()->set('token', $token);
@@ -911,7 +938,11 @@ END;
     {
         return in_array($itemCode, array(OneGoConfig::get('shippingCode')));
     }
-    
+
+    /**
+     * @throws OneGoAPI_Exception
+     * @return bool API operation succeeded
+     */
     public function spendPrepaid()
     {
         $transaction = $this->getTransaction();
@@ -931,7 +962,10 @@ END;
         }
         return false;
     }
-    
+
+    /**
+     * @return bool API operation succeeded
+     */
     public function cancelSpendingPrepaid()
     {
         $transaction = $this->getTransaction();
@@ -1008,7 +1042,7 @@ END;
     }
 
     /**
-     * Refreshes expired OAuth token and transaction
+     * Refreshes expired OAuth token and transaction, also update transaction when it is near expiration
      *
      * @throws OneGoAPICallFailedException|OneGoAuthenticationRequiredException
      * @param bool $forceUpdate Update transaction even if not expired
@@ -1098,7 +1132,7 @@ END;
     /**
      * @return boolean True if there is less time left until transaction expiration than configured
      */
-    protected function isTransactionAboutToExpire()
+    private function isTransactionAboutToExpire()
     {
         if ($this->isTransactionStarted() && OneGoConfig::get('transactionRefreshIn')) {
             $transaction = $this->getTransaction();
@@ -1168,7 +1202,7 @@ END;
         }
     }
     
-    protected function getModifiedCart()
+    private function getModifiedCart()
     {
         if ($this->isTransactionStarted()) {
             return $this->getTransaction()->getModifiedCart();
@@ -1193,7 +1227,7 @@ END;
      *
      * @return OneGoAPI_DTO_ModifiedCartDto 
      */
-    protected function getAnonymousModifiedCart()
+    private function getAnonymousModifiedCart()
     {
         // prevent multiple requests on the same page if first request failed
         if (OneGoUtils::getFromRegistry('anonymousRequestFailed')) {
@@ -1230,7 +1264,15 @@ END;
     {
         return OneGoTransactionState::getCurrent()->get(OneGoTransactionState::AGREED_DISCLOSE_EMAIL);
     }
-    
+
+    /**
+     * Request OAuth token by OAuth authorization code (received on buyer authentication)
+     *
+     * @throws OneGoAPI_OAuthException
+     * @param string $authorizationCode
+     * @param array $requestedScopes
+     * @return OneGoAPI_Impl_OAuthToken
+     */
     public function requestOAuthAccessToken($authorizationCode, $requestedScopes = false)
     {
         $auth = $this->getAuth();
@@ -1253,7 +1295,14 @@ END;
         }
         return $token;        
     }
-    
+
+    /**
+     * Request OAuth access token by Virtual Gift Card number
+     *
+     * @throws OneGoAPI_OAuthException
+     * @param string $cardNumber
+     * @return OneGoAPI_Impl_OAuthToken
+     */
     public function requestOAuthAccessTokenByVGC($cardNumber)
     {
         $auth = $this->getAuth();
@@ -1290,7 +1339,7 @@ END;
             } else {
                 $cart = $lastOrder->get('cart') ? $lastOrder->get('cart') : array();
                 try {
-                    $prepaidReceivable = $awards = $this->getApi()
+                    $prepaidReceivable = $this->getApi()
                             ->getAnonymousAwards($this->collectCartEntries($cart))
                             ->getPrepaidReceived();
                     $awards = !empty($prepaidReceivable) ? $prepaidReceivable->getAmount()->visible : null;
@@ -1307,7 +1356,12 @@ END;
         }
         return false;
     }
-    
+
+    /**
+     * @throws OneGoAPI_Exception|OneGoAPI_VirtualGiftCardNotFoundException|OneGoVirtualGiftCardNumberInvalidException
+     * @param string $cardNumber
+     * @return bool Success
+     */
     public function redeemVirtualGiftCard($cardNumber)
     {
         $transaction = $this->getTransaction();
@@ -1325,7 +1379,14 @@ END;
             throw $e;
         }
     }
-    
+
+    /**
+     * Redemm VGC for anonymous buyer
+     *
+     * @throws Exception|OneGoAPI_OAuthInvalidGrantException|OneGoVirtualGiftCardNumberInvalidException
+     * @param $cardNumber
+     * @return void
+     */
     public function redeemAnonymousVirtualGiftCard($cardNumber)
     {
         try {
@@ -1338,7 +1399,13 @@ END;
             throw $e;
         }
     }
-    
+
+    /**
+     * Restore transaction to known state
+     *
+     * @param OneGoTransactionState $state
+     * @return void
+     */
     public function restoreTransactionState(OneGoTransactionState $state)
     {
         if ($state->get('redeemedVGC')) {

@@ -79,7 +79,12 @@ abstract class OneGoPersistentState
     public function __construct() {
         $this->initialize();
     }
-    
+
+    /**
+     * Convert state object to array
+     *
+     * @return array
+     */
     public function toArray()
     {
         $arr = get_object_vars($this);
@@ -90,13 +95,19 @@ abstract class OneGoPersistentState
         }
         return $arr;
     }
-    
+
+    /**
+     * Save state
+     *
+     * @return void
+     */
     protected function save()
     {
         OneGoUtils::saveToSession($this->getStorageKey(), $this);
     }
     
     /**
+     * Singleton loader, with default option
      *
      * @return OneGoPersistentState 
      */
