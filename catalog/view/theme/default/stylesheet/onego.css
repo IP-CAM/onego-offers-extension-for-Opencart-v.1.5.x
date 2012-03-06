@@ -38,6 +38,7 @@ input.onego_watermark.focused {
     padding: 10px 15px;
     position: relative;
     margin-bottom: 10px;
+    display: block;
 }
 
 #onego_panel_label {

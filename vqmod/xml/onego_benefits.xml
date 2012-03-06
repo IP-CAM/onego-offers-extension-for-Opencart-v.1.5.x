@@ -23,7 +23,7 @@
     <file name="catalog/controller/checkout/confirm.php">
         <operation>
             <search position="before"><![CDATA[
-            $json['output'] = $this->render();
+            $this->render()
             ]]></search>
 
             <add><![CDATA[
@@ -48,6 +48,34 @@
             } else {
                 $this->data['onego_info'] = '';
             }
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/controller/checkout/cart.php">
+        <operation>
+            <search position="after"><![CDATA[
+            public function index() {
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status')) {
+                $this->data['onego_panel'] = $this->getChild('total/onego/panel');
+            } else {
+                $this->data['onego_panel'] = '';
+            }
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/view/theme/*/template/checkout/cart.tpl">
+        <operation>
+            <search position="after"><![CDATA[
+            <div class="cart-module">
+            ]]></search>
+
+            <add><![CDATA[
+            <?php echo !empty($onego_panel) ? $onego_panel : 'onego'; ?>
             ]]></add>
         </operation>
     </file>

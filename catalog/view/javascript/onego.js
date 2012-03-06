@@ -131,8 +131,9 @@ OneGoOpencart = {
             duration = 3000;
         }
         var elemId = 'onegowarning' + Math.floor(Math.random() * 100000000);
-        var warning = '<div id="'+elemId+'" class="warning onego_warning">'+message+'</div>';
+        var warning = $('<div id="'+elemId+'" class="warning onego_warning">'+message+'</div>');
         element.before(warning);
+        warning.show();
         if (duration) {
             setTimeout("$('#"+elemId+"').fadeOut()", duration);
         }
