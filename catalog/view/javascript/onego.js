@@ -44,7 +44,7 @@ OneGoOpencart = {
                     'warn_change': warnCartChange || 0,
                     'cart_hash': $('#onego_cart_hash').val()
                 },
-                dataType: 'json',
+                dataType: 'html',
                 success: function(json) {
                     if (json['redirect']) {
                         location = json['redirect'];
