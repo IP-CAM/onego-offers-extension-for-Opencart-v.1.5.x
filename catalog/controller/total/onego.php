@@ -1,33 +1,11 @@
 <?php
 class ControllerTotalOnego extends Controller {
 
-    public function index() 
+    public function index()
     {
-        $this->language->load('total/onego');
-        
-        $this->data['heading_title'] = $this->language->get('heading_title');
-        
-        $onego = $this->getModel();
-        
-        try {
-            $onego->refreshTransaction();
-        } catch (OneGoAuthenticationRequiredException $e) {
-            // ignore
-        } catch (OneGoAPICallFailedException $e) {
-            // ignore
-        }
-        
-        $this->data['onego_panel'] = $this->getChild('total/onego/panel');
-        
-        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego.tpl')) {
-            $this->template = $this->config->get('config_template') . '/template/total/onego.tpl';
-        } else {
-            $this->template = 'default/template/total/onego.tpl';
-        }
-        
-        $this->response->setOutput($this->render());
+        // not used, OneGo panel included separately for Opencart v1.5.2 compatibility
     }
-    
+
     public function header()
     {   
         $onego = $this->getModel();
