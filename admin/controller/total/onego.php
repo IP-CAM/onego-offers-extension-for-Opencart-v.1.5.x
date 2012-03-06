@@ -20,9 +20,13 @@ class ControllerTotalOnego extends Controller {
         $this->load->model('setting/setting');
 
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && ($this->validate())) {
+
             OneGoTransactionsLog::init();
-            
-            $this->model_setting_setting->editSetting('onego', $this->request->post);
+
+            $post = $this->request->post;
+            $post['onego_confirmOnOrderStatus'] = implode('|', empty($post['onego_confirmOnOrderStatus']) ? array() : $post['onego_confirmOnOrderStatus']);
+            $post['onego_cancelOnOrderStatus'] = implode('|', empty($post['onego_cancelOnOrderStatus']) ? array() : $post['onego_cancelOnOrderStatus']);
+            $this->model_setting_setting->editSetting('onego', $post);
 
             $this->session->data['success'] = $this->language->get('text_success');
 
@@ -95,14 +99,13 @@ class ControllerTotalOnego extends Controller {
         foreach ($config_fields as $field) {
             $help_key = 'entry_help_'.$field;
             $help = $this->language->get($help_key);
+            $cfgVal = in_array($field, array('confirmOnOrderStatus', 'cancelOnOrderStatus')) ?
+                        OneGoConfig::getArray($field) : OneGoConfig::get($field);
             $row = array(
                 'title' => $this->language->get('entry_'.$field),
-                'value' => isset($this->request->post['onego_'.$field]) ?
-                    $this->request->post['onego_'.$field] : 
-                    in_array($field, array('confirmOnOrderStatus', 'cancelOnOrderStatus')) ?
-                        OneGoConfig::getArray($field) :
-                        OneGoConfig::get($field),
-                'help'  => $help == $help_key ? '' : $help,
+                'value' => (isset($this->request->post['onego_'.$field]) ?
+                    $this->request->post['onego_'.$field] : $cfgVal),
+                'help'  => ($help == $help_key) ? '' : $help,
             );
             $fields[$field] = $row;
         }
@@ -331,9 +334,6 @@ class ControllerTotalOnego extends Controller {
                 $this->errorFields[] = $field;
             }
         }
-        
-        $this->request->post['onego_confirmOnOrderStatus'] = implode('|', empty($post['onego_confirmOnOrderStatus']) ? array() : $post['onego_confirmOnOrderStatus']);
-        $this->request->post['onego_cancelOnOrderStatus'] = implode('|', empty($post['onego_cancelOnOrderStatus']) ? array() : $post['onego_cancelOnOrderStatus']);
 
         return $this->error ? false : true;
     }

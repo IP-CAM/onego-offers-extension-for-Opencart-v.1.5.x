@@ -42,7 +42,7 @@
                 <?php } else if (in_array($field, array('checkCredentials'))) { ?>
 
                 <input type="button" id="btn_onego_check" value="<?php echo $onego_button_check; ?>" />
-                <div id="onego_check_results"><?php echo $route ?></div>
+                <div id="onego_check_results"></div>
 
                 <?php } else { ?>
                 
