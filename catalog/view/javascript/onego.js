@@ -9,7 +9,10 @@ OneGoOpencart = {
         autologinUri: $('base').attr('href') + 'index.php?route=total/onego/autologin',
         logoffUri: $('base').attr('href') + 'index.php?route=total/onego/cancel',
         agreeRegisterUri: $('base').attr('href') + 'index.php?route=total/onego/agree',
-        transactionRefreshUri: $('base').attr('href') + 'index.php?route=total/onego/refreshtransaction'
+        transactionRefreshUri: $('base').attr('href') + 'index.php?route=total/onego/refreshtransaction',
+        compatibility: {
+            'checkout/confirm': { dataType: 'JSON' }
+        }
     },
     loginPromptSuccess: false,
     processLoginDynamic: function(){
@@ -44,15 +47,20 @@ OneGoOpencart = {
                     'warn_change': warnCartChange || 0,
                     'cart_hash': $('#onego_cart_hash').val()
                 },
-                dataType: 'json',
-                success: function(json) {
-                    if (json['redirect']) {
-                        location = json['redirect'];
-                    }	
-
-                    if (json['output']) {
-                        $('#confirm .checkout-content').html(json['output']);
+                dataType: OneGoOpencart.config.compatibility['checkout/confirm'].dataType,
+                success: function(data) {
+                    if (typeof data == 'string') {
+                        $('#confirm .checkout-content').html(data);
                         $('#confirm .checkout-content').slideDown('slow');
+                    } else {
+                        if (data.redirect) {
+                            location = data.redirect;
+                        }
+
+                        if (data.output) {
+                            $('#confirm .checkout-content').html(data.output);
+                            $('#confirm .checkout-content').slideDown('slow');
+                        }
                     }
                 },
                 error: function(xhr, ajaxOptions, thrownError) {
@@ -131,8 +139,9 @@ OneGoOpencart = {
             duration = 3000;
         }
         var elemId = 'onegowarning' + Math.floor(Math.random() * 100000000);
-        var warning = '<div id="'+elemId+'" class="warning onego_warning">'+message+'</div>';
+        var warning = $('<div id="'+elemId+'" class="warning onego_warning">'+message+'</div>');
         element.before(warning);
+        warning.show();
         if (duration) {
             setTimeout("$('#"+elemId+"').fadeOut()", duration);
         }
@@ -235,7 +244,7 @@ OneGoOpencart = {
     catchOrderConfirmAction: function()
     {
         if ($('#confirm .payment').length) {
-            var originalConfirmButton = $('#confirm .payment .buttons a');
+            var originalConfirmButton = $('#confirm .payment .buttons a, #confirm .payment .buttons input[type=button], #confirm .payment .buttons button');
             if (originalConfirmButton.length == 1) {
                 var onegoButton = originalConfirmButton.clone(false);
                 originalConfirmButton.hide().after(onegoButton);
