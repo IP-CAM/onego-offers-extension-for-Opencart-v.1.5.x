@@ -535,6 +535,11 @@ class OneGoUtils
         }
         return $array;
     }
+
+    public static function compareVersion($compareTo)
+    {
+        return version_compare(VERSION, $compareTo);
+    }
 }
 
 class OneGoTransactionsLog

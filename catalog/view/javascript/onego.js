@@ -9,7 +9,10 @@ OneGoOpencart = {
         autologinUri: $('base').attr('href') + 'index.php?route=total/onego/autologin',
         logoffUri: $('base').attr('href') + 'index.php?route=total/onego/cancel',
         agreeRegisterUri: $('base').attr('href') + 'index.php?route=total/onego/agree',
-        transactionRefreshUri: $('base').attr('href') + 'index.php?route=total/onego/refreshtransaction'
+        transactionRefreshUri: $('base').attr('href') + 'index.php?route=total/onego/refreshtransaction',
+        compatibility: {
+            'checkout/confirm': { dataType: 'JSON' }
+        }
     },
     loginPromptSuccess: false,
     processLoginDynamic: function(){
@@ -44,15 +47,22 @@ OneGoOpencart = {
                     'warn_change': warnCartChange || 0,
                     'cart_hash': $('#onego_cart_hash').val()
                 },
-                dataType: 'html',
-                success: function(json) {
-                    if (json['redirect']) {
-                        location = json['redirect'];
-                    }	
-
-                    if (json['output']) {
-                        $('#confirm .checkout-content').html(json['output']);
+                dataType: OneGoOpencart.config.compatibility['checkout/confirm'].dataType,
+                success: function(data) {
+                    console.log(typeof data);
+                    console.dir(data);
+                    if (typeof data == 'string') {
+                        $('#confirm .checkout-content').html(data);
                         $('#confirm .checkout-content').slideDown('slow');
+                    } else {
+                        if (data.redirect) {
+                            location = data.redirect;
+                        }
+
+                        if (data.output) {
+                            $('#confirm .checkout-content').html(data.output);
+                            $('#confirm .checkout-content').slideDown('slow');
+                        }
                     }
                 },
                 error: function(xhr, ajaxOptions, thrownError) {

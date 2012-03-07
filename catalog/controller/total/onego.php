@@ -64,6 +64,8 @@ END;
             $html .= 'OneGoOpencart.setTransactionAutorefresh('.($firstTimeout*1000).', '.($nextTimeout*1000).');'."\n";
         }
 
+        $html .= $this->compatibilitySettingsJS();
+
         $initParams = array();
         
         $this->data['initParamsStr'] = implode(",\n", $initParams);
@@ -126,6 +128,15 @@ END;
         
         $this->template = 'default/template/common/onego_header.tpl';
         $this->response->setOutput($this->render());
+    }
+
+    private function compatibilitySettingsJS()
+    {
+        $html = '';
+        if (OneGoUtils::compareVersion('1.5.2') >= 0) {
+            $html .= "OneGoOpencart.config.compatibility['checkout/confirm'].dataType = 'HTML';\n";
+        }
+        return $html;
     }
     
     public function panel()
