@@ -633,8 +633,6 @@ END;
                 $response['error'] = $e->getMessage();
                 unset($response['success']);
             }
-        } else {
-            $response['success'] = false;
         }
         $this->response->setOutput(OneGoAPI_JSON::encode($response));
     }
