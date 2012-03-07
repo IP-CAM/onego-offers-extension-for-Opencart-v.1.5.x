@@ -141,5 +141,20 @@
             ]]></add>
         </operation>
     </file>
+
+    <file name="admin/controller/sale/order.php">
+        <operation>
+        <search position="after"><![CDATA[
+            $this->template = 'sale/order_list.tpl';
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status') && !empty($this->data['orders'])) {
+                $this->load->model('total/onego');
+                $this->data['orders'] = $this->model_total_onego->addTransactionStatuses($this->data['orders']);
+            }
+            ]]></add>
+        </operation>
+    </file>
     
 </modification>
