@@ -70,7 +70,7 @@
 
     <file name="catalog/view/theme/*/template/checkout/cart.tpl">
         <operation>
-            <search position="after"><![CDATA[
+            <search position="before"><![CDATA[
             <div class="cart-module">
             ]]></search>
 
