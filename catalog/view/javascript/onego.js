@@ -49,8 +49,6 @@ OneGoOpencart = {
                 },
                 dataType: OneGoOpencart.config.compatibility['checkout/confirm'].dataType,
                 success: function(data) {
-                    console.log(typeof data);
-                    console.dir(data);
                     if (typeof data == 'string') {
                         $('#confirm .checkout-content').html(data);
                         $('#confirm .checkout-content').slideDown('slow');
@@ -246,7 +244,7 @@ OneGoOpencart = {
     catchOrderConfirmAction: function()
     {
         if ($('#confirm .payment').length) {
-            var originalConfirmButton = $('#confirm .payment .buttons a');
+            var originalConfirmButton = $('#confirm .payment .buttons a, #confirm .payment .buttons input[type=button], #confirm .payment .buttons button');
             if (originalConfirmButton.length == 1) {
                 var onegoButton = originalConfirmButton.clone(false);
                 originalConfirmButton.hide().after(onegoButton);
