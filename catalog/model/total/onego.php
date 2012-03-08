@@ -43,6 +43,7 @@ class ModelTotalOnego extends Model
             $totals = $this->db->query($sql);
             if (count($totals->rows)) {
                 foreach ($totals->rows as $row) {
+                    $row['value'] = (float) $row['value'];
                     $total_data[] = $row;
                     $total += $row['value'];
                     $onego_discount -= $row['value'];
@@ -137,9 +138,9 @@ class ModelTotalOnego extends Model
                     $receivables = array(
                         'code' => 'onego',
                         'title' => $this->language->get('funds_receivable'),
-                        'text' => $this->currency->format($received),
+                        'text' => '+'.$this->currency->format($received),
                         'value' => 0,
-                        'sort_order' => 1000,
+                        'sort_order' => $this->config->get('onego_sort_order').'z',
                     );
                     $total_data[] = $receivables;
                 }
