@@ -1,5 +1,5 @@
-<td><?php echo $onego_status ?></td>
-<td>
+<td class="left"><?php echo $onego_status ?></td>
+<td class="left">
 
 <div id="onego_transaction_status_info">
 <?php if (!empty($onego_status_undefined)) { ?>
@@ -109,7 +109,23 @@ $(document).ready(function(){
         
         <?php } ?>
     }
-    
+    function updateTransactionStatus()
+    {
+        var st = detectStatusChange();
+        var shouldConfirm = (st == 'confirm');
+        var shouldCancel = (st == 'cancel');
+        if (st) {
+            $('#onego_transaction_status_info').hide();
+            $('#onego_transaction_status_loading').show();
+        }
+        if (shouldConfirm) {
+            endTransaction('<?php echo OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM ?>');
+        } else if (shouldCancel) {
+            endTransaction('<?php echo OneGoAPI_DTO_TransactionEndDto::STATUS_CANCEL ?>');
+        }
+    }
+
+    // handle order transaction processing buttons
     $('#btn_onego_confirm').unbind('click').click(function(e){
         OneGoOpencart.setAsLoading($(this));
         if (confirm('<?php echo $confirm_confirm ?>')) {
@@ -135,23 +151,17 @@ $(document).ready(function(){
             OneGoOpencart.unsetAsLoading($(this));
         }
     });
-    
+
+    // detect order status change, show warning
     $('select[name=order_status_id]').unbind('change.onego').bind('change.onego', warnStatusChange);
-    
-    $('#button-history').unbind('click.onego').bind('click.onego', function(e){
-        var st = detectStatusChange();
-        var shouldConfirm = (st == 'confirm');
-        var shouldCancel = (st == 'cancel');
-        if (st) {
-            $('#onego_transaction_status_info').hide();
-            $('#onego_transaction_status_loading').show();
-        }
-        if (shouldConfirm) {
-            endTransaction('<?php echo OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM ?>');
-        } else if (shouldCancel) {
-            endTransaction('<?php echo OneGoAPI_DTO_TransactionEndDto::STATUS_CANCEL ?>');
-        }
-    });
+
+    // update transaction status on order view "Add history" button click
+    $('#button-history').unbind('click.onego').bind('click.onego', updateTransactionStatus);
+
+    // update transaction status on order editing "Save" button click
+    if ($('#form #tab-total').length) {
+        $('#form').unbind('submit.onego').bind('submit.onego', updateTransactionStatus);
+    }
     
     warnStatusChange();
 })
