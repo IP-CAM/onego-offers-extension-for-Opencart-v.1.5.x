@@ -25,150 +25,171 @@ class ModelTotalOnego extends Model
      * @param array $taxes 
      */
     public function getTotal(&$total_data, &$total, &$taxes) {
-        try {
-            $transaction = $this->refreshTransaction();
-        } catch (OneGoAuthenticationRequiredException $e) {
-            // ignore
-        } catch (OneGoAPICallFailedException $e) {
-            // ignore
+        $onego_discount = 0;
+        if ($total) {
+            $initial_total = $total;
+        } else {
+            $initial_total = ($total += $this->cart->getSubTotal());
         }
-        
-        $this->load->language('total/onego');
-        
-        if ($this->isTransactionStarted() || $this->hasAgreedToDiscloseEmail()) {
-            if ($total) {
-                $initial_total = $total;
-            } else {
-                $initial_total = ($total += $this->cart->getSubTotal());
-            }
 
-            // items discounts
-            // TODO
+        // detect order editing (added in OC v.1.5.2)
+        //if (preg_match('#^[^\?]+index\.php\?route=checkout/manual#i', $_SERVER['REQUEST_URI']) &&
+        if ($this->request->get['route'] == 'checkout/manual' &&
+            preg_match('#index\.php\?route=sale/order/update.+order_id=([0-9]+)#i', OneGoUtils::getHttpReferer(), $match))
+        {
+            $orderId = (int) $match[1];
 
-            // shipping discounts
-            $free_shipping = false;
-            $shipping_discount = $this->getShippingDiscount();
-            if ($shipping_discount > 0) {
-                $total -= $shipping_discount;
-                $total_data[] = array(
-                    'code' => 'onego',
-                    'title' => $this->language->get('text_shipping_discount'),
-                    'text' => $this->currency->format(-$shipping_discount),
-                    'value' => $shipping_discount,
-                    'sort_order' => $this->config->get('onego_sort_order').'y'
-                );
-            }
-            if ($shipping_discount && isset($this->session->data['shipping_method'])) {
-                $opencart_shipping_cost = $this->session->data['shipping_method']['cost'];
-                if ($opencart_shipping_cost - $shipping_discount == 0) {
-                    $free_shipping = true;
+            // get order totals
+            $sql = "SELECT * FROM ".DB_PREFIX."order_total WHERE order_id = ".$orderId." AND code='onego' ORDER BY order_total_id";
+            $totals = $this->db->query($sql);
+            if (count($totals->rows)) {
+                foreach ($totals->rows as $row) {
+                    $total_data[] = $row;
+                    $total += $row['value'];
+                    $onego_discount -= $row['value'];
                 }
             }
+        } else {
 
-            // cart discount
-            $discount = $this->getTotalDiscount();
-            $discountAmount = !empty($discount) ? $discount->getAmount() : null;
-            if (!empty($discountAmount) && ($discountAmount != $shipping_discount)) {
-                $discountPercents = $this->calculateDiscountPercentage();
-                if (!empty($discountPercents)) {
-                    $title = sprintf($this->language->get('onego_cart_discount_percents'), 
-                            round($discountPercents, 2));
-                } else {
-                    $title = $this->language->get('onego_cart_discount');
-                }
-                $total_data[] = array(
-                    'code' => 'onego',
-                    'title' => $title,
-                    'text' => $this->currency->format(-$discountAmount),
-                    'value' => -$discountAmount,
-                    'sort_order' => $this->config->get('onego_sort_order').'a'
-                );
-                $modified = true;
+            try {
+                $transaction = $this->refreshTransaction();
+            } catch (OneGoAuthenticationRequiredException $e) {
+                // ignore
+            } catch (OneGoAPICallFailedException $e) {
+                // ignore
             }
-            
-            // virtual gift card spent
-            if ($this->isTransactionStarted()) {
-                $vgc = $this->getTransaction()->getVirtualGiftCard();
-                if ($vgc && $vgc->spent) {
+
+            $this->load->language('total/onego');
+
+            if ($this->isTransactionStarted() || $this->hasAgreedToDiscloseEmail()) {
+                // items discounts
+                // TODO
+
+                // shipping discounts
+                $free_shipping = false;
+                $shipping_discount = $this->getShippingDiscount();
+                if ($shipping_discount > 0) {
+                    $total -= $shipping_discount;
                     $total_data[] = array(
                         'code' => 'onego',
-                        'title' => $this->language->get('vgc_spent'),
-                        'text' => $this->currency->format(-$vgc->spent),
-                        'value' => 0,
-                        'sort_order' => $this->config->get('onego_sort_order').'p'
+                        'title' => $this->language->get('text_shipping_discount'),
+                        'text' => $this->currency->format(-$shipping_discount),
+                        'value' => $shipping_discount,
+                        'sort_order' => $this->config->get('onego_sort_order').'y'
                     );
                 }
-            }
-            
-            // prepaid spent
-            $spent = $this->getPrepaidSpent();
-            if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::PREPAID_SPENT)) {
-                $total_data[] = array(
-                    'code' => 'onego',
-                    'title' => $this->language->get('prepaid_spent'),
-                    'text' => $this->currency->format(-$spent),
-                    'value' => 0,
-                    'sort_order' => $this->config->get('onego_sort_order').'r'
-                );
-            }
-        
-            // prepaid received
-            $received = $this->getPrepaidReceivedAmount();
-            if (!empty($received)) {
-                $receivables = array(
-                    'code' => 'onego',
-                    'title' => $this->language->get('funds_receivable'),
-                    'text' => $this->currency->format($received),
-                    'value' => 0,
-                    'sort_order' => 1000,
-                );
-                $total_data[] = $receivables;
-            }
-            
-            // onego subtotal
-            $onego_discount = 0;
-            $cashAmount = $this->getCashAmount();
-            if ($initial_total != $cashAmount) {
-                $onego_discount = $this->getOriginalAmount() - $cashAmount;
-                $total -= $onego_discount;
-            }
-            
-            // decrease taxes if discount was applied
-            if ($onego_discount) {
-                // decrease taxes to be applied for products
-                foreach ($this->cart->getProducts() as $product) {
-                    if ($product['tax_class_id']) {
-                        // discount part for this product
-                        $discount = $onego_discount * ($product['total'] / $initial_total);
-                        if (method_exists($this->tax, 'getRates')) { // OpenCart v1.5.3
-                            $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
-                            foreach ($tax_rates as $tax_rate) {
-                                if ($tax_rate['type'] == 'P') {
-                                    $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
-                                }
-                            }
-                        } else {
-                            $taxes[$product['tax_class_id']] -= ($product['total'] / 100 * $this->tax->getRate($product['tax_class_id'])) - (($product['total'] - $discount) / 100 * $this->tax->getRate($product['tax_class_id']));
-                        }
+                if ($shipping_discount && isset($this->session->data['shipping_method'])) {
+                    $opencart_shipping_cost = $this->session->data['shipping_method']['cost'];
+                    if ($opencart_shipping_cost - $shipping_discount == 0) {
+                        $free_shipping = true;
                     }
                 }
-                // decrease taxes to be applied for shipping
-                if ($free_shipping && isset($this->session->data['shipping_method'])) {
-                    if (!empty($this->session->data['shipping_method']['tax_class_id'])) {
-                        // tax rates that will be applied (or were already) to shipping
-                        if (method_exists($this->tax, 'getRates')) {  // OpenCart v1.5.3
-                            $tax_rates = $this->tax->getRates($this->session->data['shipping_method']['cost'], $this->session->data['shipping_method']['tax_class_id']);
-                            // subtract them
-                            foreach ($tax_rates as $tax_rate) {
+
+                // cart discount
+                $discount = $this->getTotalDiscount();
+                $discountAmount = !empty($discount) ? $discount->getAmount() : null;
+                if (!empty($discountAmount) && ($discountAmount != $shipping_discount)) {
+                    $discountPercents = $this->calculateDiscountPercentage();
+                    if (!empty($discountPercents)) {
+                        $title = sprintf($this->language->get('onego_cart_discount_percents'),
+                                round($discountPercents, 2));
+                    } else {
+                        $title = $this->language->get('onego_cart_discount');
+                    }
+                    $total_data[] = array(
+                        'code' => 'onego',
+                        'title' => $title,
+                        'text' => $this->currency->format(-$discountAmount),
+                        'value' => -$discountAmount,
+                        'sort_order' => $this->config->get('onego_sort_order').'a'
+                    );
+                    $modified = true;
+                }
+
+                // virtual gift card spent
+                if ($this->isTransactionStarted()) {
+                    $vgc = $this->getTransaction()->getVirtualGiftCard();
+                    if ($vgc && $vgc->spent) {
+                        $total_data[] = array(
+                            'code' => 'onego',
+                            'title' => $this->language->get('vgc_spent'),
+                            'text' => $this->currency->format(-$vgc->spent),
+                            'value' => -$vgc->spent,
+                            'sort_order' => $this->config->get('onego_sort_order').'p'
+                        );
+                    }
+                }
+
+                // prepaid spent
+                $spent = $this->getPrepaidSpent();
+                if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::PREPAID_SPENT)) {
+                    $total_data[] = array(
+                        'code' => 'onego',
+                        'title' => $this->language->get('prepaid_spent'),
+                        'text' => $this->currency->format(-$spent),
+                        'value' => -$spent,
+                        'sort_order' => $this->config->get('onego_sort_order').'r'
+                    );
+                }
+
+                // prepaid received
+                $received = $this->getPrepaidReceivedAmount();
+                if (!empty($received)) {
+                    $receivables = array(
+                        'code' => 'onego',
+                        'title' => $this->language->get('funds_receivable'),
+                        'text' => $this->currency->format($received),
+                        'value' => 0,
+                        'sort_order' => 1000,
+                    );
+                    $total_data[] = $receivables;
+                }
+
+                // onego subtotal
+                $cashAmount = $this->getCashAmount();
+                if ($initial_total != $cashAmount) {
+                    $onego_discount = $this->getOriginalAmount() - $cashAmount;
+                    $total -= $onego_discount;
+                }
+            }
+        }
+
+        // decrease taxes if discount was applied
+        if (!empty($onego_discount)) {
+            // decrease taxes to be applied for products
+            foreach ($this->cart->getProducts() as $product) {
+                if ($product['tax_class_id']) {
+                    // discount part for this product
+                    $discount = $onego_discount * ($product['total'] / $initial_total);
+                    if (method_exists($this->tax, 'getRates')) { // OpenCart v1.5.3
+                        $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
+                        foreach ($tax_rates as $tax_rate) {
+                            if ($tax_rate['type'] == 'P') {
                                 $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
                             }
-                        } else {
-                            $taxes[$this->session->data['shipping_method']['tax_class_id']] -= $this->session->data['shipping_method']['cost'] / 100 * $this->tax->getRate($this->session->data['shipping_method']['tax_class_id']);
                         }
+                    } else {
+                        $taxes[$product['tax_class_id']] -= ($product['total'] / 100 * $this->tax->getRate($product['tax_class_id'])) - (($product['total'] - $discount) / 100 * $this->tax->getRate($product['tax_class_id']));
+                    }
+                }
+            }
+            // decrease taxes to be applied for shipping
+            if (!empty($free_shipping) && isset($this->session->data['shipping_method'])) {
+                if (!empty($this->session->data['shipping_method']['tax_class_id'])) {
+                    // tax rates that will be applied (or were already) to shipping
+                    if (method_exists($this->tax, 'getRates')) {  // OpenCart v1.5.3
+                        $tax_rates = $this->tax->getRates($this->session->data['shipping_method']['cost'], $this->session->data['shipping_method']['tax_class_id']);
+                        // subtract them
+                        foreach ($tax_rates as $tax_rate) {
+                            $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
+                        }
+                    } else {
+                        $taxes[$this->session->data['shipping_method']['tax_class_id']] -= $this->session->data['shipping_method']['cost'] / 100 * $this->tax->getRate($this->session->data['shipping_method']['tax_class_id']);
                     }
                 }
             }
         }
+        
     }
     
     /**

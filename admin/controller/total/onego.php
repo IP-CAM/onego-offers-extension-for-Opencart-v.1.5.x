@@ -164,22 +164,15 @@ class ControllerTotalOnego extends Controller {
                         date('Y-m-d H:i:s', $expiresOn));
                     
                     // enable transaction completion actions
-                    $this->data['onego_btn_confirm'] = $this->language->get('button_confirm_transaction');
-                    $this->data['onego_btn_cancel'] = $this->language->get('button_cancel_transaction');
-                    $this->data['confirm_confirm'] = $this->language->get('confirm_transaction_confirm');
-                    $this->data['confirm_cancel'] = $this->language->get('confirm_transaction_cancel');
-                    $this->data['delay_periods'] = $this->language->get('delay_period');
-                    $this->data['delay_for_period'] = $this->language->get('delay_for_period');
-                    $this->data['onego_btn_delay'] = $this->language->get('button_delay_transaction');                   
-                    $this->data['confirm_delay'] = $this->language->get('confirm_transaction_delay');
                     $this->data['onego_allow_status_change'] = true;
                     $confirmStatuses = OneGoConfig::getArray('confirmOnOrderStatus');
                     $cancelStatuses = OneGoConfig::getArray('cancelOnOrderStatus');
                     $this->data['confirm_statuses'] = $confirmStatuses;
                     $this->data['cancel_statuses'] = $cancelStatuses;
-                    $this->data['status_will_confirm'] = $this->language->get('transaction_will_confirm');
-                    $this->data['status_will_cancel'] = $this->language->get('transaction_will_cancel');
-                    
+                    $this->data['onego_btn_confirm'] = $this->language->get('button_confirm_transaction');
+                    $this->data['onego_btn_cancel'] = $this->language->get('button_cancel_transaction');
+                    $this->data['onego_btn_delay'] = $this->language->get('button_delay_transaction');
+
                 }
             } else {
                 $this->data['onego_status_success'] = sprintf(
@@ -199,6 +192,14 @@ class ControllerTotalOnego extends Controller {
         $this->data['onego_status'] = $this->language->get('onego_status');
         $this->data['order_id'] = $orderId;
         $this->data['token'] = $this->session->data['token'];
+
+        $this->data['confirm_confirm'] = $this->language->get('confirm_transaction_confirm');
+        $this->data['confirm_cancel'] = $this->language->get('confirm_transaction_cancel');
+        $this->data['delay_periods'] = $this->language->get('delay_period');
+        $this->data['delay_for_period'] = $this->language->get('delay_for_period');
+        $this->data['confirm_delay'] = $this->language->get('confirm_transaction_delay');
+        $this->data['status_will_confirm'] = $this->language->get('transaction_will_confirm');
+        $this->data['status_will_cancel'] = $this->language->get('transaction_will_cancel');
         
         $this->template = 'total/onego_status.tpl';
         $this->response->setOutput($this->render());
