@@ -29,7 +29,7 @@ OneGoOpencart.unsetAsLoading = function(element) {
 }
 OneGoOpencart.showOrderStatusContainer = function() {
     if (!$('#onego_transaction_status_container').length) {
-        if ($('#tab-history').length) {
+        if ($('#tab-history, #tab-total').length) {
             var onego_transaction_status_container = $('<tr id="onego_transaction_status_container"></tr>');
             $('select[name=order_status_id]').parent().parent().after(onego_transaction_status_container);
             return onego_transaction_status_container;
