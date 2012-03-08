@@ -1,5 +1,5 @@
 .onego_loading_container {
-    background: transparent url(../image/onego_loading.gif) no-repeat center center;
+    background: transparent url(../image/loading.gif) no-repeat center center;
 }
 #onego_transaction_status_error {
     color: red;
