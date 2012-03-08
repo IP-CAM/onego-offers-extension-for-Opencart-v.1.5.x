@@ -116,6 +116,9 @@ class ControllerTotalOnego extends Controller {
 
         $this->data['onego_button_check'] = $this->language->get('button_check_credentials');
         $this->data['onego_check_uri'] = $this->url->link('total/onego/check', 'token=' . $this->session->data['token'], 'SSL');
+        $this->data['onego_error_js_missing'] = $this->language->get('error_javascript_not_loaded');
+
+        $this->data['onego_extension_info'] = $this->language->get('onego_extension_info');
 
         $this->template = 'total/onego.tpl';
         $this->children = array(
@@ -224,6 +227,15 @@ class ControllerTotalOnego extends Controller {
             $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
             $resp .= ' ['.$this->language->get('error_curl_missing').']';
             $curlOk = false;
+        }
+        $resp .= '<br />';
+
+        // check Opencart versions
+        $resp .= $this->language->get('check_opencart_version').': ';
+        if (in_array(VERSION, $this->getSupportedVersions())) {
+            $resp .= '<span class="onego_ok">'.$this->language->get('ok').'</span>';
+        } else {
+            $resp .= '<span class="onego_error">'.$this->language->get('version_unsupported').'</span>';
         }
         $resp .= '<br />';
 
@@ -354,5 +366,11 @@ class ControllerTotalOnego extends Controller {
         }
 
         return $this->error ? false : true;
+    }
+
+    private function getSupportedVersions()
+    {
+        return array('1.5.0', '1.5.0.1', '1.5.0.2', '1.5.0.3', '1.5.0.4', '1.5.0.5', '1.5.1', '1.5.1.1',
+                                   '1.5.1.2', '1.5.1.3', '1.5.2', '1.5.2.1');
     }
 }

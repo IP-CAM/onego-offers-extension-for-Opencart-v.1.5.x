@@ -43,8 +43,8 @@ $_['entry_help_widgetShow']  = 'Enable sliding-in OneGo widget, where buyer can 
     his account details and your currently active offers.';
 $_['entry_help_widgetFrozen']  = 'Widget stays on the same place when user scrolls page.';
 $_['entry_help_widgetTopOffset']  = 'How far off the top should the widget be placed (in pixels).';
-$_['entry_help_sortorder'] = 'Set a low enough value to appear buyer benefits before 
-    "taxes" and "total" rows, best to set the same as for "sub-total".';
+$_['entry_help_sortorder'] = 'Set value low enough to list buyer benefits before "taxes" and "total" rows. Best set the
+    same as for "sub-total".';
 $_['entry_help_confirmOnOrderStatus'] = 'OneGo transactions are confirmed when order 
     reaches these statuses, buyer\'s benefits are used and/or he receives rewards.';
 $_['entry_help_cancelOnOrderStatus'] = 'OneGo transactions are canceled when order 
@@ -84,9 +84,11 @@ $_['status_expired'] = 'expired %s';
 
 $_['check_credentials'] = 'Credentials check';
 $_['check_environment'] = 'Server environment check';
+$_['check_opencart_version'] = 'Opencart version check';
 $_['ok'] = 'OK';
 $_['failed'] = 'FAILED';
 $_['cannot_check'] = 'cannot be checked';
+$_['version_unsupported'] = 'Your version of Opencart is not officially supported by this extension. While it may be partially or even fully functional, there may be incompatibilities. Use at your own risk.';
 
 // Error
 $_['error_permission'] = 'Warning: You do not have permission to modify OneGo total!';
@@ -96,3 +98,11 @@ $_['error_transaction_state_invalid'] = 'Invalid transaction state';
 $_['error_connection_timeout'] = 'HTTP connection timeout, try again later';
 $_['error_forbidden'] = 'Invalid credentials and/or account blocked';
 $_['error_curl_missing'] = 'PHP CURL extension is not installed';
+$_['error_javascript_not_loaded'] = 'Extension dependencies could not be loaded: check if extension is installed correctly and VQMOD is working.';
+
+$_['onego_extension_info'] = <<<END
+This is Opencart extension by OneGo Inc.<br />
+Lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum.<br />
+Lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum.<br />
+Lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum.<br />
+END;

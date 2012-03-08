@@ -16,6 +16,13 @@
     <div class="content">
       <form action="<?php echo $action; ?>" method="post" enctype="multipart/form-data" id="form">
         <table class="form">
+          <tr>
+              <td colspan="2">
+                  <div class="onego_extension_info">
+                      <?php echo $onego_extension_info ?>
+                    </div>
+              </td>
+          </tr>
           <?php foreach ($onego_config_fields as $field => $row) { ?>
           <tr id="cfgRow_<?php echo $field ?>">
             <?php if (in_array('onego_'.$field, $invalid_fields)) { ?>
@@ -83,7 +90,28 @@
 
 <script type="text/javascript">
 $(document).ready(function(){
+    function checkScriptAvailability()
+    {
+        if (typeof OneGoOpencart == 'undefined') {
+            $('#onego_check_results').html('<span class="onego_error"><?php echo $onego_error_js_missing ?></span>').slideDown();
+            return false;
+        }
+        return true;
+    }
+
+    function hideCfgParams()
+    {
+        var dependableParams = $('#cfgRow_widgetCode, #cfgRow_widgetPosition, #cfgRow_widgetTopOffset, #cfgRow_widgetFrozen');
+        if (!$('#cfgField_widgetShow').is(':checked')) {
+            dependableParams.hide();
+        } else {
+            dependableParams.show();
+        }
+    }
+
     hideCfgParams();
+    checkScriptAvailability();
+
     $('#cfgField_widgetShow').click(hideCfgParams);
     $('input.orderstatus').click(function(){
         if ($(this).is(':checked')) {
@@ -93,25 +121,18 @@ $(document).ready(function(){
     })
     $('#btn_onego_check').click(function(){
         $('#onego_check_results').html('');
-        OneGoOpencart.setAsLoading($('#btn_onego_check'));
-        $.get(
-            '<?php echo str_replace('&amp;', '&', $onego_check_uri) ?>&'+$('#form').serialize(),
-            function(data){
-                $('#onego_check_results').html(data).slideDown();
-                OneGoOpencart.unsetAsLoading($('#btn_onego_check'));
-            }
-        );
+        if (checkScriptAvailability()) {
+            OneGoOpencart.setAsLoading($('#btn_onego_check'));
+            $.get(
+                '<?php echo str_replace('&amp;', '&', $onego_check_uri) ?>&'+$('#form').serialize(),
+                function(data){
+                    $('#onego_check_results').html(data).slideDown();
+                    OneGoOpencart.unsetAsLoading($('#btn_onego_check'));
+                }
+            );
+        }
     })
 })
-function hideCfgParams()
-{
-    var dependableParams = $('#cfgRow_widgetCode, #cfgRow_widgetPosition, #cfgRow_widgetTopOffset, #cfgRow_widgetFrozen');
-    if (!$('#cfgField_widgetShow').is(':checked')) {
-        dependableParams.hide();
-    } else {
-        dependableParams.show();
-    }
-}
 </script>
 
 <?php echo $footer; ?>
