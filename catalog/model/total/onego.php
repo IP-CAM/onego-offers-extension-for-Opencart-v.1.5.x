@@ -33,8 +33,7 @@ class ModelTotalOnego extends Model
         }
 
         // detect order editing (added in OC v.1.5.2)
-        //if (preg_match('#^[^\?]+index\.php\?route=checkout/manual#i', $_SERVER['REQUEST_URI']) &&
-        if ($this->request->get['route'] == 'checkout/manual' &&
+        if (!empty($this->request->get['route']) && ($this->request->get['route'] == 'checkout/manual') &&
             preg_match('#index\.php\?route=sale/order/update.+order_id=([0-9]+)#i', OneGoUtils::getHttpReferer(), $match))
         {
             $orderId = (int) $match[1];

@@ -35,6 +35,9 @@ $oneGoConfig['authorizationURI'] = 'http://mobile-local.dev.onego.com/authorize'
 // OneGo OAuth service URL address
 $oneGoConfig['oAuthURI'] = 'http://oauth.dev.onego.cloud:8080/oauth';
 
+// OneGo JS SDK host URI
+$oneGoConfig['jsSdkURI'] = 'http://plugins-local.dev.onego.com/webapp/v1/main.js';
+
 $oneGoConfig['widgetShow'] = 'Y';
 $oneGoConfig['widgetTopOffset'] = '50';
 $oneGoConfig['widgetFrozen'] = 'Y';
