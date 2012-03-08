@@ -213,27 +213,44 @@ class ControllerTotalOnego extends Controller {
         $params = $this->request->get;
         $this->language->load('total/onego');
 
-        // check credentials
-        $APIConfig = OneGoUtils::getAPIConfig();
-        $APIConfig->clientId = $params['onego_clientId'];
-        $APIConfig->clientSecret = $params['onego_clientSecret'];
-        $APIConfig->terminalId = $params['onego_terminalId'];
-        $api = OneGoAPI_Impl_SimpleAPI::init($APIConfig);
+        $resp = '';
 
-        $resp = $this->language->get('check_credentials').': ';
-
-        try {
-            $api->getAnonymousAwards();
+        // check environment
+        $resp .= $this->language->get('check_environment').': ';
+        if (function_exists('curl_init')) {
             $resp .= '<span class="onego_ok">'.$this->language->get('ok').'</span>';
-        } catch (OneGoAPI_HTTPConnectionTimeoutException $e) {
+            $curlOk = true;
+        } else {
             $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
-            $resp .= ' ['.$this->language->get('error_connection_timeout').']';
-        } catch (OneGoAPI_ForbiddenException $e) {
-            $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
-            $resp .= ' ['.$this->language->get('error_forbidden').']';
-        } catch (OneGoAPI_Exception $e) {
-            $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
-            $resp .= ' ['.$e->getMessage().']';
+            $resp .= ' ['.$this->language->get('error_curl_missing').']';
+            $curlOk = false;
+        }
+        $resp .= '<br />';
+
+        // check credentials
+        $resp .= $this->language->get('check_credentials').': ';
+        if ($curlOk) {
+            $APIConfig = OneGoUtils::getAPIConfig();
+            $APIConfig->clientId = $params['onego_clientId'];
+            $APIConfig->clientSecret = $params['onego_clientSecret'];
+            $APIConfig->terminalId = $params['onego_terminalId'];
+            $api = OneGoAPI_Impl_SimpleAPI::init($APIConfig);
+    
+            try {
+                $api->getAnonymousAwards();
+                $resp .= '<span class="onego_ok">'.$this->language->get('ok').'</span>';
+            } catch (OneGoAPI_HTTPConnectionTimeoutException $e) {
+                $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
+                $resp .= ' ['.$this->language->get('error_connection_timeout').']';
+            } catch (OneGoAPI_ForbiddenException $e) {
+                $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
+                $resp .= ' ['.$this->language->get('error_forbidden').']';
+            } catch (OneGoAPI_Exception $e) {
+                $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
+                $resp .= ' ['.$e->getMessage().']';
+            }
+        } else {
+            $resp .= '<span class="onego_error">'.$this->language->get('cannot_check').'</span>';
         }
 
         $this->response->setOutput($resp);

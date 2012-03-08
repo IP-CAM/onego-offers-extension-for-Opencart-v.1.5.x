@@ -83,8 +83,10 @@ $_['status_canceled'] = 'canceled';
 $_['status_expired'] = 'expired %s';
 
 $_['check_credentials'] = 'Credentials check';
+$_['check_environment'] = 'Server environment check';
 $_['ok'] = 'OK';
 $_['failed'] = 'FAILED';
+$_['cannot_check'] = 'cannot be checked';
 
 // Error
 $_['error_permission'] = 'Warning: You do not have permission to modify OneGo total!';
@@ -93,3 +95,4 @@ $_['error_transaction_id_unknown'] = 'Unknown transaction ID';
 $_['error_transaction_state_invalid'] = 'Invalid transaction state';
 $_['error_connection_timeout'] = 'HTTP connection timeout, try again later';
 $_['error_forbidden'] = 'Invalid credentials and/or account blocked';
+$_['error_curl_missing'] = 'PHP CURL extension is not installed';
