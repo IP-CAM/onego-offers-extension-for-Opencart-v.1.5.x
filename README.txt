@@ -52,4 +52,6 @@ Opencart code defined there manually.
 ------------------------------------------------------------------------------------------------------------------------
 4. Licence and disclaimer
 
+LGPL? BSD?
+
 TO DO
