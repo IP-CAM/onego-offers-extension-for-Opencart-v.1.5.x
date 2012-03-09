@@ -92,13 +92,5 @@ catalog/view/theme/default/template/common/*
 catalog/view/theme/default/template/total/*
 !catalog/view/theme/default/template/total/onego*
 
-#.idea
-#system/cache/*
-#system/logs/*
-#download/*
-#image/cache/*
-#vqmod/*
-#vqmod/vqcache/*
-#/nbproject/*
-#/.gitk-tmp.64643/
-#.DS_Store
+!/README.txt
+!/DEPLOYMENT*

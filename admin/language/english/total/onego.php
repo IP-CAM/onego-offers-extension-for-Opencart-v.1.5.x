@@ -101,8 +101,9 @@ $_['error_curl_missing'] = 'PHP CURL extension is not installed';
 $_['error_javascript_not_loaded'] = 'Extension dependencies could not be loaded: check if extension is installed correctly and VQMOD is working.';
 
 $_['onego_extension_info'] = <<<END
-This is Opencart extension by OneGo Inc.<br />
-Lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum.<br />
-Lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum.<br />
-Lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum.<br />
+onego.com is a loyalty system, which allows merchants to create, manage, publish and analyze loyalty campaigns. This extension integrates e-shop as a point-of-sale for the merchant, by allowing buyers to participate in merchant's
+loyalty campaigns by tracking active offers, using them, collecting and spending their personal benefits. It provides seamless and unintrusive buying experience for the buyer while encouraging them to become loyal
+and returning customers.<br />
+For more information on this extension and a demo visit: <a href="http://opencart.extensions.onego.com">opencart.extensions.onego.com</a><br />
+For more information on OneGo loyalty system visit: <a href="http://www.onego.com">www.onego.com</a>
 END;
