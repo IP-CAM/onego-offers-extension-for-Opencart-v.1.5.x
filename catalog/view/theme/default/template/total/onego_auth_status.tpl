@@ -2,7 +2,6 @@
 <html>
 <head>
 <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
-<script type="text/javascript" src="catalog/view/javascript/jquery/jquery-1.6.1.min.js"></script>
 <script type="text/javascript">
 function closeWindow()
 {
@@ -24,7 +23,7 @@ html {
 </style>
 </head>
 <body>
-        
+
 <?php if (!empty($onego_error)) { ?>
 <div class="error">
     <?php echo $onego_error ?>
