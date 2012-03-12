@@ -89,7 +89,7 @@ abstract class OneGoPersistentState
     {
         $arr = get_object_vars($this);
         foreach ($arr as $key => $val){
-            if (is_a($val, 'OneGoPersistentState')) {
+            if ($val instanceof OneGoPersistentState) {
                 $arr[$key] = $val->toArray();
             }
         }
