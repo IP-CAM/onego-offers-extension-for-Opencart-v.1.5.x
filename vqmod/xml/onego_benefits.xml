@@ -125,9 +125,10 @@
             // wrapper for original confirm() to always call ModelTotalOnego::confirm() in the end
             public function confirm($order_id)
             {
+                $args = func_get_args();
                 call_user_func_array(
                     array($this, '_confirm_onego_wrapped'),
-                    func_get_args()
+                    $args
                 );
                 
                 if ($this->config->get('onego_status')) {
