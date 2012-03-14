@@ -66,7 +66,10 @@ class ModelTotalOnego extends Model
                 // TODO
 
                 // shipping discounts
+                // TODO
                 $free_shipping = false;
+                $shipping_discount = 0;
+                /*
                 $shipping_discount = $this->getShippingDiscount();
                 if ($shipping_discount > 0) {
                     $total -= $shipping_discount;
@@ -83,7 +86,7 @@ class ModelTotalOnego extends Model
                     if ($opencart_shipping_cost - $shipping_discount == 0) {
                         $free_shipping = true;
                     }
-                }
+                }*/
 
                 // cart discount
                 $discount = $this->getTotalDiscount();
@@ -153,43 +156,6 @@ class ModelTotalOnego extends Model
                 }
             }
         }
-
-        // decrease taxes if discount was applied
-        if (!empty($onego_discount)) {
-            // decrease taxes to be applied for products
-            foreach ($this->cart->getProducts() as $product) {
-                if ($product['tax_class_id']) {
-                    // discount part for this product
-                    $discount = $onego_discount * ($product['total'] / $initial_total);
-                    if (method_exists($this->tax, 'getRates')) { // OpenCart v1.5.3
-                        $tax_rates = $this->tax->getRates($product['total'] - ($product['total'] - $discount), $product['tax_class_id']);
-                        foreach ($tax_rates as $tax_rate) {
-                            if ($tax_rate['type'] == 'P') {
-                                $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
-                            }
-                        }
-                    } else {
-                        $taxes[$product['tax_class_id']] -= ($product['total'] / 100 * $this->tax->getRate($product['tax_class_id'])) - (($product['total'] - $discount) / 100 * $this->tax->getRate($product['tax_class_id']));
-                    }
-                }
-            }
-            // decrease taxes to be applied for shipping
-            if (!empty($free_shipping) && isset($this->session->data['shipping_method'])) {
-                if (!empty($this->session->data['shipping_method']['tax_class_id'])) {
-                    // tax rates that will be applied (or were already) to shipping
-                    if (method_exists($this->tax, 'getRates')) {  // OpenCart v1.5.3
-                        $tax_rates = $this->tax->getRates($this->session->data['shipping_method']['cost'], $this->session->data['shipping_method']['tax_class_id']);
-                        // subtract them
-                        foreach ($tax_rates as $tax_rate) {
-                            $taxes[$tax_rate['tax_rate_id']] -= $tax_rate['amount'];
-                        }
-                    } else {
-                        $taxes[$this->session->data['shipping_method']['tax_class_id']] -= $this->session->data['shipping_method']['cost'] / 100 * $this->tax->getRate($this->session->data['shipping_method']['tax_class_id']);
-                    }
-                }
-            }
-        }
-        
     }
     
     /**
@@ -712,6 +678,18 @@ END;
             // add Opencart cart items
             $cart = OneGoUtils::getRegistry()->get('cart');
             $products = $cart->getProducts();
+
+            // calculate final prices for products (add product taxes)
+            foreach ($products as $key => $product) {
+                $products[$key]['total_final'] = $product['total'];
+                if ($product['tax_class_id']) {
+                    $tax_rates = $cart->tax->getRates($product['total'], $product['tax_class_id']);
+                    foreach ($tax_rates as $tax_rate) {
+                        $products[$key]['total_final'] += $tax_rate['amount'];
+                    }
+                }
+            }
+
             self::$current_eshop_cart = $products;
             
             // load products details to determine item_code
@@ -754,8 +732,9 @@ END;
         $cart = $this->getApi()->newCart();
         foreach ($eshopCart as $key => $product) {
             $ignored = $this->isShippingItemCode($key);
+            $total_final = round($product['total_final'], 2);
             $cart->setEntry($product['key'], $product['_item_code'], $product['price'], 
-                    $product['quantity'], $product['total'], $product['name'], false, $ignored);
+                    $product['quantity'], $total_final, $product['name'], false, $ignored);
         }
         return $cart;
     }
@@ -782,6 +761,7 @@ END;
                     'price'         => $total,
                     'quantity'      => 1,
                     'total'         => $total,
+                    'total_final'   => $total + array_sum($taxes),
                     'name'          => 'Shipping',
                 );
             }

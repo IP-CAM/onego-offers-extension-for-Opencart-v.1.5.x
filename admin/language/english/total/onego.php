@@ -43,8 +43,7 @@ $_['entry_help_widgetShow']  = 'Enable sliding-in OneGo widget, where buyer can 
     his account details and your currently active offers.';
 $_['entry_help_widgetFrozen']  = 'Widget stays on the same place when user scrolls page.';
 $_['entry_help_widgetTopOffset']  = 'How far off the top should the widget be placed (in pixels).';
-$_['entry_help_sortorder'] = 'Set value low enough to list buyer benefits before "taxes" and "total" rows. Best set the
-    same as for "sub-total".';
+$_['entry_help_sortorder'] = 'Set value to show OneGo discounts just before totals row.';
 $_['entry_help_confirmOnOrderStatus'] = 'OneGo transactions are confirmed when order 
     reaches these statuses, buyer\'s benefits are used and/or he receives rewards.';
 $_['entry_help_cancelOnOrderStatus'] = 'OneGo transactions are canceled when order 
