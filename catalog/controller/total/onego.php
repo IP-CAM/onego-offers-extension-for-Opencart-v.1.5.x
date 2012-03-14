@@ -143,6 +143,14 @@ END;
     {
         $this->language->load('total/onego');
         $onego = $this->getModel();
+
+        try {
+            // refresh or start transaction and token
+            $onego->refreshTransaction();
+        } catch (Exception $e) {
+            // ignore
+        }
+
         $this->data['onego_use_funds_url'] = $this->url->link('total/onego/useFunds');
         $this->data['onego_scope_sufficient'] = $onego->isCurrentScopeSufficient();
         $this->data['onego_login_invitation'] = $this->language->get('invite_to_login');
