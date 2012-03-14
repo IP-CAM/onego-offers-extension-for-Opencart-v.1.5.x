@@ -683,9 +683,13 @@ END;
             foreach ($products as $key => $product) {
                 $products[$key]['total_final'] = $product['total'];
                 if ($product['tax_class_id']) {
-                    $tax_rates = $cart->tax->getRates($product['total'], $product['tax_class_id']);
-                    foreach ($tax_rates as $tax_rate) {
-                        $products[$key]['total_final'] += $tax_rate['amount'];
+                    if (method_exists($this->tax, 'getRates')) { // OpenCart v1.5.3
+                        $tax_rates = $this->tax->getRates($product['total'], $product['tax_class_id']);
+                        foreach ($tax_rates as $tax_rate) {
+                            $products[$key]['total_final'] += $tax_rate['amount'];
+                        }
+                    } else {
+                        $products[$key]['total_final'] += $product['total'] * $this->tax->getRate($product['tax_class_id']) / 100;
                     }
                 }
             }
