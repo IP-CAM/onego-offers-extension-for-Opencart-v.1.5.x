@@ -53,6 +53,9 @@ class OneGoConfig
     }
 }
 
+/**
+ * Container for persisting data
+ */
 abstract class OneGoPersistentState
 {
     abstract protected function initialize();
@@ -232,7 +235,9 @@ class OneGoCompletedOrderState extends OneGoPersistentState
     }
 }
 
-
+/**
+ * Common global usage utilities
+ */
 class OneGoUtils
 {
     const STORAGE_KEY = 'OneGoOpencart';
@@ -241,7 +246,11 @@ class OneGoUtils
     const LOG_NOTICE = 1;
     const LOG_WARNING = 2;
     const LOG_ERROR = 3;
-    
+
+    /**
+     * @static
+     * @return Registry
+     */
     public static function getRegistry()
     {
         global $registry;
@@ -249,7 +258,7 @@ class OneGoUtils
     }
     
     /**
-     *
+     * @static
      * @return Session 
      */
     public static function getSession()
@@ -261,6 +270,7 @@ class OneGoUtils
     /**
      * Saves data to registry simulating own namespace
      *
+     * @static
      * @param string $key
      * @param mixed $val 
      */
@@ -313,6 +323,10 @@ class OneGoUtils
                 unserialize($session->data[self::STORAGE_KEY][$key]) : $default;
     }
 
+    /**
+     * @static
+     * @return OneGoAPI_APIConfig
+     */
     public static function getAPIConfig()
     {
         $cfg = new OneGoAPI_APIConfig(
@@ -355,7 +369,13 @@ class OneGoUtils
         );
         return OneGoAPI_Impl_SimpleOAuth::init($cfg);
     }
-    
+
+    /**
+     * Initialize logging for OneGoAPI_Log
+     *
+     * @static
+     * @return void
+     */
     public static function initAPILogging()
     {
         if (OneGoConfig::get('debugModeOn')) {
@@ -445,7 +465,15 @@ class OneGoUtils
             fclose($fh);
         }
     }
-    
+
+    /**
+     * Callback method for OneGoAPI_Log::setCallback()
+     *
+     * @static
+     * @param string $message
+     * @param string $level
+     * @return void
+     */
     public static function logAPICall($message, $level)
     {
         self::writeLog($message, false);
@@ -509,7 +537,15 @@ class OneGoUtils
         
         return array_slice($simple, 2, $limit);
     }
-    
+
+    /**
+     * Dump variable for debugging
+     *
+     * @static
+     * @param $variable
+     * @param string $title
+     * @return void
+     */
     public static function dbg($variable, $title = false)
     {
         if (OneGoConfig::get('debugModeOn') && !OneGoUtils::isAjaxRequest()) {
@@ -522,6 +558,14 @@ class OneGoUtils
         }
     }
 
+    /**
+     * Recursively convert object to array
+     *
+     * @static
+     * @param $object
+     * @param bool $sortProperties
+     * @return array
+     */
     public static function objectToArray($object, $sortProperties = false)
     {
         $array = get_object_vars($object);
@@ -536,6 +580,13 @@ class OneGoUtils
         return $array;
     }
 
+    /**
+     * Compares Opencart version
+     *
+     * @static
+     * @param string $compareTo
+     * @return mixed
+     */
     public static function compareVersion($compareTo)
     {
         return version_compare(VERSION, $compareTo);
