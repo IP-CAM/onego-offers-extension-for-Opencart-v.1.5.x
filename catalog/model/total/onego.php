@@ -657,6 +657,13 @@ END;
                 OneGoUtils::log('Transaction cart updated', OneGoUtils::LOG_NOTICE);
                 $this->saveTransaction($transaction);
                 OneGoTransactionState::getCurrent()->set('cartHash', $this->getEshopCartHash());
+
+                // re-spend prepaid in case cart price has changed
+                $transactionState = OneGoTransactionState::getCurrent();
+                if ($transactionState->get(OneGoTransactionState::PREPAID_SPENT)) {
+                    $this->spendPrepaid();
+                }
+
                 return true;
             } catch (Exception $e) {
                 OneGoUtils::log('Transaction cart update failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
