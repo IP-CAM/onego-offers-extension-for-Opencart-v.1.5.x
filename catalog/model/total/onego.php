@@ -680,7 +680,9 @@ END;
             $products = $cart->getProducts();
 
             // calculate final prices for products (add product taxes)
+            $ids = array();
             foreach ($products as $key => $product) {
+                $ids[] = $product['product_id'];
                 $products[$key]['total_final'] = $product['total'];
                 if ($product['tax_class_id']) {
                     if (method_exists($this->tax, 'getRates')) { // OpenCart v1.5.3
@@ -695,25 +697,31 @@ END;
             }
 
             self::$current_eshop_cart = $products;
-            
+
             // load products details to determine item_code
-            if (count(self::$current_eshop_cart)) {
-                $ids = implode(',', array_keys(self::$current_eshop_cart));
+            if (count($ids)) {
+                $ids = implode(',', $ids);
                 $products_query = $this->db->query("SELECT product_id, sku, upc FROM ".DB_PREFIX."product p WHERE product_id IN ({$ids})");
+                $skuMap = array();
                 foreach ($products_query->rows as $product) {
-                    self::$current_eshop_cart[$product['product_id']]['_item_code'] = 
-                        !empty($product['sku']) ? 
-                            $product['sku'] : 
+                    if (!empty($product['sku'])) {
+                        $skuMap[$product['product_id']] = $product['sku'];
+                    }
+                }
+                foreach (self::$current_eshop_cart as $key => $product) {
+                    self::$current_eshop_cart[$key]['_item_code'] =
+                        !empty($skuMap[$product['product_id']]) ?
+                            $skuMap[$product['product_id']] :
                             OneGoConfig::get('cartItemCodePrefix').$product['product_id'];
                 }
-                
+
                 // add shipping as an item
                 $this->addShippingToCart(self::$current_eshop_cart);
             }
         }
         return self::$current_eshop_cart;
     }
-    
+
     /**
      *
      * @return string hash for current Opencart cart
@@ -722,7 +730,7 @@ END;
     {
         return md5(serialize($this->getEshopCart()));
     }
-    
+
     /**
      * Collect opencart cart entries into OneGoAPI_Impl_Cart object
      *
@@ -734,10 +742,11 @@ END;
             $eshopCart = $this->getEshopCart();
         }
         $cart = $this->getApi()->newCart();
-        foreach ($eshopCart as $key => $product) {
-            $ignored = $this->isShippingItemCode($key);
+        foreach ($eshopCart as $product) {
+            $ignored = $this->isShippingItemCode($product['product_id']);
             $total_final = round($product['total_final'], 2);
-            $cart->setEntry($product['key'], $product['_item_code'], $product['price'], 
+            $key = md5($product['key']);
+            $cart->setEntry($key, $product['_item_code'], $product['price'],
                     $product['quantity'], $total_final, $product['name'], false, $ignored);
         }
         return $cart;
