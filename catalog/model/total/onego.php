@@ -315,7 +315,8 @@ END;
     {
         $lastOrder = $this->getCompletedOrder();
         $transactionState = $lastOrder->get('transactionState');
-        return !$transactionState->get('agreedToDiscloseEmail') && !$lastOrder->get('benefitsApplied');
+        return $transactionState && $lastOrder &&
+               !$transactionState->get('agreedToDiscloseEmail') && !$lastOrder->get('benefitsApplied');
     }
 
     /**
@@ -743,7 +744,7 @@ END;
         }
         $cart = $this->getApi()->newCart();
         foreach ($eshopCart as $product) {
-            $ignored = $this->isShippingItemCode($product['product_id']);
+            $ignored = !empty($product['product_id']) && $this->isShippingItemCode($product['product_id']);
             $total_final = round($product['total_final'], 2);
             $key = md5($product['key']);
             $cart->setEntry($key, $product['_item_code'], $product['price'],

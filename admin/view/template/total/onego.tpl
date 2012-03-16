@@ -15,14 +15,10 @@
     </div>
     <div class="content">
       <form action="<?php echo $action; ?>" method="post" enctype="multipart/form-data" id="form">
+        <div id="onego_extension_info">
+          <?php echo $onego_extension_info ?>
+        </div>
         <table class="form">
-          <tr>
-              <td colspan="2">
-                  <div class="onego_extension_info">
-                      <?php echo $onego_extension_info ?>
-                    </div>
-              </td>
-          </tr>
           <?php foreach ($onego_config_fields as $field => $row) { ?>
           <tr id="cfgRow_<?php echo $field ?>">
             <?php if (in_array('onego_'.$field, $invalid_fields)) { ?>

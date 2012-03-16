@@ -37,3 +37,8 @@
 .onego_error {
     color: red;
 }
+#onego_extension_info {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dotted silver;
+}
