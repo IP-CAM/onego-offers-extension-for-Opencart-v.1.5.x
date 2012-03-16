@@ -469,6 +469,8 @@ END;
         $onego = $this->getModel();
         $agreed = (bool) !empty($this->request->post['agree']);
         OneGoTransactionState::getCurrent()->set(OneGoTransactionState::AGREED_DISCLOSE_EMAIL, $agreed);
+        $res = array('success' => true);
+        $this->response->setOutput(OneGoAPI_JSON::encode($res));
     }
     
     public function claimbenefits()
