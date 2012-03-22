@@ -751,7 +751,7 @@ END;
         }
         $cart = $this->getApi()->newCart();
         foreach ($eshopCart as $product) {
-            $ignored = !empty($product['product_id']) && $this->isShippingItemCode($product['product_id']);
+            $ignored = !empty($product['key']) && $this->isShippingItemCode($product['key']);
             $itemPrice = round($product['total_final'] / $product['quantity'], 2);
             $totalFinal = round($product['total_final'], 2);
             $key = md5($product['key']);
@@ -799,7 +799,7 @@ END;
     {
         $shipping = $this->getShippingAsItem();
         if ($shipping) {
-            $transaction_cart['shipping'] = $shipping;
+            $transaction_cart['_shipping'] = $shipping;
         }
     }
     
