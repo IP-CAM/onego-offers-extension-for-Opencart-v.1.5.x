@@ -752,10 +752,11 @@ END;
         $cart = $this->getApi()->newCart();
         foreach ($eshopCart as $product) {
             $ignored = !empty($product['product_id']) && $this->isShippingItemCode($product['product_id']);
-            $total_final = round($product['total_final'], 2);
+            $itemPrice = round($product['total_final'] / $product['quantity'], 2);
+            $totalFinal = round($product['total_final'], 2);
             $key = md5($product['key']);
-            $cart->setEntry($key, $product['_item_code'], $product['price'],
-                    $product['quantity'], $total_final, $product['name'], false, $ignored);
+            $cart->setEntry($key, $product['_item_code'], $itemPrice,
+                    $product['quantity'], $totalFinal, $product['name'], false, $ignored);
         }
         return $cart;
     }
