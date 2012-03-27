@@ -12,11 +12,11 @@
     <?php echo $onego_status_success ?>
 
     <?php if (!empty($onego_btn_confirm)) { ?>
-    &nbsp;&nbsp;<a id="btn_onego_confirm" class="button"><?php echo $onego_btn_confirm ?></a>
+    &nbsp;&nbsp;<a id="btn_onego_confirm" class="button"><span><?php echo $onego_btn_confirm ?></span></a>
     <?php } ?>
     
     <?php if (!empty($onego_btn_cancel)) { ?>
-    &nbsp;&nbsp;<a id="btn_onego_cancel" class="button"><?php echo $onego_btn_cancel ?></a>
+    &nbsp;&nbsp;<a id="btn_onego_cancel" class="button"><span><?php echo $onego_btn_cancel ?></span></a>
     <?php } ?>
     
     <?php if (!empty($onego_btn_delay)) { ?>
@@ -26,7 +26,7 @@
         <option value="<?php echo $days ?>" <?php echo $days == 7 ? 'selected="selected"' : '' ?>><?php echo $daystext ?></option>
     <?php } ?>
     </select>
-    <a id="btn_onego_delay" class="button"><?php echo $onego_btn_delay ?></a>
+    <a id="btn_onego_delay" class="button"><span><?php echo $onego_btn_delay ?></span></a>
     <?php } ?>
            
 </div>
