@@ -845,7 +845,12 @@ END;
         $funds = $this->getPrepaidAvailable();
         return isset($funds['amount']) ? $funds['amount'] : false;
     }
-    
+
+    /**
+     * Calculate discount percentage compared to discountable items value
+     *
+     * @return bool|float
+     */
     public function calculateDiscountPercentage()
     {
         $cart = $this->getModifiedCart();
@@ -853,7 +858,7 @@ END;
             $total = 0;
             foreach ($cart->entries as $entry) {
                 if (!$this->isShippingItemCode($entry->itemCode)) {
-                    $total += $entry->cash;
+                    $total += $entry->pricePerUnit * $entry->quantity;
                 }
             }
             $discount = $this->getTotalDiscount();
@@ -1224,7 +1229,10 @@ END;
             return $originalAmount->visible;
         }
     }
-    
+
+    /**
+     * @return OneGoAPI_DTO_ModifiedCartDTO
+     */
     private function getModifiedCart()
     {
         if ($this->isTransactionStarted()) {
