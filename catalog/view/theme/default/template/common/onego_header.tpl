@@ -2,7 +2,13 @@
 <script type="text/javascript" src="<?php echo $onego_jssdk_url ?>"></script>
 <script type="text/javascript" src="catalog/view/javascript/onego.js"></script>
 <script type="text/javascript">
-OneGo.init({ <?php echo $initParamsStr ?> });
-<?php echo $html ?>
+if (typeof OneGo == 'undefined') {
+    // script failed to load
+} else if (OneGo.isError()) {
+    // credentials problem
+} else {
+    OneGo.init({ <?php echo $initParamsStr ?> });
+    <?php echo $html ?>
+}
 </script>
 <?php echo $debuggingCode ?>
