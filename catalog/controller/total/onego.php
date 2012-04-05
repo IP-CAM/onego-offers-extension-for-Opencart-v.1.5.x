@@ -147,6 +147,8 @@ END;
         try {
             // refresh or start transaction and token
             $onego->refreshTransaction();
+        } catch (OneGoAPICallFailedException $e) {
+            $this->data['onego_warning'] = $this->language->get('error_api_call_failed');
         } catch (Exception $e) {
             // ignore
         }
