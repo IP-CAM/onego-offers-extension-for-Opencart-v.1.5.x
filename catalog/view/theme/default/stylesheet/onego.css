@@ -48,8 +48,8 @@ input.onego_watermark.focused {
     position: absolute;
     top: 0;
     width: 90px;
-    background-color: #FFF;
-    border: 1px solid #D8DEE1; 
+    background-color: #585858;
+    border: 1px solid #585858; 
     border-radius: 5px;
 }
 
