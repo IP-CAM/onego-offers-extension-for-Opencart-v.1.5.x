@@ -17,7 +17,7 @@ $oneGoConfig['transactionRefreshIn'] = 15;
 $oneGoConfig['shippingCode'] = 'shipping';
 
 // Opencart order statuses on which to apply OneGo transaction/end operations (CONFIRM or CANCEL)
-$oneGoConfig['confirmOnOrderStatus'] = array(5);
+$oneGoConfig['confirmOnOrderStatus'] = array(5, 15, 3);
 $oneGoConfig['cancelOnOrderStatus'] = array(7, 9, 13, 8, 14, 10, 11, 12, 16);
 
 // delayed transaction timeout, in hours
