@@ -44,8 +44,8 @@ $_['vgc_funds_redeemed'] = 'Virtual gift card balance';
 $_['vgc_remainder_plus_prepaid_available'] = 'Attention: the remaining gift card balance may be lost.
     You will retain the remaining %s and also receive a %s reward if you agree to disclose
     your e-mail address to OneGo to create your account.';
-$_['vgc_remainder_available'] = 'You will receive a %s reward if you agree to disclose
-    your e-mail address to OneGo to create your account.';
+$_['vgc_remainder_available'] = 'Attention: the remaining gift card balance may be lost.
+    You will retain the remaining %s if you agree to disclose your e-mail address to OneGo to create your account.';
 $_['warning_cart_changed'] = 'Your OneGo session has expired and was restarted, please re-check your order details.';
 
 // Error

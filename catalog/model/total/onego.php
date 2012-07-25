@@ -843,7 +843,7 @@ END;
     public function getPrepaidAmountAvailable()
     {
         $funds = $this->getPrepaidAvailable();
-        return isset($funds['amount']) ? $funds['amount'] : false;
+        return isset($funds['amount']) ? round($funds['amount'], 2) : false;
     }
 
     /**
