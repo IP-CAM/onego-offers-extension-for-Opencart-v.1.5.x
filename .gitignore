@@ -6,7 +6,9 @@
 /admin/controller/*
 !/admin/controller/total/
 admin/controller/total/*
+admin/controller/sale/*
 !admin/controller/total/onego.php
+!admin/controller/sale/onego_vgc.php
 !admin/language/
 admin/language/*
 !admin/language/english/
@@ -19,6 +21,9 @@ admin/model/*
 !admin/model/total/
 admin/model/total/*
 !admin/model/total/onego.php
+!admin/model/sale/
+admin/model/sale/*
+!admin/model/sale/onego_vgc.php
 !admin/view/
 admin/view/*
 !admin/view/template/
@@ -26,6 +31,10 @@ admin/view/template/*
 !admin/view/template/total/
 admin/view/template/total/*
 !admin/view/template/total/onego.tpl
+!admin/view/template/sale/
+admin/view/template/sale/*
+!admin/view/template/sale/onego_vgc_list.tpl
+!admin/view/template/sale/onego_vgc_upload.tpl
 !admin/view/javascript/
 admin/view/javascript/*
 !admin/view/javascript/onego.js

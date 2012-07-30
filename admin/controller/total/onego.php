@@ -22,6 +22,7 @@ class ControllerTotalOnego extends Controller {
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && ($this->validate())) {
 
             OneGoTransactionsLog::init();
+            $this->addPermissions();
 
             $post = $this->request->post;
             $post['onego_confirmOnOrderStatus'] = implode('|', empty($post['onego_confirmOnOrderStatus']) ? array() : $post['onego_confirmOnOrderStatus']);
@@ -366,6 +367,14 @@ class ControllerTotalOnego extends Controller {
         }
 
         return $this->error ? false : true;
+    }
+
+    private function addPermissions()
+    {
+        if ($this->user->hasPermission('modify', 'total/onego')) {
+            $this->load->model('user/user_group');
+            $this->model_user_user_group->addPermission($this->user->getId(), 'access', 'sale/onego_vgc');
+        }
     }
 
     private function getSupportedVersions()

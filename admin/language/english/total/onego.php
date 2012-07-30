@@ -106,3 +106,18 @@ and returning customers.<br />
 For more information on this extension and a demo visit: <a href="http://opencart.extensions.onego.com">opencart.extensions.onego.com</a><br />
 For more information on OneGo loyalty system visit: <a href="http://www.onego.com">www.onego.com</a>
 END;
+
+$_['menu_item_onego_vgc'] = 'Virtual Gift Cards';
+$_['vgc_heading_title'] = 'OneGo Virtual Gift Cards';
+$_['vgc_upload'] = 'Add Virtual Gift Cards for sale';
+$_['vgc_no_batches_available'] = 'No Virtual Gift Cards are currently for sale. Click "Add" button to import OneGo Virtual Gift Cards and start selling them through your e-shop.';
+$_['vgc_error_cards_import_duplicate'] = 'Error: cards of multiple nominals are being added. Someone may be adding cards at the same time. Please click "cancel" and start again.';
+$_['vgc_upload_csv'] = 'Step 1. Upload CSV file(s) with OneGo Virtual Gift Cards list';
+$_['vgc_upload_description'] = 'To add Virtual Gift Cards for sale, you have to create new cards on your merchant portal page and export them to a CSV file. Then upload this file (or several files) below.';
+$_['vgc_error_cant_read_uploaded_file'] = 'Error: cannot read uploaded file';
+$_['vgc_error_csv_file_format'] = 'Error: CSV file invalid at row %s, expected format: card number, card value, card is active';
+$_['vgc_error_csv_nominal'] = 'Error: cards value in this file (%s) differs from those added before. Please complete this operation and add cards of different value separately.';
+$_['vgc_cards_loaded'] = '%s card(s) loaded from file.';
+$_['vgc_no_cards_loaded'] = 'No cards loaded from this file. They may be loaded already, or there are no active cards listed.';
+$_['vgc_to_be_added'] = 'Virtual gift cards to be added';
+$_['vgc_nominal'] = 'Card value';

@@ -733,6 +733,92 @@ class OneGoTransactionsLog
     }
 }
 
+class OneGoVirtualGiftCards
+{
+    const STATUS_PENDING = 'PENDING';
+    const STATUS_AVAILABLE = 'AVAILABLE';
+    const STATUS_USED = 'USED';
+    const STATUS_SOLD = 'SOLD';
+
+    public static function init()
+    {
+        $db = OneGoUtils::getRegistry()->get('db');
+
+        // create DB table to store VGCs
+        $sql = "CREATE TABLE IF NOT EXISTS `".DB_PREFIX."onego_vgc_cards` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `number` varchar(36) NOT NULL COMMENT 'VGC number',
+                    `nominal` varchar(36) NOT NULL COMMENT 'VGC nominal',
+                    `batch_id` int(11) NULL COMMENT 'VGC batch ID, null if import in progress',
+                    `status` enum('PENDING','AVAILABLE','USED','SOLD') NOT NULL COMMENT 'VGC status',
+                    `order_id` int(11) NULL COMMENT 'Opencart order ID for VGC sale',
+                    `sold_on` timestamp NULL,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `number` (`number`),
+                    KEY `order_id` (`order_id`),
+                    KEY `batch_id` (`batch_id`)
+                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='OneGo VGC list'";
+        $db->query($sql);
+
+        // create DB table to store VGC batches info
+        $sql = "CREATE TABLE IF NOT EXISTS `".DB_PREFIX."onego_vgc_batches` (
+                  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                  `nominal` varchar(36) NOT NULL COMMENT 'VGC nominal',
+                  `product_id` int(11) NULL COMMENT 'Opencart product ID for selling batch VGCs',
+                  `added_on` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  KEY `product_id` (`product_id`)
+                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='OneGo VGC batches'";
+        $db->query($sql);
+    }
+
+    public static function getPendingCardsCount()
+    {
+        $db = OneGoUtils::getRegistry()->get('db');
+        $sql = "SELECT nominal, COUNT(*) AS cnt
+                FROM `".DB_PREFIX."onego_vgc_cards`
+                WHERE status='".self::STATUS_PENDING."'
+                GROUP BY nominal
+                ORDER BY nominal";
+        $res = $db->query($sql);
+        $counts = array();
+        foreach ($res->rows as $row) {
+            $counts[$row['nominal']] = $row['cnt'];
+        }
+        return $counts;
+        
+    }
+
+    public static function resetPendingCards()
+    {
+        $db = OneGoUtils::getRegistry()->get('db');
+        $sql = "DELETE FROM `".DB_PREFIX."onego_vgc_cards`
+                WHERE status='".self::STATUS_PENDING."'";
+        $res = $db->query($sql);
+    }
+
+    public static function addPendingCard($number, $nominal, $is_active)
+    {
+        if ($is_active) {
+            $db = OneGoUtils::getRegistry()->get('db');
+            $number = $db->escape($number);
+            $sql = "SELECT number FROM `".DB_PREFIX."onego_vgc_cards`
+                    WHERE number='{$number}'";
+            $res = $db->query($sql);
+            if (!$res->num_rows) {
+                $nominal = $db->escape($nominal);
+                $status = self::STATUS_PENDING;
+                $sql = "INSERT INTO `".DB_PREFIX."onego_vgc_cards`
+                        (number, nominal, status)
+                        VALUES
+                        ('{$number}', '{$nominal}', '{$status}')";
+                return $db->query($sql);
+            }
+        }
+        return false;
+    }
+}
+
 class OneGoException extends Exception {}
 class OneGoAuthenticationRequiredException extends OneGoException {}
 class OneGoVirtualGiftCardNumberInvalidException extends OneGoException {}
