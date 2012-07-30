@@ -4,7 +4,7 @@ require_once DIR_ONEGO.'common.lib.php';
 
 class ControllerSaleOnegoVgc extends Controller
 {
-    const VGC_PRODUCT_SKU_PREFIX = 'onego_vgc';
+    private $error = array();
 
     public function index()
     {        
@@ -16,9 +16,21 @@ class ControllerSaleOnegoVgc extends Controller
 
         $this->data['breadcrumbs'] = $this->getBreadcrumbs();
 
-        $batches = array();
+        OneGoVirtualGiftCards::init();
 
-        $this->data['batches'] = $batches;
+        $model = $this->getModel();
+
+        $this->data['list'] = $model->getGridList();
+
+        if (!empty($this->request->get['product_added'])) {
+            $product_id = (int) $this->request->get['product_added'];
+            $this->load->model('catalog/product');
+            $product = $this->model_catalog_product->getProduct($product_id);
+            if ($product) {
+                $product_url = $this->url->link('catalog/product/update', 'token='.$this->session->data['token'].'&product_id='.$product_id, 'SSL');
+                $this->data['success'] = sprintf($this->language->get('vgc_product_added'), $product['name'], $product_url);
+            }
+        }
 
         $this->template = 'sale/onego_vgc_list.tpl';
         $this->children = array(
@@ -31,6 +43,7 @@ class ControllerSaleOnegoVgc extends Controller
 
     public function upload()
     {
+        $this->load->language('catalog/product');
         $this->load->language('total/onego');
         $this->document->setTitle($this->language->get('vgc_heading_title'));
         $this->data['heading_title'] = $this->language->get('vgc_upload');
@@ -46,15 +59,14 @@ class ControllerSaleOnegoVgc extends Controller
         );
         $model = $this->getModel();
         
-        OneGoVirtualGiftCards::init();
-
         // get list of pending cards
         $list = OneGoVirtualGiftCards::getPendingCardsCount();
         $vgc_nominal = false;
         if (count($list) > 1) {
             $this->data['error_warning'] = $this->language->get('vgc_error_cards_import_duplicate');
         } else {
-            list($vgc_nominal, $this->data['vgc_count']) = each($list);
+            list($vgc_nominal, $vgc_count) = each($list);
+            $this->data['vgc_count'] = $vgc_count;
             $this->data['vgc_nominal'] = $this->formatCurrency($vgc_nominal);
         }
 
@@ -95,16 +107,42 @@ class ControllerSaleOnegoVgc extends Controller
                     }
                 }
             }
-        } else {
 
+
+
+            if ($this->request->post['save'] && $this->request->post['product']) {
+                $this->data['product'] = $this->request->post['product'];
+                if (!$this->validateForm()) {
+                    $this->data['errors'] = $this->error;
+                    if (isset($this->error['warning'])) {
+                        $this->data['error_warning'] = $this->error['warning'];
+                    }
+                } else if ($product_id = $model->addCardsToNewProduct($this->request->post['product'])) {
+                    // success, redirect to list
+                    $this->redirect($this->url->link('sale/onego_vgc', 'token='.$this->session->data['token'].'&product_added='.$product_id, 'SSL'));
+
+                } else {
+                    $this->data['error_warning'] = $this->language->get('vgc_error_generic');
+                }
+            }
         }
 
         if (!empty($cards_loaded)) {
             // refresh pending cards count
             $list = OneGoVirtualGiftCards::getPendingCardsCount();
 
-            list($this->data['vgc_nominal'], $this->data['vgc_count']) = each($list);
-            $vgc_nominal = $this->data['vgc_nominal'];
+            list($vgc_nominal, $vgc_count) = each($list);
+            $this->data['vgc_count'] = $vgc_count;
+            $this->data['vgc_nominal'] = $this->formatCurrency($vgc_nominal);
+        }
+
+        if ($vgc_count) {
+            $this->data['create_product'] = true;
+            $this->load->model('localisation/language');
+            $this->data['languages'] = $this->model_localisation_language->getLanguages();
+            $this->load->model('catalog/category');
+            $this->data['categories'] = $this->model_catalog_category->getCategories(0);
+            
         }
         
 
@@ -159,6 +197,34 @@ class ControllerSaleOnegoVgc extends Controller
     private function formatCurrency($amount)
     {
         return $this->currency->format($amount);
+    }
+
+    private function validateForm()
+    {
+        if (!$this->user->hasPermission('modify', 'catalog/product')) {
+            $this->error['warning'] = $this->language->get('error_permission');
+        }
+
+        foreach ($this->request->post['product']['name'] as $language_id => $value) {
+            if ((utf8_strlen($value) < 1) || (utf8_strlen($value) > 255)) {
+                $this->error['name'][$language_id] = $this->language->get('error_name');
+            }
+        }
+
+        if ((utf8_strlen($this->request->post['product']['model']) < 1) || (utf8_strlen($this->request->post['product']['model']) > 64)) {
+            $this->error['model'] = $this->language->get('error_model');
+        }
+
+        $price = (float) $this->request->post['product']['price'];
+        if (!$price) {
+            $this->error['price'] = $this->language->get('vgc_error_price');
+        }
+
+        if ($this->error && !isset($this->error['warning'])) {
+            $this->error['warning'] = $this->language->get('error_warning');
+        }
+
+        return !$this->error;
     }
   
 }

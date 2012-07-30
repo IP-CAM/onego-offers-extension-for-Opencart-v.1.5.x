@@ -817,6 +817,31 @@ class OneGoVirtualGiftCards
         }
         return false;
     }
+
+    public static function createBatch($nominal, $product_id = null)
+    {
+        $db = OneGoUtils::getRegistry()->get('db');
+        $nominal = $db->escape($nominal);
+        $product_id = (int) $product_id ? (int) $product_id : 'NULL';
+        $sql = "INSERT INTO `".DB_PREFIX."onego_vgc_batches`
+                SET nominal='{$nominal}',
+                    product_id={$product_id},
+                    added_on=NOW()";
+        $db->query($sql);
+        return $db->getLastId();
+    }
+
+    public static function activatePendingCards($batch_id, $nominal)
+    {
+        $db = OneGoUtils::getRegistry()->get('db');
+        $nominal = $db->escape($nominal);
+        $batch_id = (int) $batch_id;
+        $sql = "UPDATE `".DB_PREFIX."onego_vgc_cards`
+                SET batch_id={$batch_id}, status='".self::STATUS_AVAILABLE."'
+                WHERE status='".self::STATUS_PENDING."' AND
+                    nominal='{$nominal}'";
+        $db->query($sql);
+    }
 }
 
 class OneGoException extends Exception {}

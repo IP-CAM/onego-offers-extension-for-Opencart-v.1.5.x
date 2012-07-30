@@ -6,6 +6,7 @@
 /admin/controller/*
 !/admin/controller/total/
 admin/controller/total/*
+!admin/controller/sale/
 admin/controller/sale/*
 !admin/controller/total/onego.php
 !admin/controller/sale/onego_vgc.php

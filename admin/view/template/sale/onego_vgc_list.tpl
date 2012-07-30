@@ -18,10 +18,10 @@
     </div>
     <div class="content">
 
-        <?php if (empty($batches)) { ?>
+        <?php if (empty($list)) { ?>
             <?php echo $lang->get('vgc_no_batches_available'); ?>
         <?php } else { ?>
-            <?php var_dump($batches) ?>
+            <?php var_dump($list) ?>
         <?php } ?>
 
     </div>
