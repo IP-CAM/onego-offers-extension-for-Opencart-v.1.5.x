@@ -7,20 +7,18 @@ class ControllerSaleOnegoVgc extends Controller
     private $error = array();
 
     public function index()
-    {        
+    {
+        $this->load->language('catalog/product');
         $this->load->language('total/onego');
         $this->document->setTitle($this->language->get('vgc_heading_title'));
         $this->data['heading_title'] = $this->language->get('vgc_heading_title');
         $this->data['lang'] = $this->language;
         $this->data['upload_url'] = $this->url->link('sale/onego_vgc/upload', 'token='.$this->session->data['token'], 'SSL');
+        $this->data['url_self'] = $this->url->link('sale/onego_vgc', 'token='.$this->session->data['token'], 'SSL');
 
         $this->data['breadcrumbs'] = $this->getBreadcrumbs();
 
         OneGoVirtualGiftCards::init();
-
-        $model = $this->getModel();
-
-        $this->data['list'] = $model->getGridList();
 
         if (!empty($this->request->get['product_added'])) {
             $product_id = (int) $this->request->get['product_added'];
@@ -30,7 +28,20 @@ class ControllerSaleOnegoVgc extends Controller
                 $product_url = $this->url->link('catalog/product/update', 'token='.$this->session->data['token'].'&product_id='.$product_id, 'SSL');
                 $this->data['success'] = sprintf($this->language->get('vgc_product_added'), $product['name'], $product_url);
             }
+        } else if (!empty($this->request->post['action']) && !empty($this->request->post['selected'])) {
+            $action = $this->request->post['action'];
+            if (in_array($action, array('enable', 'disable'))) {
+                foreach ($this->request->post['selected'] as $product_id) {
+                    $this->setProductStatus($product_id, $action == 'enable');
+                }
+            } else if ($action == 'delete') {
+                foreach ($this->request->post['selected'] as $product_id) {
+                    $this->deleteUnsoldCards($product_id);
+                }
+            }
         }
+
+        $this->data['list'] = $this->getList();
 
         $this->template = 'sale/onego_vgc_list.tpl';
         $this->children = array(
@@ -39,6 +50,18 @@ class ControllerSaleOnegoVgc extends Controller
         );
 
         $this->response->setOutput($this->render());
+    }
+
+    public function getList()
+    {
+        $model = $this->getModel();
+        $list = array();
+        foreach ($model->getGridList() as $row) {
+            $row['status_text'] = ($row['status'] ? $this->language->get('text_enabled') : $this->language->get('text_disabled'));
+            $row['product_url'] = $this->url->link('catalog/product/update', 'token='.$this->session->data['token'].'&product_id='.$row['product_id'], 'SSL');
+            $list[] = $row;
+        }
+        return $list;
     }
 
     public function upload()
@@ -159,6 +182,26 @@ class ControllerSaleOnegoVgc extends Controller
     {
         OneGoVirtualGiftCards::resetPendingCards();
         return $this->forward('sale/onego_vgc');
+    }
+
+    private function setProductStatus($product_id, $enabled)
+    {
+        if (!$this->user->hasPermission('modify', 'catalog/product')) {
+            $this->error['warning'] = $this->language->get('error_permission');
+        } else if ($this->getModel()->setProductStatus($product_id, $enabled)) {
+            $this->data['success'] = $enabled ?
+                    $this->language->get('vgc_product_enabled') :
+                    $this->language->get('vgc_product_disabled');
+        }
+    }
+
+    private function deleteUnsoldCards($product_id)
+    {
+        if (!$this->user->hasPermission('modify', 'catalog/product')) {
+            $this->error['warning'] = $this->language->get('error_permission');
+        } else if ($this->getModel()->deleteUnsoldCards($product_id)) {
+            $this->data['success'] = $this->language->get('vgc_cards_deleted');
+        }
     }
 
     private function isSetUp()

@@ -21,9 +21,18 @@ class ModelSaleOnegoVgc extends Model
 
     public function getGridList()
     {
-
-        
-        return array();
+        $sql = "SELECT p.product_id, pd.name, p.status,
+                    MAX(b.added_on) AS last_batch_added_on, b.nominal,
+                    SUM(IF(c.status='".OneGoVirtualGiftCards::STATUS_AVAILABLE."', 1, 0)) AS cards_available,
+                    SUM(IF(c.status='".OneGoVirtualGiftCards::STATUS_SOLD."', 1, 0)) AS cards_sold
+                FROM (".DB_PREFIX."onego_vgc_batches b, ".DB_PREFIX."product p)
+                LEFT JOIN ".DB_PREFIX."product_description pd ON p.product_id=pd.product_id AND pd.language_id='".(int) $this->config->get('config_language_id')."'
+                LEFT JOIN ".DB_PREFIX."onego_vgc_cards c ON b.id=c.batch_id
+                WHERE b.product_id=p.product_id
+                GROUP BY p.product_id
+                ORDER BY b.nominal";
+        $res = $this->db->query($sql);
+        return $res->rows;
     }
 
     public function addCardsToNewProduct($product_data)
@@ -101,5 +110,32 @@ class ModelSaleOnegoVgc extends Model
         $this->cache->delete('product');
 
         return $product_id;
+    }
+
+    public function setProductStatus($id, $enabled = true)
+    {
+        $id = (int) $id;
+        $status = $enabled ? '1' : '0';
+        $sql = "UPDATE ".DB_PREFIX."product SET status='{$status}' WHERE product_id={$id}";
+        $res = $this->db->query($sql);
+        $this->cache->delete('product');
+        return $res;
+    }
+
+    public function deleteUnsoldCards($id)
+    {
+        $id = (int) $id;
+        if (OneGoVirtualGiftCards::deleteUnsoldCards($id)) {
+            $this->updateStock($id);
+            return true;
+        }
+        return false;
+    }
+
+    public function updateStock($product_id)
+    {
+        $stock = OneGoVirtualGiftCards::getCardsStock($product_id);
+        $sql = "UPDATE ".DB_PREFIX."product SET quantity='{$stock}' WHERE product_id={$id}";
+        return $this->db->query($sql);
     }
 }

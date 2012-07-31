@@ -128,3 +128,11 @@ $_['vgc_error_generic'] = 'Error: there was an error adding Virtual Gift Cards t
 $_['vgc_product_added'] = 'Virtual Gift Cards were successfully added to stock and a product "%s" was created. It was not enabled yet - you should
     review it on <a href="%s">product\'s update page</a> and enable it to appear for sale.<br /><strong>Note:</strong> do not change quantity value for
     this product manually as it is automatically assigned when adding Virtual Gift Cards.';
+$_['vgc_sold_numbers'] = '%s of %s';
+$_['vgc_sold'] = 'Cards sold';
+$_['button_enable'] = 'Enable';
+$_['button_disable'] = 'Disable';
+$_['vgc_product_disabled'] = 'Product disabled.';
+$_['vgc_product_enabled'] = 'Product enabled.';
+$_['vgc_button_delete_cards'] = 'Delete unsold cards';
+$_['vgc_confirm_cards_delete'] = 'Are you sure you want to delete all unsold cards from this product?';
