@@ -34,14 +34,21 @@ function deleteCards(elem)
   <?php if (!empty($success)) { ?>
   <div class="success"><?php echo $success; ?></div>
   <?php } ?>
+
+  <?php if (empty($extension_disabled)) { ?>
   <div class="box">
     <div class="heading">
       <h1><img src="view/image/onego_icon.png" alt="" /> <?php echo $heading_title; ?></h1>
+
+      <?php if (empty($extension_disabled)) { ?>
       <div class="buttons">
           <a onclick="location = '<?php echo $upload_url; ?>'" class="button"><?php echo $lang->get('vgc_upload'); ?></a>
+          <?php if (!empty($list)) { ?>
           <a onclick="setStatus(true);" class="button"><?php echo $lang->get('button_enable'); ?></a>
           <a onclick="setStatus(false);" class="button"><?php echo $lang->get('button_disable'); ?></a>
+          <?php } ?>
       </div>
+      <?php } ?>
     </div>
     <div class="content">
 
@@ -70,8 +77,7 @@ function deleteCards(elem)
                 <td class="right"><?php echo $row['status_text']; ?></td>
                 <td class="right"><?php echo $row['nominal']; ?></td>
                 <td class="right"><?php echo sprintf($lang->get('vgc_sold_numbers'), $row['cards_sold'], $row['cards_sold']+$row['cards_available']); ?></td>
-                <td class="right">
-                    [ <a href="<?php echo $row['product_url']; ?>"><?php echo $lang->get('button_edit'); ?></a> ]
+                <td class="right" width="200">
                     <?php if ($row['status']) { ?>
                     [ <a onclick="toggleSingle($(this), false);"><?php echo $lang->get('button_disable'); ?></a> ]
                     <?php } else { ?>
@@ -86,7 +92,7 @@ function deleteCards(elem)
             <?php } ?>
             <?php } else { ?>
             <tr>
-              <td class="center" colspan="4"><?php echo $lang->get('vgc_no_batches_available'); ?></td>
+              <td class="center" colspan="6"><?php echo $lang->get('vgc_no_batches_available'); ?></td>
             </tr>
             <?php } ?>
           </tbody>
@@ -95,5 +101,6 @@ function deleteCards(elem)
 
     </div>
   </div>
+  <?php } ?>
 </div>
 <?php echo $footer; ?>

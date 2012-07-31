@@ -18,30 +18,35 @@ class ControllerSaleOnegoVgc extends Controller
 
         $this->data['breadcrumbs'] = $this->getBreadcrumbs();
 
-        OneGoVirtualGiftCards::init();
-
-        if (!empty($this->request->get['product_added'])) {
-            $product_id = (int) $this->request->get['product_added'];
-            $this->load->model('catalog/product');
-            $product = $this->model_catalog_product->getProduct($product_id);
-            if ($product) {
-                $product_url = $this->url->link('catalog/product/update', 'token='.$this->session->data['token'].'&product_id='.$product_id, 'SSL');
-                $this->data['success'] = sprintf($this->language->get('vgc_product_added'), $product['name'], $product_url);
-            }
-        } else if (!empty($this->request->post['action']) && !empty($this->request->post['selected'])) {
-            $action = $this->request->post['action'];
-            if (in_array($action, array('enable', 'disable'))) {
-                foreach ($this->request->post['selected'] as $product_id) {
-                    $this->setProductStatus($product_id, $action == 'enable');
-                }
-            } else if ($action == 'delete') {
-                foreach ($this->request->post['selected'] as $product_id) {
-                    $this->deleteUnsoldCards($product_id);
-                }
-            }
+        if (isset($this->session->data['success'])) {
+            $this->data['success'] = $this->session->data['success'];
+            unset($this->session->data['success']);
         }
 
-        $this->data['list'] = $this->getList();
+        if (!$this->config->get('onego_status')) {
+            $this->data['extension_disabled'] = true;
+            $this->data['error_warning'] = $this->language->get('extension_disabled');
+        } else {
+
+            OneGoVirtualGiftCards::init();
+
+            if (!empty($this->request->post['action']) && !empty($this->request->post['selected'])) {
+                $action = $this->request->post['action'];
+                if (in_array($action, array('enable', 'disable'))) {
+                    foreach ($this->request->post['selected'] as $product_id) {
+                        $this->setProductStatus($product_id, $action == 'enable');
+                    }
+                } else if ($action == 'delete') {
+                    foreach ($this->request->post['selected'] as $product_id) {
+                        $this->deleteUnsoldCards($product_id);
+                    }
+                }
+                $this->session->data['success'] = $this->data['success'];
+                $this->redirect($this->url->link('sale/onego_vgc', 'token='.$this->session->data['token'], 'SSL'));
+            }
+
+            $this->data['list'] = $this->getList();
+        }
 
         $this->template = 'sale/onego_vgc_list.tpl';
         $this->children = array(
@@ -52,11 +57,11 @@ class ControllerSaleOnegoVgc extends Controller
         $this->response->setOutput($this->render());
     }
 
-    public function getList()
+    public function getList($nominal = false)
     {
         $model = $this->getModel();
         $list = array();
-        foreach ($model->getGridList() as $row) {
+        foreach ($model->getGridList($nominal) as $row) {
             $row['status_text'] = ($row['status'] ? $this->language->get('text_enabled') : $this->language->get('text_disabled'));
             $row['product_url'] = $this->url->link('catalog/product/update', 'token='.$this->session->data['token'].'&product_id='.$row['product_id'], 'SSL');
             $list[] = $row;
@@ -131,21 +136,43 @@ class ControllerSaleOnegoVgc extends Controller
                 }
             }
 
-
-
-            if ($this->request->post['save'] && $this->request->post['product']) {
+            if (!empty($this->request->post['product'])) {
                 $this->data['product'] = $this->request->post['product'];
-                if (!$this->validateForm()) {
-                    $this->data['errors'] = $this->error;
-                    if (isset($this->error['warning'])) {
-                        $this->data['error_warning'] = $this->error['warning'];
-                    }
-                } else if ($product_id = $model->addCardsToNewProduct($this->request->post['product'])) {
-                    // success, redirect to list
-                    $this->redirect($this->url->link('sale/onego_vgc', 'token='.$this->session->data['token'].'&product_added='.$product_id, 'SSL'));
+            }
 
-                } else {
-                    $this->data['error_warning'] = $this->language->get('vgc_error_generic');
+            if ($this->request->post['save']) {
+                if ($this->request->post['product']) {
+                    $product_id = !empty($this->request->post['product_id']) ? (int) $this->request->post['product_id'] : false;
+                    if (!$this->validateForm()) {
+                        $this->data['errors'] = $this->error;
+                        if (isset($this->error['warning'])) {
+                            $this->data['error_warning'] = $this->error['warning'];
+                        }
+                    } else if ($product_id && $model->addCardsToProduct($product_id)) {
+
+                        // success, redirect to list
+                        $this->load->model('catalog/product');
+                        $product = $this->model_catalog_product->getProduct($product_id);
+                        if ($product) {
+                            $product_url = $this->url->link('catalog/product/update', 'token='.$this->session->data['token'].'&product_id='.$product_id, 'SSL');
+                            $this->session->data['success'] = sprintf($this->language->get('vgc_added_to_product'), $product_url, $product['name']);
+                        }
+                        $this->redirect($this->url->link('sale/onego_vgc', 'token='.$this->session->data['token'], 'SSL'));
+
+                    } else if (!$product_id && ($product_id = $model->addCardsToNewProduct($this->request->post['product']))) {
+
+                        // success, redirect to list
+                        $this->load->model('catalog/product');
+                        $product = $this->model_catalog_product->getProduct($product_id);
+                        if ($product) {
+                            $product_url = $this->url->link('catalog/product/update', 'token='.$this->session->data['token'].'&product_id='.$product_id, 'SSL');
+                            $this->session->data['success'] = sprintf($this->language->get('vgc_product_added'), $product['name'], $product_url);
+                        }
+                        $this->redirect($this->url->link('sale/onego_vgc', 'token='.$this->session->data['token'], 'SSL'));
+
+                    } else {
+                        $this->data['error_warning'] = $this->language->get('vgc_error_generic');
+                    }
                 }
             }
         }
@@ -159,15 +186,18 @@ class ControllerSaleOnegoVgc extends Controller
             $this->data['vgc_nominal'] = $this->formatCurrency($vgc_nominal);
         }
 
+        // get products already created for this nominal
+        if ($vgc_nominal) {
+            $this->data['products'] = $this->getList($vgc_nominal);
+        }
+
         if ($vgc_count) {
             $this->data['create_product'] = true;
             $this->load->model('localisation/language');
             $this->data['languages'] = $this->model_localisation_language->getLanguages();
             $this->load->model('catalog/category');
             $this->data['categories'] = $this->model_catalog_category->getCategories(0);
-            
-        }
-        
+        }        
 
         $this->template = 'sale/onego_vgc_upload.tpl';
         $this->children = array(
@@ -248,19 +278,21 @@ class ControllerSaleOnegoVgc extends Controller
             $this->error['warning'] = $this->language->get('error_permission');
         }
 
-        foreach ($this->request->post['product']['name'] as $language_id => $value) {
-            if ((utf8_strlen($value) < 1) || (utf8_strlen($value) > 255)) {
-                $this->error['name'][$language_id] = $this->language->get('error_name');
+        if (!isset($this->request->post['product_id'])) {
+            foreach ($this->request->post['product']['name'] as $language_id => $value) {
+                if ((utf8_strlen($value) < 1) || (utf8_strlen($value) > 255)) {
+                    $this->error['name'][$language_id] = $this->language->get('error_name');
+                }
             }
-        }
 
-        if ((utf8_strlen($this->request->post['product']['model']) < 1) || (utf8_strlen($this->request->post['product']['model']) > 64)) {
-            $this->error['model'] = $this->language->get('error_model');
-        }
+            if ((utf8_strlen($this->request->post['product']['model']) < 1) || (utf8_strlen($this->request->post['product']['model']) > 64)) {
+                $this->error['model'] = $this->language->get('error_model');
+            }
 
-        $price = (float) $this->request->post['product']['price'];
-        if (!$price) {
-            $this->error['price'] = $this->language->get('vgc_error_price');
+            $price = (float) $this->request->post['product']['price'];
+            if (!$price) {
+                $this->error['price'] = $this->language->get('vgc_error_price');
+            }
         }
 
         if ($this->error && !isset($this->error['warning'])) {

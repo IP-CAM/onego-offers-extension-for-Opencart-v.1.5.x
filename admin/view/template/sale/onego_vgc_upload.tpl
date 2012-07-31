@@ -1,4 +1,17 @@
 <?php echo $header; ?>
+
+<script type="text/javascript">
+$(document).ready(function(){
+    $('#create_product_form input').click(function(){
+        $('#assign_to_product_form input[type=radio]').attr('checked', false);
+    })
+    $('#assign_to_product_form input[type=radio]').click(function(){
+        $('#create_product_form input[type=text]').val('');
+        $('#create_product_form input[type=checkbox]').attr('checked', false);
+    })
+})
+</script>
+
 <div id="content">
   <div class="breadcrumb">
     <?php foreach ($breadcrumbs as $breadcrumb) { ?>
@@ -15,7 +28,7 @@
     <div class="heading">
       <h1><img src="view/image/onego_icon.png" alt="<?php echo $heading_title; ?>" /> <?php echo $heading_title; ?></h1>
       <div class="buttons">
-          <?php if (empty($save)) { ?>
+          <?php if (!empty($create_product)) { ?>
           <a onclick="$('input[name=save]').val(1); $('#vgcform').submit();" class="button"><?php echo $lang->get('button_save'); ?></a>
           <?php } ?>
           <a onclick="location.href='<?php echo $url_cancel; ?>'" class="button"><?php echo $lang->get('button_cancel'); ?></a>
@@ -23,28 +36,25 @@
     </div>
     <div class="content" id="onego_vgc_upload">
 
-        <div class="onego_description">
-            <?php echo $lang->get('vgc_upload_description') ?>
-        </div>
-
         <form action="<?php echo $url_self ?>" method="POST" enctype="multipart/form-data" id="vgcform">
         <input type="hidden" name="save" value="0" />
+
+        <?php if (!empty($vgc_nominal) && !empty($vgc_count)) { ?>
+        <div class="vgc_uploaded">
+            <?php echo $lang->get('vgc_to_be_added').': '.$vgc_count ?><br />
+            <?php echo $lang->get('vgc_nominal').': '.$vgc_nominal ?><br />
+        </div>
+        <?php } ?>
 
         <fieldset id="vgcUpload">
             <legend><?php echo $lang->get('vgc_upload_csv') ?></legend>
 
-            <?php if (!empty($vgc_nominal) && !empty($vgc_count)) { ?>
-            <strong>
-                <?php echo $lang->get('vgc_to_be_added').': '.$vgc_count ?><br />
-                <?php echo $lang->get('vgc_nominal').': '.$vgc_nominal ?><br />
-            </strong>
-            <br />
-            <?php } ?>
-
+            <div class="help">
+                <?php echo $lang->get('vgc_upload_description') ?>
+            </div>
             
             <input type="file" name="csv_list" />
             <input type="submit" name="btn_upload" value="<?php echo $lang->get('button_upload') ?>" />
-            
             
         </fieldset>
 
@@ -52,9 +62,41 @@
         <fieldset id="vgcAssignToProduct">
             <legend><?php echo $lang->get('vgc_create_product') ?></legend>
 
+            <?php if (!empty($products)) { ?>
+
+            <h2><?php echo $lang->get('vgc_select_product') ?>:</h2>
+
+            <table class="list" id="assign_to_product_form">
+            <thead>
+            <tr>
+                <td width="1" style="text-align: center;"></td>
+                <td class="left"><?php echo $lang->get('column_name'); ?></td>
+                <td class="right"><?php echo $lang->get('column_status'); ?></td>
+                <td class="right"><?php echo $lang->get('vgc_nominal'); ?></td>
+                <td class="right"><?php echo $lang->get('vgc_sold'); ?></td>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($products as $row) { ?>
+            <tr>
+                <td style="text-align: center;">
+                    <?php $st = ''; ?>
+                    <input type="radio" name="product_id" value="<?php echo $row['product_id']; ?>" <?php echo $st ?> />
+                </td>
+                <td class="left"><a href="<?php echo $row['product_url'] ?>"><?php echo $row['name']; ?></a></td>
+                <td class="right"><?php echo $row['status_text']; ?></td>
+                <td class="right"><?php echo $row['nominal']; ?></td>
+                <td class="right"><?php echo sprintf($lang->get('vgc_sold_numbers'), $row['cards_sold'], $row['cards_sold']+$row['cards_available']); ?></td>
+            </tr>
+            <?php } ?>
+            </tbody>
+            </table>
+
+            <?php } ?>
+
             <h2><?php echo $lang->get('vgc_create_product_details') ?>:</h2>
 
-            <table class="form">
+            <table class="form" id="create_product_form">
             <?php foreach ($languages as $language) { ?>
             <tr>
               <td>

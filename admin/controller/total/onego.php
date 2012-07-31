@@ -27,10 +27,19 @@ class ControllerTotalOnego extends Controller {
             $post = $this->request->post;
             $post['onego_confirmOnOrderStatus'] = implode('|', empty($post['onego_confirmOnOrderStatus']) ? array() : $post['onego_confirmOnOrderStatus']);
             $post['onego_cancelOnOrderStatus'] = implode('|', empty($post['onego_cancelOnOrderStatus']) ? array() : $post['onego_cancelOnOrderStatus']);
+            $status_before = $this->config->get('onego_status');
             $this->model_setting_setting->editSetting('onego', $post);
 
             $this->session->data['success'] = $this->language->get('text_success');
 
+            $extension_was_disabled = $this->config->get('onego_status') && !$post['onego_status'];
+            if ($extension_was_disabled) {
+                // disable VGC products on extension disable as they won't work
+                $this->load->model('sale/onego_vgc');
+                if ($this->model_sale_onego_vgc->disableAllProducts()) {
+                    $this->session->data['success'] = $this->language->get('text_success_vgc_disabled');
+                }
+            }
             $this->redirect($this->url->link('extension/total', 'token=' . $this->session->data['token'], 'SSL'));
         }
 

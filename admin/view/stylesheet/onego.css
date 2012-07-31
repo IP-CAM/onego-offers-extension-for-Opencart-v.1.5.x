@@ -42,6 +42,28 @@
     padding-bottom: 10px;
     border-bottom: 1px dotted silver;
 }
-.onego_description {
+#onego_vgc_upload fieldset {
+    padding: 15px;
+}
+#onego_vgc_upload fieldset legend {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+fieldset#vgcUpload .help {
+    margin-bottom: 5px;
+}
+fieldset#vgcAssignToProduct {
+    margin-top: 25px;
+}
+fieldset#vgcAssignToProduct h2 {
+    font-size: 1em;
+    padding: 0px;
+    margin: 0 0 15px 0;
+}
+.vgc_uploaded {
+    background-color: #EEEEEE;
+    padding: 10px;
     margin-bottom: 15px;
+    font-weight: bold;
+    font-size: 1.2em;
 }

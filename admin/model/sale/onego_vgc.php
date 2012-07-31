@@ -19,8 +19,9 @@ class ModelSaleOnegoVgc extends Model
         return (string) $card_data[1] == (string) $nominal;
     }
 
-    public function getGridList()
+    public function getGridList($nominal = false)
     {
+        $addwhere = $nominal ? ' AND b.nominal=\''.$this->db->escape($nominal).'\'' : '';
         $sql = "SELECT p.product_id, pd.name, p.status,
                     MAX(b.added_on) AS last_batch_added_on, b.nominal,
                     SUM(IF(c.status='".OneGoVirtualGiftCards::STATUS_AVAILABLE."', 1, 0)) AS cards_available,
@@ -28,9 +29,9 @@ class ModelSaleOnegoVgc extends Model
                 FROM (".DB_PREFIX."onego_vgc_batches b, ".DB_PREFIX."product p)
                 LEFT JOIN ".DB_PREFIX."product_description pd ON p.product_id=pd.product_id AND pd.language_id='".(int) $this->config->get('config_language_id')."'
                 LEFT JOIN ".DB_PREFIX."onego_vgc_cards c ON b.id=c.batch_id
-                WHERE b.product_id=p.product_id
+                WHERE b.product_id=p.product_id {$addwhere}
                 GROUP BY p.product_id
-                ORDER BY b.nominal";
+                ORDER BY pd.name";
         $res = $this->db->query($sql);
         return $res->rows;
     }
@@ -51,6 +52,22 @@ class ModelSaleOnegoVgc extends Model
 
         // update cards status
         OneGoVirtualGiftCards::activatePendingCards($batch_id, $nominal);
+
+        return $product_id;
+    }
+
+    public function addCardsToProduct($product_id)
+    {
+        $pending = OneGoVirtualGiftCards::getPendingCardsCount();
+        list($nominal, $count) = each($pending);
+
+        // create batch
+        $batch_id = OneGoVirtualGiftCards::createBatch($nominal, $product_id);
+
+        // update cards status
+        OneGoVirtualGiftCards::activatePendingCards($batch_id, $nominal);
+
+        $this->updateStock($product_id);
 
         return $product_id;
     }
@@ -134,8 +151,24 @@ class ModelSaleOnegoVgc extends Model
 
     public function updateStock($product_id)
     {
+        $product_id = (int) $product_id;
         $stock = OneGoVirtualGiftCards::getCardsStock($product_id);
-        $sql = "UPDATE ".DB_PREFIX."product SET quantity='{$stock}' WHERE product_id={$id}";
+        $sql = "UPDATE ".DB_PREFIX."product SET quantity='{$stock}' WHERE product_id={$product_id}";
         return $this->db->query($sql);
+    }
+
+    public function disableAllProducts()
+    {
+        $products = $this->getGridList();
+        $were_disabled = false;
+        if (!empty($products)) {
+            foreach ($products as $product) {
+                if ($product['status']) {
+                    $this->setProductStatus($product['product_id'], false);
+                    $were_disabled = true;
+                }
+            }
+        }
+        return $were_disabled;
     }
 }
