@@ -110,7 +110,7 @@ END;
 $_['menu_item_onego_vgc'] = 'Virtual Gift Cards';
 $_['vgc_heading_title'] = 'OneGo Virtual Gift Cards';
 $_['vgc_upload'] = 'Add Virtual Gift Cards for sale';
-$_['vgc_no_batches_available'] = 'No Virtual Gift Cards are currently for sale. Click "Add" button to import OneGo Virtual Gift Cards and start selling them through your e-shop.';
+$_['vgc_no_batches_available'] = 'No Virtual Gift Cards are currently added for sale. Click "Add" button to import OneGo Virtual Gift Cards and start selling them through your e-shop.';
 $_['vgc_error_cards_import_duplicate'] = 'Error: cards of multiple nominals are being added. Someone may be adding cards at the same time. Please click "cancel" and start again.';
 $_['vgc_upload_csv'] = 'Step 1. Upload CSV file(s) with OneGo Virtual Gift Cards list';
 $_['vgc_upload_description'] = 'To add Virtual Gift Cards for sale, you have to create new cards on your merchant portal page and export them to a CSV file. Then upload this file (or several) below.';
@@ -121,6 +121,7 @@ $_['vgc_cards_loaded'] = '%s cards loaded from file.';
 $_['vgc_no_cards_loaded'] = 'No new active cards found in this file.';
 $_['vgc_to_be_added'] = 'Virtual gift cards to be added';
 $_['vgc_nominal'] = 'Card value';
+$_['vgc_number'] = 'Card number';
 $_['vgc_create_product'] = 'Step 2. Create/assign catalog product for Virtual Gift Cards sale';
 $_['vgc_create_product_details'] = 'Create a new product in the catalog';
 $_['vgc_select_product'] = 'Select existing catalog product';
@@ -142,3 +143,8 @@ $_['vgc_confirm_cards_delete'] = 'Are you sure you want to delete all unsold car
 $_['vgc_cards_deleted'] = 'Unsold cards removed from the product.';
 $_['text_success_vgc_disabled'] = 'Success: You have modified OneGo extension settings. OneGo extension was disabled, and so were your Virtual Gift Card products.';
 $_['extension_disabled'] = 'OneGo extension is disabled.';
+
+$_['vgc_email_greeting_text'] = 'Thank you for purchasing our Gift Cards. Here are the codes for the cards you have purchased:';
+$_['vgc_email_instructions'] = 'You can use these card numbers on your next purchase, or give them to your friends as a gift.';
+$_['vgc_email_footer'] = 'Please reply to this email if you have any questions.';
+$_['vgc_email_subject'] = 'Your gift cards';

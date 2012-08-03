@@ -179,6 +179,13 @@ class ModelTotalOnego extends Model
                 $lastOrder->set('transactionState', $transactionState);
                 $lastOrder->set('oAuthTokenState', $tokenState);
 
+                // process VGC products in order cart
+                $this->markVGCCardsReserved($orderId);
+                if ($this->config->get('config_complete_status_id') == $orderInfo['order_status_id']) {
+                    // sold instantly
+                    $this->confirmVGCSale($orderId);
+                }
+
                 if ($this->isTransactionStarted()) {
                     $transactionId = $this->getTransactionId()->id;
                     try {
@@ -228,6 +235,20 @@ class ModelTotalOnego extends Model
                 }
 
                 OneGoTransactionState::getCurrent()->reset();
+            }
+        }
+    }
+
+    public function updateOrder($orderId, $orderStatusBefore)
+    {
+        $orderInfo = $this->getOrderInfo($orderId);
+        if ($orderInfo) {
+            $this->load->model('checkout/order');
+            // check if order status changed to "complete"
+            if (($this->config->get('config_complete_status_id') != $orderStatusBefore) &&
+                    ($this->config->get('config_complete_status_id') == $orderInfo['order_status_id']))
+            {
+                $this->sendVirtualGiftCards($orderId);
             }
         }
     }
@@ -750,8 +771,12 @@ END;
             $eshopCart = $this->getEshopCart();
         }
         $cart = $this->getApi()->newCart();
+
+        $vgc_products_ids = $this->getVGCProductsIds();
+
         foreach ($eshopCart as $product) {
-            $ignored = !empty($product['key']) && $this->isShippingItemCode($product['key']);
+            $ignored = !empty($product['key']) && $this->isShippingItemCode($product['key']) ||
+                in_array($product['product_id'], $vgc_products_ids);
             $itemPrice = round($product['total_final'] / $product['quantity'], 2);
             $totalFinal = round($product['total_final'], 2);
             $key = md5($product['key']);
@@ -814,7 +839,6 @@ END;
         if (!empty($transaction)) {
             $available = $transaction->getPrepaidAvailable();
             if (!is_null($funds)) {
-                $currency = $transaction->getCurrencyCode();
                 $spent = $transaction->getPrepaidSpent();
                 if ($spent) {
                     $available += $spent;
@@ -1457,5 +1481,63 @@ END;
         OneGoTransactionState::getCurrent()->set('agreedToDiscloseEmail', $state->get('agreedToDiscloseEmail'));
         OneGoTransactionState::getCurrent()->set('transaction', $state->get('transaction'));
         OneGoTransactionState::getCurrent()->set('cartHash', $state->get('cartHash'));
+    }
+
+    public function getVGCProductsIds()
+    {
+        $sql = "SELECT p.product_id
+                FROM (".DB_PREFIX."onego_vgc_batches b, ".DB_PREFIX."product p)
+                WHERE b.product_id=p.product_id
+                GROUP BY p.product_id";
+        $res = $this->db->query($sql);
+        $ids = array();
+        if (!empty($res->rows)) {
+            foreach ($res->rows as $row) {
+                $ids[] = $row['product_id'];
+            }
+        }
+        return $ids;
+    }
+
+    public function markVGCCardsReserved($orderId)
+    {
+        $this->load->model('account/order');
+        $orderInfo = $this->model_account_order->getOrder($orderId);
+        $vgcProductsIds = $this->getVGCProductsIds();
+        if ($orderInfo) {
+            $products = $this->model_account_order->getOrderProducts($orderId);
+            foreach ($products as $product) {
+                if (in_array($product['product_id'], $vgcProductsIds)) {
+                    OneGoVirtualGiftCards::reserveCards($product['product_id'], $product['quantity'], $orderId);
+                    OneGoVirtualGiftCards::updateStock($product['product_id']);
+                }
+            }
+        }
+    }
+
+    public function markVGCCardsSold($orderId)
+    {
+        OneGoVirtualGiftCards::sellCards($orderId);
+    }
+
+    private function confirmVGCSale($orderId)
+    {
+        OneGoVirtualGiftCards::sellCards($orderId);
+        $this->sendVirtualGiftCards($orderId);
+    }
+
+    private function sendVirtualGiftCards($orderId)
+    {
+        $this->load->model('checkout/order');
+        $order_info = $this->model_checkout_order->getOrder($orderId);
+        if ($order_info && ($this->config->get('config_complete_status_id') == $order_info['order_status_id']))
+        {
+            // order status changed to confirmed, may now send VGC details to buyer
+            $cards = OneGoVirtualGiftCards::getOrderCards($orderId);
+            if (!empty($cards)) {
+                return OneGoVirtualGiftCards::sendEmail($order_info, $cards, $this);
+            }
+        }
+        return false;
     }
 }

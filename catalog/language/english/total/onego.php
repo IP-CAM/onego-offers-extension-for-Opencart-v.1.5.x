@@ -60,3 +60,10 @@ $_['error_bindnew_invalid_email'] = 'Error: your e-mail was not recognized as va
 $_['error_bindnew_failed'] = 'Error: creating your personal OneGo account failed, please try later.';
 $_['error_redeem_failed'] = 'Redeeming gift card failed, please try again later';
 $_['error_redeem_cardnumber_invalid'] = 'Gift card number is not valid';
+
+$_['vgc_nominal'] = 'Card value';
+$_['vgc_number'] = 'Card number';
+$_['vgc_email_greeting_text'] = 'Thank you for purchasing our Gift Cards. Here are the codes for the cards you have purchased:';
+$_['vgc_email_instructions'] = 'You can use these card numbers on your next purchase, or give them to your friends as a gift.';
+$_['vgc_email_footer'] = 'Please reply to this email if you have any questions.';
+$_['vgc_email_subject'] = 'Your gift cards';

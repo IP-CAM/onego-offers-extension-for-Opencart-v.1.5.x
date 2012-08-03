@@ -25,7 +25,7 @@ class ModelSaleOnegoVgc extends Model
         $sql = "SELECT p.product_id, pd.name, p.status,
                     MAX(b.added_on) AS last_batch_added_on, b.nominal,
                     SUM(IF(c.status='".OneGoVirtualGiftCards::STATUS_AVAILABLE."', 1, 0)) AS cards_available,
-                    SUM(IF(c.status='".OneGoVirtualGiftCards::STATUS_SOLD."', 1, 0)) AS cards_sold
+                    SUM(IF(c.status='".OneGoVirtualGiftCards::STATUS_SOLD."' OR c.status='".OneGoVirtualGiftCards::STATUS_RESERVED."', 1, 0)) AS cards_sold
                 FROM (".DB_PREFIX."onego_vgc_batches b, ".DB_PREFIX."product p)
                 LEFT JOIN ".DB_PREFIX."product_description pd ON p.product_id=pd.product_id AND pd.language_id='".(int) $this->config->get('config_language_id')."'
                 LEFT JOIN ".DB_PREFIX."onego_vgc_cards c ON b.id=c.batch_id
@@ -66,8 +66,8 @@ class ModelSaleOnegoVgc extends Model
 
         // update cards status
         OneGoVirtualGiftCards::activatePendingCards($batch_id, $nominal);
-
-        $this->updateStock($product_id);
+        
+        OneGoVirtualGiftCards::updateStock($product_id);
 
         return $product_id;
     }
@@ -143,18 +143,10 @@ class ModelSaleOnegoVgc extends Model
     {
         $id = (int) $id;
         if (OneGoVirtualGiftCards::deleteUnsoldCards($id)) {
-            $this->updateStock($id);
+            OneGoVirtualGiftCards::updateStock($id);
             return true;
         }
         return false;
-    }
-
-    public function updateStock($product_id)
-    {
-        $product_id = (int) $product_id;
-        $stock = OneGoVirtualGiftCards::getCardsStock($product_id);
-        $sql = "UPDATE ".DB_PREFIX."product SET quantity='{$stock}' WHERE product_id={$product_id}";
-        return $this->db->query($sql);
     }
 
     public function disableAllProducts()

@@ -140,6 +140,33 @@
             private function _confirm_onego_wrapped($order_id
             ]]></add>
         </operation>
+        <operation>
+        <search position="replace"><![CDATA[
+            public function update($order_id
+            ]]></search>
+
+            <add><![CDATA[
+            public function update($order_id)
+            {
+                // status before
+                $order_info = $this->getOrder($order_id);
+                $order_status_before = $order_info['order_status_id'];
+
+                $args = func_get_args();
+                call_user_func_array(
+                    array($this, '_update_onego_wrapped'),
+                    $args
+                );
+
+                if ($this->config->get('onego_status')) {
+                    $this->load->model('total/onego');
+                    $this->model_total_onego->updateOrder($order_id, $order_status_before);
+                }
+            }
+
+            private function _update_onego_wrapped($order_id
+            ]]></add>
+        </operation>
     </file>
     
     <file name="admin/view/template/common/header.tpl">
@@ -236,6 +263,37 @@
 
             <add><![CDATA[
             $this->load->language('total/onego');
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/model/sale/order.php">
+        <operation>
+        <search position="replace"><![CDATA[
+            public function addOrderHistory($order_id
+            ]]></search>
+
+            <add><![CDATA[
+            // wrapper for original confirm() to always call ModelTotalOnego::confirm() in the end
+            public function addOrderHistory($order_id)
+            {
+                // status before
+                $order_info = $this->getOrder($order_id);
+                $order_status_before = $order_info['order_status_id'];
+
+                $args = func_get_args();
+                call_user_func_array(
+                    array($this, '_onego_wrapped_addOrderHistory'),
+                    $args
+                );
+
+                if ($this->config->get('onego_status')) {
+                    $this->load->model('total/onego');
+                    $this->model_total_onego->emailVGCDetails($order_id, $order_status_before);
+                }
+            }
+
+            private function _onego_wrapped_addOrderHistory($order_id
             ]]></add>
         </operation>
     </file>

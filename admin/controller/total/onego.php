@@ -22,6 +22,7 @@ class ControllerTotalOnego extends Controller {
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && ($this->validate())) {
 
             OneGoTransactionsLog::init();
+            OneGoVirtualGiftCards::init();
             $this->addPermissions();
 
             $post = $this->request->post;

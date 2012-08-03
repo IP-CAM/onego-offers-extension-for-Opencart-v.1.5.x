@@ -737,6 +737,7 @@ class OneGoVirtualGiftCards
 {
     const STATUS_PENDING = 'PENDING';
     const STATUS_AVAILABLE = 'AVAILABLE';
+    const STATUS_RESERVED = 'RESERVED';
     const STATUS_USED = 'USED';
     const STATUS_SOLD = 'SOLD';
 
@@ -750,7 +751,7 @@ class OneGoVirtualGiftCards
                     `number` varchar(36) NOT NULL COMMENT 'VGC number',
                     `nominal` varchar(36) NOT NULL COMMENT 'VGC nominal',
                     `batch_id` int(11) NULL COMMENT 'VGC batch ID, null if import in progress',
-                    `status` enum('PENDING','AVAILABLE','USED','SOLD') NOT NULL COMMENT 'VGC status',
+                    `status` enum('PENDING','AVAILABLE','RESERVED','USED','SOLD') NOT NULL COMMENT 'VGC status',
                     `order_id` int(11) NULL COMMENT 'Opencart order ID for VGC sale',
                     `sold_on` timestamp NULL,
                     PRIMARY KEY (`id`),
@@ -863,6 +864,138 @@ class OneGoVirtualGiftCards
                 WHERE b.product_id={$product_id} AND b.id=c.batch_id AND c.status='".self::STATUS_AVAILABLE."'";
         $res = $db->query($sql);
         return $res->row['cnt'];
+    }
+
+    public static function reserveCards($product_id, $quantity, $order_id)
+    {
+        $db = OneGoUtils::getRegistry()->get('db');
+        $order_id = (int) $order_id;
+        $product_id = (int) $product_id;
+        $quantity = (int) $quantity;
+
+        $db->query('START TRANSACTION');
+
+        // get cards IDs
+        $sql = "SELECT c.id
+                FROM ".DB_PREFIX."onego_vgc_batches b, ".DB_PREFIX."onego_vgc_cards c
+                WHERE b.product_id='{$product_id}' AND b.id=c.batch_id AND
+                    c.status='".self::STATUS_AVAILABLE."'
+                LIMIT {$quantity}
+                FOR UPDATE";
+        $res = $db->query($sql);
+        $ids = array();
+        foreach ($res->rows as $row) {
+            $ids[] = $row['id'];
+        }
+
+        if (count($ids)) {
+            // reserve cards
+            $in = implode(', ', $ids);
+            $sql = "UPDATE `".DB_PREFIX."onego_vgc_cards`
+                    SET order_id={$order_id}, status='".self::STATUS_RESERVED."'
+                    WHERE id IN ({$in})";
+            $res = $db->query($sql);
+
+            $db->query('COMMIT');
+
+            return $res;
+        }
+        $db->query('ROLLBACK');
+        return false;
+    }
+
+    public static function sellCards($order_id)
+    {
+        $db = OneGoUtils::getRegistry()->get('db');
+        $order_id = (int) $order_id;
+        $sql = "UPDATE `".DB_PREFIX."onego_vgc_cards`
+                SET status='".self::STATUS_SOLD."'
+                WHERE order_id={$order_id}";
+        return $db->query($sql);
+    }
+
+    public static function updateStock($product_id)
+    {
+        $product_id = (int) $product_id;
+        $stock = self::getCardsStock($product_id);
+        $sql = "UPDATE ".DB_PREFIX."product SET quantity='{$stock}' WHERE product_id={$product_id}";
+        $db = OneGoUtils::getRegistry()->get('db');
+        return $db->query($sql);
+    }
+
+    public static function getOrderCards($order_id)
+    {
+        $order_id = (int) $order_id;
+        $sql = "SELECT id, number, nominal
+                FROM ".DB_PREFIX."onego_vgc_cards
+                WHERE order_id={$order_id}";
+        $db = OneGoUtils::getRegistry()->get('db');
+        $res = $db->query($sql);
+        return $res->rows;
+    }
+
+    public static function sendEmail($order_info, $cards, Model $model)
+    {
+        $cards_text = '';
+        foreach ($cards as $key => $card) {
+            $cards[$key]['nominal_str'] = $model->currency->format($cards[$key]['nominal'], $order_info['currency_code']);
+            $cards_text .= "{$card['number']} ({$cards[$key]['nominal_str']})\n";
+        }
+
+        // generate email text
+        $model->load->model('localisation/language');
+        $language = new Language($order_info['language_directory']);
+        $language->load($order_info['language_filename']);
+        $language->load('total/onego');
+
+        // HTML Mail
+        $template = new Template();
+        $template->data['lang'] = $language;
+
+        $template->data['store_name'] = $order_info['store_name'];
+        $template->data['store_url'] = $order_info['store_url'];
+
+        $template->data['cards'] = $cards;
+        $template->data['logo'] = 'cid:' . md5(basename($model->config->get('config_logo')));
+
+        if (file_exists(DIR_TEMPLATE . $model->config->get('config_template') . '/template/mail/onego_vgc.tpl')) {
+            $html = $template->fetch($model->config->get('config_template') . '/template/mail/onego_vgc.tpl');
+        } else if (file_exists('/default/template/mail/onego_vgc.tpl')) {
+            $html = $template->fetch('/default/template/mail/onego_vgc.tpl');
+        } else {
+            $html = $template->fetch('mail/onego_vgc.tpl');
+        }
+
+        $subject = $language->get('vgc_email_subject');
+
+        $text = <<<END
+{$language->get('vgc_email_greeting_text')}
+
+{$cards_text}
+{$language->get('vgc_email_instructions')}
+
+{$order_info['store_name']}
+{$order_info['store_url']}
+
+{$language->get('vgc_email_footer')}
+END;
+
+        $mail = new Mail();
+        $mail->protocol = $model->config->get('config_mail_protocol');
+        $mail->parameter = $model->config->get('config_mail_parameter');
+        $mail->hostname = $model->config->get('config_smtp_host');
+        $mail->username = $model->config->get('config_smtp_username');
+        $mail->password = $model->config->get('config_smtp_password');
+        $mail->port = $model->config->get('config_smtp_port');
+        $mail->timeout = $model->config->get('config_smtp_timeout');
+        $mail->setTo($order_info['email']);
+        $mail->setFrom($model->config->get('config_email'));
+        $mail->setSender($order_info['store_name']);
+        $mail->setSubject($subject);
+        $mail->setHtml($html);
+        $mail->setText(html_entity_decode($text, ENT_QUOTES, 'UTF-8'));
+        $mail->addAttachment(DIR_IMAGE . $model->config->get('config_logo'), md5(basename($model->config->get('config_logo'))));
+        return $mail->send();
     }
 }
 

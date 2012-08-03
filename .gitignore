@@ -36,6 +36,9 @@ admin/view/template/total/*
 admin/view/template/sale/*
 !admin/view/template/sale/onego_vgc_list.tpl
 !admin/view/template/sale/onego_vgc_upload.tpl
+!admin/view/template/mail/
+admin/view/template/mail/*
+!admin/view/template/mail/onego_vgc.tpl
 !admin/view/javascript/
 admin/view/javascript/*
 !admin/view/javascript/onego.js
@@ -101,6 +104,9 @@ catalog/view/theme/default/template/common/*
 !catalog/view/theme/default/template/total/
 catalog/view/theme/default/template/total/*
 !catalog/view/theme/default/template/total/onego*
+!catalog/view/theme/default/template/mail/
+catalog/view/theme/default/template/mail/*
+!catalog/view/theme/default/template/mail/onego*
 
 !/README.txt
 !/DEPLOYMENT*
