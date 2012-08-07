@@ -67,3 +67,4 @@ $_['vgc_email_greeting_text'] = 'Thank you for purchasing our Gift Cards. Here a
 $_['vgc_email_instructions'] = 'You can use these card numbers on your next purchase, or give them to your friends as a gift.';
 $_['vgc_email_footer'] = 'Please reply to this email if you have any questions.';
 $_['vgc_email_subject'] = 'Your gift cards';
+$_['vgc_download_filename'] = 'Your gift cards (%s)';

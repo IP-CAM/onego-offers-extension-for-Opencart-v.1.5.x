@@ -90,6 +90,7 @@ class ModelTotalOnego extends Model {
             // order status changed to confirmed, may now send VGC details to buyer
             $cards = OneGoVirtualGiftCards::getOrderCards($order_id);
             if (!empty($cards)) {
+                OneGoVirtualGiftCards::createDownload($order_info, $cards, $this);
                 return OneGoVirtualGiftCards::sendEmail($order_info, $cards, $this);
             }
         }

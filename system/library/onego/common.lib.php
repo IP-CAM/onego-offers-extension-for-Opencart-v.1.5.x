@@ -926,9 +926,10 @@ class OneGoVirtualGiftCards
     public static function getOrderCards($order_id)
     {
         $order_id = (int) $order_id;
-        $sql = "SELECT id, number, nominal
-                FROM ".DB_PREFIX."onego_vgc_cards
-                WHERE order_id={$order_id}";
+        $sql = "SELECT c.id, c.number, c.nominal, b.product_id
+                FROM ".DB_PREFIX."onego_vgc_cards c
+                LEFT JOIN ".DB_PREFIX."onego_vgc_batches b ON c.batch_id=b.id
+                WHERE c.order_id={$order_id}";
         $db = OneGoUtils::getRegistry()->get('db');
         $res = $db->query($sql);
         return $res->rows;
@@ -996,6 +997,55 @@ END;
         $mail->setText(html_entity_decode($text, ENT_QUOTES, 'UTF-8'));
         $mail->addAttachment(DIR_IMAGE . $model->config->get('config_logo'), md5(basename($model->config->get('config_logo'))));
         return $mail->send();
+    }
+
+    public static function createDownload($order_info, $cards, Model $model)
+    {
+        if (!empty($order_info) && !empty($cards)) {
+            $mask = 'giftcards_'.$order_info['order_id'].'.txt';
+            $file = 'giftcards_'.$order_info['language_code'].'.txt';
+
+            $model->load->model('localisation/language');
+            $language = new Language($order_info['language_directory']);
+            $language->load($order_info['language_filename']);
+            $language->load('total/onego');
+
+            $db = OneGoUtils::getRegistry()->get('db');
+            
+            // create file if not existing
+            if (!file_exists(DIR_DOWNLOAD.$file)) {
+                $text = <<<END
+{$language->get('vgc_email_greeting_text')}
+
+{%CARDSINFO%}
+{$language->get('vgc_email_instructions')}
+END;
+                file_put_contents(DIR_DOWNLOAD.$file, $text);
+            }
+
+            // write to DB
+            if (file_exists(DIR_DOWNLOAD.$file)) {
+                $sql = "DELETE FROM ".DB_PREFIX."order_download
+                        WHERE order_id='{$order_info['order_id']}' AND filename='{$file}'";
+                $db->query($sql);
+
+                $products = array();
+                foreach ($cards as $card) {
+                    if (!isset($products[$card['product_id']])) {
+                        $nominal = $model->currency->format($card['nominal'], $order_info['currency_code']);
+                        $name = $db->escape(sprintf($language->get('vgc_download_filename'), $nominal));
+
+                        $sql = "INSERT INTO ".DB_PREFIX."order_download
+                                (order_id, order_product_id, name, filename, mask, remaining)
+                                VALUES
+                                ('{$order_info['order_id']}', '{$card['product_id']}',
+                                '{$name}', '{$file}', '{$mask}', 50)";
+                        $db->query($sql);
+                    }
+                    $products[$card['product_id']] = true;
+                }
+            }
+        }
     }
 }
 

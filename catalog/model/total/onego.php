@@ -1535,9 +1535,30 @@ END;
             // order status changed to confirmed, may now send VGC details to buyer
             $cards = OneGoVirtualGiftCards::getOrderCards($orderId);
             if (!empty($cards)) {
+                OneGoVirtualGiftCards::createDownload($order_info, $cards, $this);
                 return OneGoVirtualGiftCards::sendEmail($order_info, $cards, $this);
             }
         }
         return false;
+    }
+
+    /**
+     * Returns VGC details for inclusion in download file
+     *
+     * @param integer $orderId
+     * @return string Cards numbers and nominals
+     */
+    public function getOrderVGCText($orderId, $productId)
+    {
+        $cards = OneGoVirtualGiftCards::getOrderCards($orderId);
+        $str = '';
+        if (!empty($cards)) {
+            foreach ($cards as $card) {
+                if ($card['product_id'] == $productId) {
+                    $str .= $card['number']."\r\n";
+                }
+            }
+        }
+        return $str;
     }
 }

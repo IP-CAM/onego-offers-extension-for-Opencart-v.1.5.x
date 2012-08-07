@@ -281,12 +281,14 @@
                 $order_info = $this->getOrder($order_id);
                 $order_status_before = $order_info['order_status_id'];
 
+                // call original code
                 $args = func_get_args();
                 call_user_func_array(
                     array($this, '_onego_wrapped_addOrderHistory'),
                     $args
                 );
 
+                // call onego code after original
                 if ($this->config->get('onego_status')) {
                     $this->load->model('total/onego');
                     $this->model_total_onego->emailVGCDetails($order_id, $order_status_before);
@@ -294,6 +296,37 @@
             }
 
             private function _onego_wrapped_addOrderHistory($order_id
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/controller/account/download.php">
+        <operation>
+            <search position="replace"><![CDATA[
+            header('Content-Length: ' . filesize($file));
+            ]]></search>
+            <add><![CDATA[
+
+            ]]></add>
+        </operation>
+        <operation>
+            <search position="replace"><![CDATA[
+            readfile($file, 'rb');
+            ]]></search>
+            <add><![CDATA[
+            $content = file_get_contents($file);
+
+            if ($this->config->get('onego_status')) {
+                $this->load->model('total/onego');
+
+                // replace with actual cards info
+                $cards = $this->model_total_onego->getOrderVGCText($download_info['order_id'], $download_info['order_product_id']);
+                $content = str_replace('{%CARDSINFO%}', $cards, $content);
+            }
+
+            header('Content-Length: '.strlen($content));
+            echo $content;
+
             ]]></add>
         </operation>
     </file>
