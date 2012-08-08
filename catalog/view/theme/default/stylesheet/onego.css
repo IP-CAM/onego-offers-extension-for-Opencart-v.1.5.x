@@ -1,9 +1,3 @@
-input.onego_watermark {
-    color: gray;
-}
-input.onego_watermark.focused {
-    color: black;
-}
 #onego_authwidget_container {
     float: left;
     width: 350px;
@@ -83,4 +77,30 @@ input.onego_watermark.focused {
 
 .onego_loading_container {
     background: transparent url(../image/onego_loading.gif) no-repeat center center;
+}
+
+#onego_vgc_container {
+    width: 150px;
+    display: inline-block;
+    vertical-align: top;
+    z-index: 10;
+}
+#onego_vgc_container div {
+    position: relative;
+    z-index: 9;
+}
+#onego_vgc_container input {
+    position: absolute;
+    width: 140px;
+    top: 0;
+    left: 0;
+    padding: 2px;
+}
+input#onego_giftcard_number_template {
+    z-index: 1;
+    color: silver;
+}
+input#onego_giftcard_number {
+    background: transparent;
+    z-index: 10;
 }
