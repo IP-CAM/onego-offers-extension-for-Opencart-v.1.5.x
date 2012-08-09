@@ -83,11 +83,11 @@
     width: 150px;
     display: inline-block;
     vertical-align: top;
-    z-index: 10;
+    z-index: 1;
 }
 #onego_vgc_container div {
     position: relative;
-    z-index: 9;
+    z-index: 1;
 }
 #onego_vgc_container input {
     position: absolute;
@@ -102,5 +102,5 @@ input#onego_giftcard_number_template {
 }
 input#onego_giftcard_number {
     background: transparent;
-    z-index: 10;
+    z-index: 2;
 }
