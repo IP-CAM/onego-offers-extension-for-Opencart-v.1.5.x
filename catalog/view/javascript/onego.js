@@ -87,11 +87,14 @@ OneGoOpencart = {
             }
         });
     },
-    redeemGiftCard: function(cardNumber, onSuccess, onError) {
+    redeemGiftCard: function(cardNumber, onSuccess, onError, setFlashMessage) {
         $.ajax({
             url: $('base').attr('href') + 'index.php?route=total/onego/redeemgiftcard', 
             type: 'post',
-            data: {cardnumber: cardNumber},
+            data: {
+                cardnumber: cardNumber,
+                setFlashMessage: setFlashMessage ? 1 : 0
+            },
             dataType: 'json',
             success: function(data, textStatus, jqXHR) {
                 if (data.error) {
@@ -140,6 +143,19 @@ OneGoOpencart = {
         }
         var elemId = 'onegowarning' + Math.floor(Math.random() * 100000000);
         var warning = $('<div id="'+elemId+'" class="warning onego_warning">'+message+'</div>');
+        element.before(warning);
+        warning.show();
+        if (duration) {
+            setTimeout("$('#"+elemId+"').fadeOut()", duration);
+        }
+    },
+    flashSuccessBefore: function(element, message, duration) {
+        $('.onego_success').remove();
+        if (typeof duration == 'undefined') {
+            duration = 3000;
+        }
+        var elemId = 'onegosuccess' + Math.floor(Math.random() * 100000000);
+        var warning = $('<div id="'+elemId+'" class="success onego_success">'+message+'</div>');
         element.before(warning);
         warning.show();
         if (duration) {

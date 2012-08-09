@@ -68,3 +68,6 @@ $_['vgc_email_instructions'] = 'You can use these card numbers on your next purc
 $_['vgc_email_footer'] = 'Please reply to this email if you have any questions.';
 $_['vgc_email_subject'] = 'Your gift cards';
 $_['vgc_download_filename'] = 'Your gift cards (%s)';
+
+$_['vgc_redeemed'] = 'You have redeemed a gift card of value %s';
+$_['vgc_remainder'] = 'Gift card top-up';

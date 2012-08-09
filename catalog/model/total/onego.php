@@ -109,39 +109,48 @@ class ModelTotalOnego extends Model
                     $modified = true;
                 }
 
-                // virtual gift card spent
+                // virtual gift card and OneGo account funds spent
+                $funds_spent = 0;
                 if ($this->isTransactionStarted()) {
                     $vgc = $this->getTransaction()->getVirtualGiftCard();
                     if ($vgc && $vgc->spent) {
-                        $total_data[] = array(
-                            'code' => 'onego',
-                            'title' => $this->language->get('vgc_spent'),
-                            'text' => $this->currency->format(-$vgc->spent),
-                            'value' => -$vgc->spent,
-                            'sort_order' => $this->config->get('onego_sort_order').'p'
-                        );
+                        $funds_spent += $vgc->spent;
                     }
                 }
-
-                // prepaid spent
                 $spent = $this->getPrepaidSpent();
                 if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::PREPAID_SPENT)) {
+                    $funds_spent += $spent;
+                }
+                if ($funds_spent) {
                     $total_data[] = array(
                         'code' => 'onego',
                         'title' => $this->language->get('prepaid_spent'),
-                        'text' => $this->currency->format(-$spent),
-                        'value' => -$spent,
+                        'text' => $this->currency->format(-$funds_spent),
+                        'value' => -$funds_spent,
                         'sort_order' => $this->config->get('onego_sort_order').'r'
                     );
                 }
 
                 // prepaid received
-                $received = $this->getPrepaidReceivedAmount();
+                $received = $this->getPrepaidReceivedAmount() - $this->getPrepaidRedeemedRemainder();
                 if (!empty($received)) {
                     $receivables = array(
                         'code' => 'onego',
                         'title' => $this->language->get('funds_receivable'),
                         'text' => '+'.$this->currency->format($received),
+                        'value' => 0,
+                        'sort_order' => $this->config->get('onego_sort_order').'y',
+                    );
+                    $total_data[] = $receivables;
+                }
+
+                // VGC remainder to be returned to account balance
+                $vgcRemainder = $this->getPrepaidRedeemedRemainder();
+                if (!empty($vgcRemainder)) {
+                    $receivables = array(
+                        'code' => 'onego',
+                        'title' => $this->language->get('vgc_remainder'),
+                        'text' => '+'.$this->currency->format($vgcRemainder),
                         'value' => 0,
                         'sort_order' => $this->config->get('onego_sort_order').'z',
                     );
@@ -1213,6 +1222,18 @@ END;
         }
         return false;
     }
+
+
+    public function getPrepaidRedeemedRemainder()
+    {
+        if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::VGC_REDEEMED)) {
+            $vgc = $this->getTransaction()->getVirtualGiftCard();
+            if ($vgc) {
+                return round($vgc->remaining, 2);
+            }
+        }
+        return false;
+    }
     
     public function getTotalDiscount()
     {
@@ -1560,5 +1581,25 @@ END;
             }
         }
         return $str;
+    }
+
+    public function setFlashMessage($key, $text)
+    {
+        $messages = OneGoUtils::getFromSession('flashMessages', array());
+        $messages[$key] = $text;
+        OneGoUtils::saveToSession('flashMessages', $messages);
+    }
+
+    public function pullFlashMessage($key)
+    {
+        $messages = OneGoUtils::getFromSession('flashMessages', array());
+        if (isset($messages[$key])) {
+            $ret = $messages[$key];
+            unset($messages[$key]);
+            OneGoUtils::saveToSession('flashMessages', $messages);
+            return $ret;
+        } else {
+            return false;
+        }
     }
 }

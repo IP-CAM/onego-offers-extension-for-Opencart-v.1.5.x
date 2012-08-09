@@ -186,9 +186,8 @@ END;
         $this->data['onego_agree_email_expose'] = $this->language->get('agree_email_expose');
         $this->data['onego_error_spend_prepaid'] = $this->language->get('error_api_call_failed');
         $this->data['isAjaxRequest'] = OneGoUtils::isAjaxRequest();
-        $this->data['js_page_reload_callback'] = OneGoUtils::isAjaxRequest() ?
-                'OneGoOpencart.reloadCheckoutOrderInfo' : 'OneGoOpencart.reloadPage';
-
+        $this->data['onego_success'] = $onego->pullFlashMessage('success');
+        
         $isCheckoutPage = OneGoUtils::isAjaxRequest();
         $this->data['onego_is_checkout_page'] = $isCheckoutPage;
         if ($isCheckoutPage && OneGoConfig::get('transactionRefreshIn')) {
@@ -577,6 +576,7 @@ END;
         $onego = $this->getModel();
         $this->language->load('total/onego');
         $request = $this->registry->get('request');
+        $success = false;
         if (!empty($request->post['cardnumber'])) {
             $response = false;
             
@@ -584,14 +584,12 @@ END;
                 if ($onego->isTransactionStarted()) {
                     $transaction = $onego->refreshTransaction();
                     
-                    $res = $onego->redeemVirtualGiftCard($request->post['cardnumber']);
-                    if ($res) {
-                        $response = array('success' => true);
+                    if ($onego->redeemVirtualGiftCard($request->post['cardnumber'])) {
+                        $success = true;
                     }
                 } else {
                     $onego->redeemAnonymousVirtualGiftCard($request->post['cardnumber']);
-                    
-                    $response = array('success' => true);
+                    $success = true;
                 }
                 
             } catch (OneGoAuthenticationRequiredException $e) {
@@ -612,6 +610,14 @@ END;
                     'error' => get_class($e),
                     'message' => $errorMessage,
                 );
+            }
+            if ($success) {
+                $response = array('success' => true);
+                if (!empty($request->post['setFlashMessage'])) {
+                    $amount = $onego->getPrepaidRedeemedAmount();
+                    $msg = sprintf($this->language->get('vgc_redeemed'), $this->currency->format($amount));
+                    $onego->setFlashMessage('success', $msg);
+                }
             }
             
             $this->response->setOutput(OneGoAPI_JSON::encode($response));

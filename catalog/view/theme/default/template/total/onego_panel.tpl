@@ -2,6 +2,8 @@
 <div id="onego_warning" class="warning"><?php echo $onego_warning ?></div>
 <?php } ?>
 
+<?php if (!$isAjaxRequest) { // do not show OneGo panel in checkout page. Remove this condition check to restore ?>
+
 <div id="onego_panel">
   <div id="onego_panel_label"></div>
   <div id="onego_panel_content">
@@ -31,11 +33,6 @@
           </div>
           <?php } else { ?>
           <div id="onego_funds_container">
-              <?php if (!empty($onego_redeemed_vgc_amount)) { ?>
-              <div class="onego_funds_redeemed">
-                  <?php echo $onego_vgc_text ?>: <?php echo $onego_redeemed_vgc_amount ?>
-              </div>
-              <?php } ?>
               <div class="onego_funds_available">
                   <?php
                   if (!empty($onego_funds)) {
@@ -70,7 +67,11 @@
 </div>
 
 <script type="text/javascript">
-<?php if (!empty($onego_user_authenticated)) { ?>
+<?php
+$js_page_reload_callback = $isAjaxRequest ? 'OneGoOpencart.reloadCheckoutOrderInfo' : 'OneGoOpencart.reloadPage';
+
+if (!empty($onego_user_authenticated)) {
+    ?>
 $('#use_onego_funds').unbind('change').change(function(e) {
     $('.warning').remove();
     <?php if (!empty($onego_scope_sufficient)) { ?>
@@ -151,7 +152,7 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
     OneGoOpencart.setAsLoading($('#onego_giftcard_redeem'));
     
     var cardNumber = $('#onego_giftcard_number').val();
-    if (!cardNumber.length || (cardNumber == '<?php echo $onego_vgc_number ?>')) {
+    if (!cardNumber.length) {
         $('#onego_giftcard_number').focus();
         OneGoOpencart.unsetAsLoading($('#onego_giftcard_redeem'));
         return false;
@@ -165,7 +166,8 @@ $('#onego_giftcard_redeem').unbind('click').click(function(e) {
                 OneGoOpencart.unsetAsLoading($('#onego_giftcard_redeem'));
                 var errorMessage = errorMessage || '<?php echo $onego_redeem_failed ?>';
                 OneGoOpencart.flashWarningBefore($('#onego_panel'), errorMessage);
-            }
+            },
+            <?php echo $isAjaxRequest ? 'false' : 'true' ?>
         );
     }
 });
@@ -174,21 +176,16 @@ function cancelCheck(checkboxElement)
 {
     checkboxElement.attr('checked', !checkboxElement.attr('checked'));
 }
+</script>
+<?php } ?>
 
+<script type="text/javascript">
 <?php if ($isAjaxRequest) { ?>
 OneGo.plugins.init();
 <?php } ?>
 
 <?php if (!empty($onego_is_checkout_page)) { ?>
 OneGoOpencart.catchOrderConfirmAction();
-<?php if (!empty($trigger_refresh_in)) { ?>
-setTimeout(refreshTransactionSilent, <?php echo $trigger_refresh_in * 1000 ?>);
-function refreshTransactionSilent()
-{
-    OneGoOpencart.refreshTransaction();
-    setTimeout(refreshTransactionSilent, <?php echo $trigger_refresh_in_next * 1000 ?>);
-}
-<?php } ?>
 <?php } ?>
 
 <?php if (!empty($enable_autorefresh)) { ?>
@@ -223,5 +220,9 @@ $(document).ready(function(){
             $('#onego_giftcard_number_template').val(tplval.substr(0, 5) + '-' + tplval.substr(5))
         }
     })
+
+    <?php if (!empty($onego_success)) { ?>
+    OneGoOpencart.flashSuccessBefore($('#onego_panel'), '<?php echo $onego_success ?>');
+    <?php } ?>
 })
 </script>
