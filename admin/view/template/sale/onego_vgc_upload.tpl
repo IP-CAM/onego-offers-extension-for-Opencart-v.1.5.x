@@ -41,8 +41,8 @@ $(document).ready(function(){
 
         <?php if (!empty($vgc_nominal) && !empty($vgc_count)) { ?>
         <div class="vgc_uploaded">
-            <?php echo $lang->get('vgc_to_be_added').': '.$vgc_count ?><br />
-            <?php echo $lang->get('vgc_nominal').': '.$vgc_nominal ?><br />
+            <div class="onego_vgc_added"><?php echo $lang->get('vgc_to_be_added').': '.$vgc_count ?></div>
+            <div class="onego_vgc_nominal"><?php echo $lang->get('vgc_nominal').': '.$vgc_nominal ?></div>
         </div>
         <?php } ?>
 

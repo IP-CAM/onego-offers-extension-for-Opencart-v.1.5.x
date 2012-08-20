@@ -75,7 +75,7 @@
             ]]></search>
 
             <add><![CDATA[
-            <?php echo !empty($onego_panel) ? $onego_panel : 'onego'; ?>
+            <?php echo !empty($onego_panel) ? $onego_panel : ''; ?>
             ]]></add>
         </operation>
     </file>
@@ -237,7 +237,7 @@
 
             <add><![CDATA[
             <?php if (!empty($onego_vgc)) { ?>
-            <li><a href="<?php echo $onego_vgc ?>"><?php echo $text_onego_vgc; ?></a></li>
+            <li class="onego_menuitem_vgc"><a href="<?php echo $onego_vgc ?>"><?php echo $text_onego_vgc; ?></a></li>
             <?php } ?>
             ]]></add>
         </operation>

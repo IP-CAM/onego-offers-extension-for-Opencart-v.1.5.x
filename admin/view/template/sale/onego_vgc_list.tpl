@@ -42,10 +42,10 @@ function deleteCards(elem)
 
       <?php if (empty($extension_disabled)) { ?>
       <div class="buttons">
-          <a onclick="location = '<?php echo $upload_url; ?>'" class="button"><?php echo $lang->get('vgc_upload'); ?></a>
+          <a id="onego_button_add" onclick="location = '<?php echo $upload_url; ?>'" class="button"><?php echo $lang->get('vgc_upload'); ?></a>
           <?php if (!empty($list)) { ?>
-          <a onclick="setStatus(true);" class="button"><?php echo $lang->get('button_enable'); ?></a>
-          <a onclick="setStatus(false);" class="button"><?php echo $lang->get('button_disable'); ?></a>
+          <a id="onego_button_enable" onclick="setStatus(true);" class="button"><?php echo $lang->get('button_enable'); ?></a>
+          <a id="onego_button_disable" onclick="setStatus(false);" class="button"><?php echo $lang->get('button_disable'); ?></a>
           <?php } ?>
       </div>
       <?php } ?>
