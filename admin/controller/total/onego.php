@@ -390,6 +390,6 @@ class ControllerTotalOnego extends Controller {
     private function getSupportedVersions()
     {
         return array('1.5.0', '1.5.0.1', '1.5.0.2', '1.5.0.3', '1.5.0.4', '1.5.0.5', '1.5.1', '1.5.1.1',
-                                   '1.5.1.2', '1.5.1.3', '1.5.2', '1.5.2.1');
+            '1.5.1.2', '1.5.1.3', '1.5.2', '1.5.2.1', '1.5.3', '1.5.4');
     }
 }
