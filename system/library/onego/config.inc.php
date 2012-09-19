@@ -27,7 +27,7 @@ $oneGoConfig['delayedTransactionTTL'] = 2400; // 100 days
 $oneGoConfig['cartItemCodePrefix'] = 'eshopitem_';
 
 // OneGo API URL address
-$oneGoConfig['apiURI'] = 'http://api.dev.onego.com/pos/v1/';
+$oneGoConfig['apiURI'] = 'https://api.dev.onego.com/pos/v1/';
 
 // OneGo authorization endpoint URL address
 $oneGoConfig['authorizationURI'] = 'http://mobile.dev.onego.com/authorize';

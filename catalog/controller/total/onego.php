@@ -13,7 +13,7 @@ class ControllerTotalOnego extends Controller {
         $this->data['theme'] = $this->config->get('config_template');
         $clientId = OneGoConfig::get('clientId');
         $terminalId = OneGoConfig::get('terminalId');
-        $this->data['onego_jssdk_url'] = OneGoConfig::get('jsSdkURI')."?c={$clientId}&t={$terminalId}";
+        $this->data['onego_jssdk_url'] = OneGoConfig::get('jsSdkURI')."?c={$clientId}";
         
         $html = '';
         
