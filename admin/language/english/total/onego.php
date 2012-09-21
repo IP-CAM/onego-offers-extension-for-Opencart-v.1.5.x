@@ -107,45 +107,45 @@ For more information on this extension and a demo visit: <a href="http://opencar
 For more information on OneGo loyalty system visit: <a href="http://www.onego.com">www.onego.com</a>
 END;
 
-$_['menu_item_onego_vgc'] = 'Virtual Gift Cards';
-$_['vgc_heading_title'] = 'OneGo Virtual Gift Cards';
-$_['vgc_upload'] = 'Add Virtual Gift Cards for sale';
-$_['vgc_no_batches_available'] = 'No Virtual Gift Cards are currently added for sale. Click "Add" button to import OneGo Virtual Gift Cards and start selling them through your e-shop.';
-$_['vgc_error_cards_import_duplicate'] = 'Error: cards of multiple nominals are being added. Someone may be adding cards at the same time. Please click "cancel" and start again.';
-$_['vgc_upload_csv'] = 'Step 1. Upload CSV file(s) with OneGo Virtual Gift Cards list';
-$_['vgc_upload_description'] = 'To add Virtual Gift Cards for sale, you have to create new cards on your merchant portal page and export them to a CSV file. Then upload this file (or several) below.';
-$_['vgc_error_cant_read_uploaded_file'] = 'Error: cannot read uploaded file';
-$_['vgc_error_csv_file_format'] = 'Error: CSV file invalid at row %s, expected format: card number, card value, card is active';
-$_['vgc_error_csv_nominal'] = 'Error: cards value in this file (%s) differs from those added before. Please complete this operation and add cards of different value separately.';
-$_['vgc_cards_loaded'] = '%s cards loaded from file.';
-$_['vgc_no_cards_loaded'] = 'No new active cards found in this file.';
-$_['vgc_to_be_added'] = 'Virtual gift cards to be added';
-$_['vgc_nominal'] = 'Card value';
-$_['vgc_number'] = 'Card number';
-$_['vgc_create_product'] = 'Step 2. Create/assign catalog product for Virtual Gift Cards sale';
-$_['vgc_create_product_details'] = 'Create a new product in the catalog';
-$_['vgc_select_product'] = 'Select existing catalog product';
-$_['vgc_error_price'] = 'Product Price must be a number!';
-$_['vgc_error_generic'] = 'Error: there was an error adding Virtual Gift Cards to the products.';
-$_['vgc_product_added'] = 'Virtual Gift Cards were successfully added to stock and a product "%s" was created. It was not enabled yet - you should
+$_['menu_item_onego_rc'] = 'Redemption Codes';
+$_['rc_heading_title'] = 'OneGo Redemption Codes';
+$_['rc_upload'] = 'Add Redemption Codes for sale';
+$_['rc_no_batches_available'] = 'No Redemption Codes are currently added for sale. Click "Add" button to import OneGo Redemption Codes and start selling them through your e-shop.';
+$_['rc_error_codes_import_duplicate'] = 'Error: codes of multiple nominals are being added. Someone may be adding codes at the same time. Please click "cancel" and start again.';
+$_['rc_upload_csv'] = 'Step 1. Upload CSV file(s) with OneGo Redemption Codes list';
+$_['rc_upload_description'] = 'To add Redemption Codes for sale, you have to generate new codes on your merchant portal page and export them to a CSV file. Then upload this file (or several) below.';
+$_['rc_error_cant_read_uploaded_file'] = 'Error: cannot read uploaded file';
+$_['rc_error_csv_file_format'] = 'Error: CSV file invalid at row %s, expected format: redemption code number, code value, code is active';
+$_['rc_error_csv_nominal'] = 'Error: codes value in this file (%s) differs from those added before. Please complete this operation and add codes of different value separately.';
+$_['rc_codes_loaded'] = '%s codes loaded from file.';
+$_['rc_no_codes_loaded'] = 'No new active codes found in this file.';
+$_['rc_to_be_added'] = 'Redemption Codes to be added';
+$_['rc_nominal'] = 'Code value';
+$_['rc_number'] = 'Code number';
+$_['rc_create_product'] = 'Step 2. Create/assign catalog product for Redemption Codes sale';
+$_['rc_create_product_details'] = 'Create a new product in the catalog';
+$_['rc_select_product'] = 'Select existing catalog product';
+$_['rc_error_price'] = 'Product Price must be a number!';
+$_['rc_error_generic'] = 'Error: there was an error adding Redemption Codes to the products.';
+$_['rc_product_added'] = 'Redemption Codes were successfully added to stock and a product "%s" was created. It was not enabled yet - you should
     review it on <a href="%s">product\'s update page</a> and enable it to appear for sale.<br /><strong>Note:</strong> do not change quantity value for
-    this product manually as it is automatically updated when adding/selling Virtual Gift Cards.';
-$_['vgc_added_to_product'] = 'Virtual Gift Cards were successfully added to catalog product "<a href="%s">%s</a>".<br /><strong>Note:</strong> do not change quantity value for
-    this product manually as it is automatically updated when adding/selling Virtual Gift Cards.';
-$_['vgc_sold_numbers'] = '%s of %s';
-$_['vgc_sold'] = 'Cards sold';
+    this product manually as it is automatically updated when adding/selling Redemption Codes.';
+$_['rc_added_to_product'] = 'Redemption Codes were successfully added to catalog product "<a href="%s">%s</a>".<br /><strong>Note:</strong> do not change quantity value for
+    this product manually as it is automatically updated when adding/selling Redemption Codes.';
+$_['rc_sold_numbers'] = '%s of %s';
+$_['rc_sold'] = 'Codes sold';
 $_['button_enable'] = 'Enable';
 $_['button_disable'] = 'Disable';
-$_['vgc_product_disabled'] = 'Product disabled.';
-$_['vgc_product_enabled'] = 'Product enabled.';
-$_['vgc_button_delete_cards'] = 'Delete unsold cards';
-$_['vgc_confirm_cards_delete'] = 'Are you sure you want to delete all unsold cards from this product?';
-$_['vgc_cards_deleted'] = 'Unsold cards removed from the product.';
-$_['text_success_vgc_disabled'] = 'Success: You have modified OneGo extension settings. OneGo extension was disabled, and so were your Virtual Gift Card products.';
+$_['rc_product_disabled'] = 'Product disabled.';
+$_['rc_product_enabled'] = 'Product enabled.';
+$_['rc_button_delete_codes'] = 'Delete unsold codes';
+$_['rc_confirm_codes_delete'] = 'Are you sure you want to delete all unsold codes from this product?';
+$_['rc_codes_deleted'] = 'Unsold codes removed from the product.';
+$_['text_success_rc_disabled'] = 'Success: You have modified OneGo extension settings. OneGo extension was disabled, and so were your Redemption Code products.';
 $_['extension_disabled'] = 'OneGo extension is disabled.';
 
-$_['vgc_email_greeting_text'] = 'Thank you for purchasing our Gift Cards. Here are the codes for the cards you have purchased:';
-$_['vgc_email_instructions'] = 'You can use these card numbers on your next purchase, or give them to your friends as a gift.';
-$_['vgc_email_footer'] = 'Please reply to this email if you have any questions.';
-$_['vgc_email_subject'] = 'Your gift cards';
-$_['vgc_download_filename'] = 'Your gift cards (%s)';
+$_['rc_email_greeting_text'] = 'Thank you for purchasing our Redemption Codes. Here they are:';
+$_['rc_email_instructions'] = 'You can use these Redemption Codes on your next purchase, or give them to your friends as a gift.';
+$_['rc_email_footer'] = 'Please reply to this email if you have any questions.';
+$_['rc_email_subject'] = 'Your Redemption Codes';
+$_['rc_download_filename'] = 'Your Redemption Codes (%s)';

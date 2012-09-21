@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title><?php echo $lang->get('vgc_email_title'); ?></title>
+<title><?php echo $lang->get('rc_email_title'); ?></title>
 <style type="text/css">
 body {
 	color: #000000;
@@ -77,31 +77,31 @@ table.list .center {
 <div id="container">
     <a href="<?php echo $store_url; ?>" title="<?php echo $store_name; ?>"><img src="<?php echo $logo; ?>" alt="<?php echo $store_name; ?>" id="logo" /></a>
 
-    <p><?php echo $lang->get('vgc_email_greeting_text'); ?></p>
+    <p><?php echo $lang->get('rc_email_greeting_text'); ?></p>
     
     <table class="list">
         <thead>
         <tr>
-            <td class="left"><?php echo $lang->get('vgc_number'); ?></td>
-            <td class="left"><?php echo $lang->get('vgc_nominal'); ?></td>
+            <td class="left"><?php echo $lang->get('rc_number'); ?></td>
+            <td class="left"><?php echo $lang->get('rc_nominal'); ?></td>
         </tr>
         </thead>
         <tbody>
-        <?php foreach ($cards as $card) { ?>
+        <?php foreach ($codes as $code) { ?>
         <tr>
-            <td class="left"><b><?php echo $card['number']; ?></b></td>
-            <td class="left"><?php echo $card['nominal_str'] ?></td>
+            <td class="left"><b><?php echo $code['number']; ?></b></td>
+            <td class="left"><?php echo $code['nominal_str'] ?></td>
         </tr>
         <?php } ?>
         </tbody>
     </table>
 
     <p>
-        <?php echo $lang->get('vgc_email_instructions'); ?>
+        <?php echo $lang->get('rc_email_instructions'); ?>
     </p>
     
     <p><a href="<?php echo $store_url; ?>" title="<?php echo $store_name; ?>"><?php echo $store_url; ?></a></p>
-    <p><?php echo $lang->get('vgc_email_footer'); ?></p>
+    <p><?php echo $lang->get('rc_email_footer'); ?></p>
 </div>
 </body>
 </html>

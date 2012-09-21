@@ -1,9 +1,9 @@
 <?php
-class ModelSaleOnegoVgc extends Model
+class ModelSaleOnegoRc extends Model
 {
-    public function addCardToQueue($row)
+    public function addCodeToQueue($row)
     {
-        return OneGoVirtualGiftCards::addPendingCard($row[0], $row[1], strtolower($row[2]) == 'true');
+        return OneGoRedeemCodes::addPendingCode($row[0], $row[1], strtolower($row[2]) == 'true');
     }
 
     public function isValidCsvFileRow($row)
@@ -14,9 +14,9 @@ class ModelSaleOnegoVgc extends Model
             preg_match('/true|false/', $row[2]);
     }
 
-    public function isCardNominalMatching($card_data, $nominal)
+    public function isCodeNominalMatching($code_data, $nominal)
     {
-        return (string) $card_data[1] == (string) $nominal;
+        return (string) $code_data[1] == (string) $nominal;
     }
 
     public function getGridList($nominal = false)
@@ -24,11 +24,11 @@ class ModelSaleOnegoVgc extends Model
         $addwhere = $nominal ? ' AND b.nominal=\''.$this->db->escape($nominal).'\'' : '';
         $sql = "SELECT p.product_id, pd.name, p.status,
                     MAX(b.added_on) AS last_batch_added_on, b.nominal,
-                    SUM(IF(c.status='".OneGoVirtualGiftCards::STATUS_AVAILABLE."', 1, 0)) AS cards_available,
-                    SUM(IF(c.status='".OneGoVirtualGiftCards::STATUS_SOLD."' OR c.status='".OneGoVirtualGiftCards::STATUS_RESERVED."', 1, 0)) AS cards_sold
-                FROM (".DB_PREFIX."onego_vgc_batches b, ".DB_PREFIX."product p)
+                    SUM(IF(c.status='".OneGoRedeemCodes::STATUS_AVAILABLE."', 1, 0)) AS codes_available,
+                    SUM(IF(c.status='".OneGoRedeemCodes::STATUS_SOLD."' OR c.status='".OneGoRedeemCodes::STATUS_RESERVED."', 1, 0)) AS codes_sold
+                FROM (".DB_PREFIX.OneGoRedeemCodes::DB_TABLE_BATCHES." b, ".DB_PREFIX."product p)
                 LEFT JOIN ".DB_PREFIX."product_description pd ON p.product_id=pd.product_id AND pd.language_id='".(int) $this->config->get('config_language_id')."'
-                LEFT JOIN ".DB_PREFIX."onego_vgc_cards c ON b.id=c.batch_id
+                LEFT JOIN ".DB_PREFIX.OneGoRedeemCodes::DB_TABLE_CODES." c ON b.id=c.batch_id
                 WHERE b.product_id=p.product_id {$addwhere}
                 GROUP BY p.product_id
                 ORDER BY pd.name";
@@ -36,9 +36,9 @@ class ModelSaleOnegoVgc extends Model
         return $res->rows;
     }
 
-    public function addCardsToNewProduct($product_data)
+    public function addCodesToNewProduct($product_data)
     {
-        $pending = OneGoVirtualGiftCards::getPendingCardsCount();
+        $pending = OneGoRedeemCodes::getPendingCodesCount();
         list($nominal, $count) = each($pending);
 
         // create product
@@ -48,38 +48,38 @@ class ModelSaleOnegoVgc extends Model
         }
 
         // create batch
-        $batch_id = OneGoVirtualGiftCards::createBatch($nominal, $product_id);
+        $batch_id = OneGoRedeemCodes::createBatch($nominal, $product_id);
 
         // update cards status
-        OneGoVirtualGiftCards::activatePendingCards($batch_id, $nominal);
+        OneGoRedeemCodes::activatePendingCodes($batch_id, $nominal);
 
         return $product_id;
     }
 
-    public function addCardsToProduct($product_id)
+    public function addCodesToProduct($product_id)
     {
-        $pending = OneGoVirtualGiftCards::getPendingCardsCount();
+        $pending = OneGoRedeemCodes::getPendingCodesCount();
         list($nominal, $count) = each($pending);
 
         // create batch
-        $batch_id = OneGoVirtualGiftCards::createBatch($nominal, $product_id);
+        $batch_id = OneGoRedeemCodes::createBatch($nominal, $product_id);
 
-        // update cards status
-        OneGoVirtualGiftCards::activatePendingCards($batch_id, $nominal);
+        // update codes status
+        OneGoRedeemCodes::activatePendingCodes($batch_id, $nominal);
         
-        OneGoVirtualGiftCards::updateStock($product_id);
+        OneGoRedeemCodes::updateStock($product_id);
 
         return $product_id;
     }
 
-    public function createProduct($data, $cards_count)
+    public function createProduct($data, $codes_count)
     {
         $sql = "INSERT INTO " . DB_PREFIX . "product
                 SET model = '" . $this->db->escape($data['model']) . "', 
                     sku = '',
                     upc = '',
                     location = '',
-                    quantity = '".(int) $cards_count."',
+                    quantity = '".(int) $codes_count."',
                     minimum = '1',
                     subtract = '1',
                     stock_status_id = '" .(int) $this->config->get('config_stock_status_id'). "',
@@ -139,11 +139,11 @@ class ModelSaleOnegoVgc extends Model
         return $res;
     }
 
-    public function deleteUnsoldCards($id)
+    public function deleteUnsoldCodes($id)
     {
         $id = (int) $id;
-        if (OneGoVirtualGiftCards::deleteUnsoldCards($id)) {
-            OneGoVirtualGiftCards::updateStock($id);
+        if (OneGoRedeemCodes::deleteUnsoldCodes($id)) {
+            OneGoRedeemCodes::updateStock($id);
             return true;
         }
         return false;

@@ -79,7 +79,7 @@ class ModelTotalOnego extends Model {
         return array($title, $titleHtml);
     }
 
-    public function emailVGCDetails($order_id, $order_status_before)
+    public function emailRCDetails($order_id, $order_status_before)
     {
         $this->load->model('sale/order');
         $order_info = $this->model_sale_order->getOrder($order_id);
@@ -87,11 +87,11 @@ class ModelTotalOnego extends Model {
                 ($this->config->get('config_complete_status_id') != $order_status_before) &&
                 ($this->config->get('config_complete_status_id') == $order_info['order_status_id']))
         {
-            // order status changed to confirmed, may now send VGC details to buyer
-            $cards = OneGoVirtualGiftCards::getOrderCards($order_id);
-            if (!empty($cards)) {
-                OneGoVirtualGiftCards::createDownload($order_info, $cards, $this);
-                return OneGoVirtualGiftCards::sendEmail($order_info, $cards, $this);
+            // order status changed to confirmed, may now send RC details to buyer
+            $codes = OneGoRedeemCodes::getOrderCodes($order_id);
+            if (!empty($codes)) {
+                OneGoRedeemCodes::createDownload($order_info, $codes, $this);
+                return OneGoRedeemCodes::sendEmail($order_info, $codes, $this);
             }
         }
         return false;

@@ -22,7 +22,7 @@ class ControllerTotalOnego extends Controller {
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && ($this->validate())) {
 
             OneGoTransactionsLog::init();
-            OneGoVirtualGiftCards::init();
+            OneGoRedeemCodes::init();
             $this->addPermissions();
 
             $post = $this->request->post;
@@ -35,10 +35,10 @@ class ControllerTotalOnego extends Controller {
 
             $extension_was_disabled = $this->config->get('onego_status') && !$post['onego_status'];
             if ($extension_was_disabled) {
-                // disable VGC products on extension disable as they won't work
-                $this->load->model('sale/onego_vgc');
-                if ($this->model_sale_onego_vgc->disableAllProducts()) {
-                    $this->session->data['success'] = $this->language->get('text_success_vgc_disabled');
+                // disable RC products on extension disable as they won't work
+                $this->load->model('sale/onego_rc');
+                if ($this->model_sale_onego_rc->disableAllProducts()) {
+                    $this->session->data['success'] = $this->language->get('text_success_rc_disabled');
                 }
             }
             $this->redirect($this->url->link('extension/total', 'token=' . $this->session->data['token'], 'SSL'));
@@ -383,7 +383,7 @@ class ControllerTotalOnego extends Controller {
     {
         if ($this->user->hasPermission('modify', 'total/onego')) {
             $this->load->model('user/user_group');
-            $this->model_user_user_group->addPermission($this->user->getId(), 'access', 'sale/onego_vgc');
+            $this->model_user_user_group->addPermission($this->user->getId(), 'access', 'sale/onego_rc');
         }
     }
 

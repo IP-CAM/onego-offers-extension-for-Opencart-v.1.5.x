@@ -236,8 +236,8 @@
             ]]></search>
 
             <add><![CDATA[
-            <?php if (!empty($onego_vgc)) { ?>
-            <li class="onego_menuitem_vgc"><a href="<?php echo $onego_vgc ?>"><?php echo $text_onego_vgc; ?></a></li>
+            <?php if (!empty($onego_rc)) { ?>
+            <li class="onego_menuitem_rc"><a href="<?php echo $onego_rc ?>"><?php echo $text_onego_rc; ?></a></li>
             <?php } ?>
             ]]></add>
         </operation>
@@ -251,8 +251,8 @@
 
             <add><![CDATA[
             if ($this->config->get('onego_status')) {
-                $this->data['text_onego_vgc'] = $this->language->get('menu_item_onego_vgc');
-                $this->data['onego_vgc'] = $this->url->link('sale/onego_vgc', 'token='.$this->session->data['token'], 'SSL');
+                $this->data['text_onego_rc'] = $this->language->get('menu_item_onego_rc');
+                $this->data['onego_rc'] = $this->url->link('sale/onego_rc', 'token='.$this->session->data['token'], 'SSL');
             }
             ]]></add>
         </operation>
@@ -291,7 +291,7 @@
                 // call onego code after original
                 if ($this->config->get('onego_status')) {
                     $this->load->model('total/onego');
-                    $this->model_total_onego->emailVGCDetails($order_id, $order_status_before);
+                    $this->model_total_onego->emailRCDetails($order_id, $order_status_before);
                 }
             }
 
@@ -319,9 +319,9 @@
             if ($this->config->get('onego_status')) {
                 $this->load->model('total/onego');
 
-                // replace with actual cards info
-                $cards = $this->model_total_onego->getOrderVGCText($download_info['order_id'], $download_info['order_product_id']);
-                $content = str_replace('{%CARDSINFO%}', $cards, $content);
+                // replace with actual RC info
+                $codes = $this->model_total_onego->getOrderRCText($download_info['order_id'], $download_info['order_product_id']);
+                $content = str_replace('{%CODESINFO%}', $codes, $content);
             }
 
             header('Content-Length: '.strlen($content));

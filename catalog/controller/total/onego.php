@@ -156,16 +156,15 @@ END;
         $this->data['onego_use_funds_url'] = $this->url->link('total/onego/useFunds');
         $this->data['onego_scope_sufficient'] = $onego->isCurrentScopeSufficient();
         $this->data['onego_login_invitation'] = $this->language->get('invite_to_login');
-        $this->data['onego_vgc_invitation'] = $this->language->get('invite_to_use_vgc');
+        $this->data['onego_rc_invitation'] = $this->language->get('invite_to_use_rc');
         $this->data['onego_button_redeem'] = $this->language->get('button_redeem');
-        $this->data['onego_vgc_number'] = $this->language->get('vgc_number');
         $this->data['onego_prepaid_spent'] = $onego->hasSpentPrepaid();
         $this->data['onego_or'] = $this->language->get('or');
         $this->data['onego_user_authenticated'] = $onego->isUserAuthenticated();
         $this->data['onego_transaction_started'] = $onego->isTransactionStarted();
-        $this->data['onego_vgc_text'] = $this->language->get('vgc_funds_redeemed');
-        $this->data['onego_redeemed_vgc_amount'] = $onego->getPrepaidRedeemedAmount() ?
-                $this->currency->format($onego->getPrepaidRedeemedAmount()) : false;
+        $this->data['onego_rc_text'] = $this->language->get('rc_funds_redeemed');
+        $this->data['onego_redeemed_rc_amount'] = $onego->getRCUsedNominal() ?
+                $this->currency->format($onego->getRCUsedNominal()) : false;
         if ($onego->isUserAuthenticated()) {
             $this->data['onego_action'] = $this->url->link('checkout/confirm');
             $this->data['onego_disable'] = $this->url->link('total/onego/cancel');
@@ -246,17 +245,18 @@ END;
                 // TODO error handling
                 $receivable = false;
             }
-            if (!empty($receivable['vgcRemainder'])) {
-                // VGC funds not fully used
+            if (!empty($receivable['rcRemainder'])) {
+                // RC funds not fully used
                 if ($receivable['prepaid']) {
                     $this->data['onego_funds_receivable'] = sprintf(
-                        $this->language->get('vgc_remainder_plus_prepaid_available'), 
-                        $this->currency->format($receivable['vgcRemainder']),
-                        $this->currency->format($receivable['prepaid']));
+                        $this->language->get('rc_remainder_plus_prepaid_available'), 
+                        $this->currency->format($receivable['prepaid']),
+                        $this->currency->format($receivable['rcRemainder']),
+                        $this->currency->format($receivable['rcRemainder']));
                 } else {
                     $this->data['onego_funds_receivable'] = sprintf(
-                        $this->language->get('vgc_remainder_available'), 
-                        $this->currency->format($receivable['vgcRemainder']));
+                        $this->language->get('rc_remainder_available'), 
+                        $this->currency->format($receivable['rcRemainder']));
                 }                
             } else if (!empty($receivable['prepaid'])) {
                 // prepaid is available to receive
@@ -590,24 +590,25 @@ END;
         $this->response->setOutput($this->render());
     }
     
-    public function redeemgiftcard()
+    public function useredeemcode()
     {
         $onego = $this->getModel();
         $this->language->load('total/onego');
         $request = $this->registry->get('request');
         $success = false;
-        if (!empty($request->post['cardnumber'])) {
+        if (!empty($request->post['code'])) {
             $response = false;
             
             try {
+                $redeemCode = preg_replace('/[^a-z0-9]/i', '', $request->post['code']);
                 if ($onego->isTransactionStarted()) {
                     $transaction = $onego->refreshTransaction();
                     
-                    if ($onego->redeemVirtualGiftCard($request->post['cardnumber'])) {
+                    if ($onego->useRedeemCode($redeemCode)) {
                         $success = true;
                     }
                 } else {
-                    $onego->redeemAnonymousVirtualGiftCard($request->post['cardnumber']);
+                    $onego->useRedeemCodeAnonymously($redeemCode);
                     $success = true;
                 }
                 
@@ -617,8 +618,8 @@ END;
                     'error' => get_class($e),
                     'message' => $errorMessage,
                 );
-            } catch (OneGoVirtualGiftCardNumberInvalidException $e) {
-                $errorMessage = $this->language->get('error_redeem_cardnumber_invalid');
+            } catch (OneGoRedeemCodeInvalidException $e) {
+                $errorMessage = $this->language->get('error_redeem_code_invalid');
                 $response = array(
                     'error' => get_class($e),
                     'message' => $errorMessage,
@@ -633,8 +634,8 @@ END;
             if ($success) {
                 $response = array('success' => true);
                 if (!empty($request->post['setFlashMessage'])) {
-                    $amount = $onego->getPrepaidRedeemedAmount();
-                    $msg = sprintf($this->language->get('vgc_redeemed'), $this->currency->format($amount));
+                    $amount = $onego->getRCUsedNominal();
+                    $msg = sprintf($this->language->get('rc_redeemed'), $this->currency->format($amount));
                     $onego->setFlashMessage('success', $msg);
                 }
             }

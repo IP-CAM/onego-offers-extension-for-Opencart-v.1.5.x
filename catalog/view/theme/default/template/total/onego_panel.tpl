@@ -21,15 +21,15 @@
           <?php } ?>
           
           <?php if (empty($onego_transaction_started)) { ?>
-          <div id="onego_giftcardredeem_container">
-              <div style="padding-bottom: 5px;"><?php echo $onego_vgc_invitation ?></div>
-              <div id="onego_vgc_container">
+          <div id="onego_rc_redeem_container">
+              <div style="padding-bottom: 5px;"><?php echo $onego_rc_invitation ?></div>
+              <div id="onego_rc_container">
                   <div>
-                    <input type="text" name="onego_giftcard" id="onego_giftcard_number" value="" autocomplete="off" />
-                    <input type="text" id="onego_giftcard_number_template" class="" value="XXXXX-XXXXX" />
+                    <input type="text" name="onego_rc" id="onego_redeem_code_number" value="" autocomplete="off" />
+                    <input type="text" id="onego_redeem_code_template" class="" value="XXXXX-XXXXX" />
                   </div>
               </div>
-              <a href="#" class="button" id="onego_giftcard_redeem"><span><?php echo $onego_button_redeem ?></span></a>
+              <a href="#" class="button" id="onego_rc_redeem"><span><?php echo $onego_button_redeem ?></span></a>
           </div>
           <?php } else { ?>
           <div id="onego_funds_container">
@@ -43,14 +43,14 @@
                   }
                   ?>
               </div>
-              <div class="onego_giftcard">
-                  <div id="onego_vgc_container">
+              <div class="onego_rc">
+                  <div id="onego_rc_container">
                     <div>
-                        <input type="text" name="onego_giftcard" id="onego_giftcard_number" value="" autocomplete="off" />
-                        <input type="text" id="onego_giftcard_number_template" class="" value="XXXXX-XXXXX" />
+                        <input type="text" name="onego_rc" id="onego_redeem_code_number" value="" autocomplete="off" />
+                        <input type="text" id="onego_redeem_code_template" class="" value="XXXXX-XXXXX" />
                     </div>
                 </div>
-                  <input type="button" id="onego_giftcard_redeem" value="<?php echo $onego_button_redeem ?>" />
+                  <input type="button" id="onego_rc_redeem" value="<?php echo $onego_button_redeem ?>" />
               </div>
           </div>
           <?php } ?>
@@ -146,24 +146,24 @@ $('#onego_login').unbind().click(function(e){
 });
 <?php } ?>
 
-$('#onego_giftcard_redeem').unbind('click').click(function(e) {
+$('#onego_rc_redeem').unbind('click').click(function(e) {
     e.preventDefault();
     
-    OneGoOpencart.setAsLoading($('#onego_giftcard_redeem'));
+    OneGoOpencart.setAsLoading($('#onego_rc_redeem'));
     
-    var cardNumber = $('#onego_giftcard_number').val();
-    if (!cardNumber.length) {
-        $('#onego_giftcard_number').focus();
-        OneGoOpencart.unsetAsLoading($('#onego_giftcard_redeem'));
+    var redeemCode = $('#onego_redeem_code_number').val();
+    if (!redeemCode.length) {
+        $('#onego_redeem_code_number').focus();
+        OneGoOpencart.unsetAsLoading($('#onego_rc_redeem'));
         return false;
     } else {
-        OneGoOpencart.redeemGiftCard(
-            cardNumber,
+        OneGoOpencart.useRedeemCode(
+            redeemCode,
             function() {
                 <?php echo $js_page_reload_callback ?>();
             },
             function(errorMessage) {
-                OneGoOpencart.unsetAsLoading($('#onego_giftcard_redeem'));
+                OneGoOpencart.unsetAsLoading($('#onego_rc_redeem'));
                 var errorMessage = errorMessage || '<?php echo $onego_redeem_failed ?>';
                 OneGoOpencart.flashWarningBefore($('#onego_panel'), errorMessage);
             },
@@ -195,12 +195,12 @@ OneGoOpencart.resetTransactionAutorefresh();
 <?php } ?>
 
 $(document).ready(function(){
-    $('#onego_giftcard_number_template').focus(function(){
-        $('#onego_giftcard_number').focus();
+    $('#onego_redeem_code_template').focus(function(){
+        $('#onego_redeem_code_number').focus();
     })
-    var vgcnumber = ''
-    $('#onego_giftcard_number').keyup(function(e){
-        if (vgcnumber != e.target.value) {
+    var rcnumber = ''
+    $('#onego_redeem_code_number').keyup(function(e){
+        if (rcnumber != e.target.value) {
             val = e.target.value.toUpperCase();
             valCleaned = val.replace(/[^A-Z0-9]/g, '');
             strlen = valCleaned.length
@@ -215,9 +215,9 @@ $(document).ready(function(){
             if (strlen > 5 && valCleaned.substr(0, 1) != '-' || separator.test(val.substr(5, 1))) {
                 valCleaned = valCleaned.substr(0, 5) + '-' + valCleaned.substr(5)
             }
-            e.target.value = vgcnumber = valCleaned;
+            e.target.value = rcnumber = valCleaned;
 
-            $('#onego_giftcard_number_template').val(tplval.substr(0, 5) + '-' + tplval.substr(5))
+            $('#onego_redeem_code_template').val(tplval.substr(0, 5) + '-' + tplval.substr(5))
         }
     })
 

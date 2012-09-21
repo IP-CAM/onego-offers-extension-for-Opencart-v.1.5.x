@@ -109,12 +109,12 @@ class ModelTotalOnego extends Model
                     $modified = true;
                 }
 
-                // virtual gift card and OneGo account funds spent
+                // redemption code and OneGo account funds spent
                 $funds_spent = 0;
                 if ($this->isTransactionStarted()) {
-                    $vgc = $this->getTransaction()->getVirtualGiftCard();
-                    if ($vgc && $vgc->spent) {
-                        $funds_spent += $vgc->spent;
+                    $rc = $this->getTransaction()->getRedeemCode();
+                    if ($rc && $rc->spent) {
+                        $funds_spent += $rc->spent;
                     }
                 }
                 $spent = $this->getPrepaidSpent();
@@ -132,7 +132,7 @@ class ModelTotalOnego extends Model
                 }
 
                 // prepaid received
-                $received = $this->getPrepaidReceivedAmount() - $this->getPrepaidRedeemedRemainder();
+                $received = $this->getPrepaidReceivedAmount();
                 if (!empty($received)) {
                     $receivables = array(
                         'code' => 'onego',
@@ -144,13 +144,13 @@ class ModelTotalOnego extends Model
                     $total_data[] = $receivables;
                 }
 
-                // VGC remainder to be returned to account balance
-                $vgcRemainder = $this->getPrepaidRedeemedRemainder();
-                if (!empty($vgcRemainder)) {
+                // RC remainder to be returned to account balance
+                $rcRedeemed = $this->getRCUsedAmountRedeemed();
+                if (!empty($rcRedeemed)) {
                     $receivables = array(
                         'code' => 'onego',
-                        'title' => $this->language->get('vgc_remainder'),
-                        'text' => '+'.$this->currency->format($vgcRemainder),
+                        'title' => $this->language->get('rc_remainder'),
+                        'text' => '+'.$this->currency->format($rcRedeemed),
                         'value' => 0,
                         'sort_order' => $this->config->get('onego_sort_order').'z',
                     );
@@ -188,11 +188,11 @@ class ModelTotalOnego extends Model
                 $lastOrder->set('transactionState', $transactionState);
                 $lastOrder->set('oAuthTokenState', $tokenState);
 
-                // process VGC products in order cart
-                $this->markVGCCardsReserved($orderId);
+                // process RC products in order cart
+                $this->markRCCardsReserved($orderId);
                 if ($this->config->get('config_complete_status_id') == $orderInfo['order_status_id']) {
                     // sold instantly
-                    $this->confirmVGCSale($orderId);
+                    $this->confirmRCSale($orderId);
                 }
 
                 if ($this->isTransactionStarted()) {
@@ -257,7 +257,7 @@ class ModelTotalOnego extends Model
             if (($this->config->get('config_complete_status_id') != $orderStatusBefore) &&
                     ($this->config->get('config_complete_status_id') == $orderInfo['order_status_id']))
             {
-                $this->sendVirtualGiftCards($orderId);
+                $this->sendRedeemCodes($orderId);
             }
         }
     }
@@ -599,7 +599,7 @@ END;
                 $transaction->confirm();
                 $this->deleteTransaction();
                 if (OneGoOAuthTokenState::getCurrent()->isBuyerAnonymous()) {
-                    // unset token if transaction was started using VGC
+                    // unset token if transaction was started using RC
                     $this->deleteOAuthToken();
                 }
                 return $transaction;
@@ -652,7 +652,7 @@ END;
                 OneGoUtils::log('Transaction delayed for '.($delayTtl / 3600).'h', OneGoUtils::LOG_NOTICE);
                 $this->deleteTransaction();
                 if (OneGoOAuthTokenState::getCurrent()->isBuyerAnonymous()) {
-                    // unset token if transaction was started using VGC
+                    // unset token if transaction was started using RC
                     $this->deleteOAuthToken();
                 }
                 return $transaction;
@@ -781,11 +781,11 @@ END;
         }
         $cart = $this->getApi()->newCart();
 
-        $vgc_products_ids = $this->getVGCProductsIds();
+        $rc_products_ids = $this->getRCProductsIds();
 
         foreach ($eshopCart as $product) {
             $ignored = !empty($product['key']) && $this->isShippingItemCode($product['key']) ||
-                in_array($product['product_id'], $vgc_products_ids);
+                in_array($product['product_id'], $rc_products_ids);
             $itemPrice = round($product['total_final'] / $product['quantity'], 2);
             $totalFinal = round($product['total_final'], 2);
             $key = md5($product['key']);
@@ -852,9 +852,9 @@ END;
                 if ($spent) {
                     $available += $spent;
                 }
-                $vgc = $transaction->getVirtualGiftCard();
-                if ($vgc) {
-                    $available -= $vgc->spent;
+                $rc = $transaction->getRedeemCode();
+                if ($rc) {
+                    $available -= $rc->spent;
                 }
                 $funds = array(
                     'title'     => sprintf($this->language->get('funds_prepaid'), 
@@ -1211,25 +1211,24 @@ END;
         return false;
     }
     
-    public function getPrepaidRedeemedAmount()
+    public function getRCUsedNominal()
     {
-        // TODO actual value
-        if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::VGC_REDEEMED)) {
-            $vgc = $this->getTransaction()->getVirtualGiftCard();
-            if ($vgc) {
-                return $vgc->original;
+        if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::RC_REDEEMED)) {
+            $rc = $this->getTransaction()->getRedeemCode();
+            if ($rc) {
+                return (float) $rc->original;
             }
         }
         return false;
     }
 
 
-    public function getPrepaidRedeemedRemainder()
+    public function getRCUsedAmountRedeemed()
     {
-        if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::VGC_REDEEMED)) {
-            $vgc = $this->getTransaction()->getVirtualGiftCard();
-            if ($vgc) {
-                return round($vgc->remaining, 2);
+        if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::RC_REDEEMED)) {
+            $rc = $this->getTransaction()->getRedeemCode();
+            if ($rc) {
+                return (float) $rc->redeemed;
             }
         }
         return false;
@@ -1248,13 +1247,7 @@ END;
     {
         $cart = $this->getModifiedCart();
         if ($cart && ($prepaidSpent = $cart->getPrepaidSpent())) {
-            if ($this->isTransactionStarted()) {
-                $vgc = $this->getTransaction()->getVirtualGiftCard();
-                if ($vgc) {
-                    $prepaidSpent -= $vgc->spent;
-                }
-            }
-            return $prepaidSpent;
+            return (float) $prepaidSpent;
         }
         return false;
     }
@@ -1373,18 +1366,18 @@ END;
     }
 
     /**
-     * Request OAuth access token by Virtual Gift Card number
+     * Request OAuth access token by Redemption Code number
      *
      * @throws OneGoAPI_OAuthException
-     * @param string $cardNumber
+     * @param string $redeemCode
      * @return OneGoAPI_Impl_OAuthToken
      */
-    public function requestOAuthAccessTokenByVGC($cardNumber)
+    public function requestOAuthAccessTokenByRC($redeemCode)
     {
         $auth = $this->getAuth();
         try {
-            $token = $auth->requestAccessTokenByVirtualGiftCard($cardNumber, $this->getOAuthRedirectUri());
-            OneGoUtils::log('OAuth token issued by VGC', OneGoUtils::LOG_NOTICE);
+            $token = $auth->requestAccessTokenByRedeemCode($redeemCode, $this->getOAuthRedirectUri());
+            OneGoUtils::log('OAuth token issued by RC', OneGoUtils::LOG_NOTICE);
             
             if ($this->isTransactionStarted()) {
                 $this->cancelTransaction();
@@ -1404,11 +1397,11 @@ END;
         if (!empty($lastOrder)) {
             if ($lastOrder->get('transactionState')->get('transaction')) {
                 $transaction = $lastOrder->get('transactionState')->get('transaction');
-                $vgcRemainder = $transaction->getVirtualGiftCard() ?
-                        (float) $transaction->getVirtualGiftCard()->remaining : 0;
-                $prepaidReceivable = (float) $transaction->getPrepaidAmountReceived() - $vgcRemainder;
+                $rcRemainder = $transaction->getRedeemCode() ?
+                        (float) $transaction->getRedeemCode()->remaining : 0;
+                $prepaidReceivable = (float) $transaction->getPrepaidAmountReceived();
                 $receivable = array(
-                    'vgcRemainder'  => round($vgcRemainder, 2),
+                    'rcRemainder'   => round($rcRemainder, 2),
                     'prepaid'       => round($prepaidReceivable, 2),
                 );
                 return $receivable;
@@ -1424,7 +1417,7 @@ END;
                     throw $e;
                 }
                 $receivable = array(
-                    'vgcRemainder'  => 0,
+                    'rcRemainder'  => 0,
                     'prepaid'       => round((float) $awards, 2),
                 );
                 return $receivable;
@@ -1434,43 +1427,43 @@ END;
     }
 
     /**
-     * @throws OneGoAPI_Exception|OneGoAPI_VirtualGiftCardNotFoundException|OneGoVirtualGiftCardNumberInvalidException
-     * @param string $cardNumber
+     * @throws OneGoAPI_Exception|OneGoAPI_RedeemCodeNotFoundException|OneGoRedeemCodeInvalidException
+     * @param string $redeemCode
      * @return bool Success
      */
-    public function redeemVirtualGiftCard($cardNumber)
+    public function useRedeemCode($redeemCode)
     {
         $transaction = $this->getTransaction();
         try {
-            $transaction->redeemVirtualGiftCard($cardNumber);
-            OneGoUtils::log('VGC redeemed for '.$cardNumber, OneGoUtils::LOG_NOTICE);
+            $transaction->useRedeemCode($redeemCode);
+            OneGoUtils::log('RC redeemed '.$redeemCode, OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
-            OneGoTransactionState::getCurrent()->set(OneGoTransactionState::VGC_REDEEMED, $cardNumber);
+            OneGoTransactionState::getCurrent()->set(OneGoTransactionState::RC_REDEEMED, $redeemCode);
             return true;
-        } catch (OneGoAPI_VirtualGiftCardNotFoundException $e) {
-            OneGoUtils::log('Gift card number invalid', OneGoUtils::LOG_ERROR);
-            throw new OneGoVirtualGiftCardNumberInvalidException($e->getMessage());
+        } catch (OneGoAPI_RedeemCodeNotFoundException $e) {
+            OneGoUtils::log('Redeem code invalid', OneGoUtils::LOG_ERROR);
+            throw new OneGoRedeemCodeInvalidException($e->getMessage());
         } catch (OneGoAPI_Exception $e) {
-            OneGoUtils::log('redeemVirtualGiftCard failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
+            OneGoUtils::log('useRedeemCode failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
     }
 
     /**
-     * Redemm VGC for anonymous buyer
+     * Redeem RC for anonymous buyer
      *
-     * @throws Exception|OneGoAPI_OAuthInvalidGrantException|OneGoVirtualGiftCardNumberInvalidException
-     * @param $cardNumber
+     * @throws Exception|OneGoAPI_OAuthInvalidGrantException|OneGoRedeemCodeInvalidException
+     * @param $redeemCode
      * @return void
      */
-    public function redeemAnonymousVirtualGiftCard($cardNumber)
+    public function useRedeemCodeAnonymously($redeemCode)
     {
         try {
-            $token = $this->requestOAuthAccessTokenByVGC($cardNumber);
+            $token = $this->requestOAuthAccessTokenByRC($redeemCode);
             $this->beginTransaction($token);
-            $this->redeemVirtualGiftCard($cardNumber);
+            $this->useRedeemCode($redeemCode);
         } catch (OneGoAPI_OAuthInvalidGrantException $e) {
-            throw new OneGoVirtualGiftCardNumberInvalidException($e->getMessage());
+            throw new OneGoRedeemCodeInvalidException($e->getMessage());
         } catch (Exception $e) {
             throw $e;
         }
@@ -1484,9 +1477,9 @@ END;
      */
     public function restoreTransactionState(OneGoTransactionState $state)
     {
-        if ($state->get('redeemedVGC')) {
+        if ($state->get('redeemedRC')) {
             try {
-                $this->redeemVirtualGiftCard($state->get('redeemedVGC'));
+                $this->useRedeemCode($state->get('redeemedRC'));
             } catch (Exception $e) {
                 // ignore
             }
@@ -1504,10 +1497,10 @@ END;
         OneGoTransactionState::getCurrent()->set('cartHash', $state->get('cartHash'));
     }
 
-    public function getVGCProductsIds()
+    public function getRCProductsIds()
     {
         $sql = "SELECT p.product_id
-                FROM (".DB_PREFIX."onego_vgc_batches b, ".DB_PREFIX."product p)
+                FROM (".DB_PREFIX.OneGoRedeemCodes::DB_TABLE_BATCHES." b, ".DB_PREFIX."product p)
                 WHERE b.product_id=p.product_id
                 GROUP BY p.product_id";
         $res = $this->db->query($sql);
@@ -1520,63 +1513,63 @@ END;
         return $ids;
     }
 
-    public function markVGCCardsReserved($orderId)
+    public function markRCCardsReserved($orderId)
     {
         $this->load->model('account/order');
         $orderInfo = $this->model_account_order->getOrder($orderId);
-        $vgcProductsIds = $this->getVGCProductsIds();
+        $rcProductsIds = $this->getRCProductsIds();
         if ($orderInfo) {
             $products = $this->model_account_order->getOrderProducts($orderId);
             foreach ($products as $product) {
-                if (in_array($product['product_id'], $vgcProductsIds)) {
-                    OneGoVirtualGiftCards::reserveCards($product['product_id'], $product['quantity'], $orderId);
-                    OneGoVirtualGiftCards::updateStock($product['product_id']);
+                if (in_array($product['product_id'], $rcProductsIds)) {
+                    OneGoRedeemCodes::reserveCodes($product['product_id'], $product['quantity'], $orderId);
+                    OneGoRedeemCodes::updateStock($product['product_id']);
                 }
             }
         }
     }
 
-    public function markVGCCardsSold($orderId)
+    public function markRCCardsSold($orderId)
     {
-        OneGoVirtualGiftCards::sellCards($orderId);
+        OneGoRedeemCodes::sellCodes($orderId);
     }
 
-    private function confirmVGCSale($orderId)
+    private function confirmRCSale($orderId)
     {
-        OneGoVirtualGiftCards::sellCards($orderId);
-        $this->sendVirtualGiftCards($orderId);
+        OneGoRedeemCodes::sellCodes($orderId);
+        $this->sendRedeemCodes($orderId);
     }
 
-    private function sendVirtualGiftCards($orderId)
+    private function sendRedeemCodes($orderId)
     {
         $this->load->model('checkout/order');
         $order_info = $this->model_checkout_order->getOrder($orderId);
         if ($order_info && ($this->config->get('config_complete_status_id') == $order_info['order_status_id']))
         {
-            // order status changed to confirmed, may now send VGC details to buyer
-            $cards = OneGoVirtualGiftCards::getOrderCards($orderId);
-            if (!empty($cards)) {
-                OneGoVirtualGiftCards::createDownload($order_info, $cards, $this);
-                return OneGoVirtualGiftCards::sendEmail($order_info, $cards, $this);
+            // order status changed to confirmed, may now send RC details to buyer
+            $codes = OneGoRedeemCodes::getOrderCodes($orderId);
+            if (!empty($codes)) {
+                OneGoRedeemCodes::createDownload($order_info, $codes, $this);
+                return OneGoRedeemCodes::sendEmail($order_info, $codes, $this);
             }
         }
         return false;
     }
 
     /**
-     * Returns VGC details for inclusion in download file
+     * Returns RC details for inclusion in download file
      *
      * @param integer $orderId
-     * @return string Cards numbers and nominals
+     * @return string RC numbers and nominals
      */
-    public function getOrderVGCText($orderId, $productId)
+    public function getOrderRCText($orderId, $productId)
     {
-        $cards = OneGoVirtualGiftCards::getOrderCards($orderId);
+        $codes = OneGoRedeemCodes::getOrderCodes($orderId);
         $str = '';
-        if (!empty($cards)) {
-            foreach ($cards as $card) {
-                if ($card['product_id'] == $productId) {
-                    $str .= $card['number']."\r\n";
+        if (!empty($codes)) {
+            foreach ($codes as $code) {
+                if ($code['product_id'] == $productId) {
+                    $str .= $code['number']."\r\n";
                 }
             }
         }

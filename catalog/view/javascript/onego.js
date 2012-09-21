@@ -72,27 +72,12 @@ OneGoOpencart = {
     reloadPage: function(){
         window.location.href = window.location.href;
     },
-    promptAnonymousGiftCardRedeem: function(){
-        $.fancybox({
-            'width': 800,
-            'height': 500,
-            'autoScale': true,
-            'autoDimensions': true,
-            'transitionIn': 'none',
-            'transitionOut': 'none',
-            'type': 'ajax',
-            'href': 'http://opencart/index.php?route=total/onego/confirmredeemgiftcard',
-            'onClosed': function() {
-
-            }
-        });
-    },
-    redeemGiftCard: function(cardNumber, onSuccess, onError, setFlashMessage) {
+    useRedeemCode: function(code, onSuccess, onError, setFlashMessage) {
         $.ajax({
-            url: $('base').attr('href') + 'index.php?route=total/onego/redeemgiftcard', 
+            url: $('base').attr('href') + 'index.php?route=total/onego/useredeemcode',
             type: 'post',
             data: {
-                cardnumber: cardNumber,
+                code: code,
                 setFlashMessage: setFlashMessage ? 1 : 0
             },
             dataType: 'json',

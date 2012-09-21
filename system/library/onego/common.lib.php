@@ -123,14 +123,14 @@ abstract class OneGoPersistentState
 class OneGoTransactionState extends OneGoPersistentState
 {
     const PREPAID_SPENT = 'spentPrepaid';
-    const VGC_REDEEMED = 'redeemedVGC';
+    const RC_REDEEMED = 'redeemedRC';
     const AGREED_DISCLOSE_EMAIL = 'agreedToDiscloseEmail';
     const BUYER_ANONYMOUS = 'buyerAnonymous';
     
     protected $transaction;
     protected $cartHash;
     protected $spentPrepaid;
-    protected $redeemedVGC;
+    protected $redeemedRC;
     protected $agreedToDiscloseEmail;
     
     protected function getStorageKey()
@@ -143,7 +143,7 @@ class OneGoTransactionState extends OneGoPersistentState
         $this->transaction = null;
         $this->cartHash = null;
         $this->spentPrepaid = false;
-        $this->redeemedVGC = false;
+        $this->redeemedRC = false;
         $this->agreedToDiscloseEmail = false;
     }
     
@@ -733,8 +733,11 @@ class OneGoTransactionsLog
     }
 }
 
-class OneGoVirtualGiftCards
+class OneGoRedeemCodes
 {
+    const DB_TABLE_CODES = 'onego_redeem_codes';
+    const DB_TABLE_BATCHES = 'onego_redeem_codes_batches';
+
     const STATUS_PENDING = 'PENDING';
     const STATUS_AVAILABLE = 'AVAILABLE';
     const STATUS_RESERVED = 'RESERVED';
@@ -745,39 +748,39 @@ class OneGoVirtualGiftCards
     {
         $db = OneGoUtils::getRegistry()->get('db');
 
-        // create DB table to store VGCs
-        $sql = "CREATE TABLE IF NOT EXISTS `".DB_PREFIX."onego_vgc_cards` (
+        // create DB table to store RCs
+        $sql = "CREATE TABLE IF NOT EXISTS `".DB_PREFIX.self::DB_TABLE_CODES."` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-                    `number` varchar(36) NOT NULL COMMENT 'VGC number',
-                    `nominal` varchar(36) NOT NULL COMMENT 'VGC nominal',
-                    `batch_id` int(11) NULL COMMENT 'VGC batch ID, null if import in progress',
-                    `status` enum('PENDING','AVAILABLE','RESERVED','USED','SOLD') NOT NULL COMMENT 'VGC status',
-                    `order_id` int(11) NULL COMMENT 'Opencart order ID for VGC sale',
+                    `number` varchar(36) NOT NULL COMMENT 'RC number',
+                    `nominal` varchar(36) NOT NULL COMMENT 'RC nominal',
+                    `batch_id` int(11) NULL COMMENT 'RC batch ID, null if import in progress',
+                    `status` enum('PENDING','AVAILABLE','RESERVED','USED','SOLD') NOT NULL COMMENT 'RC status',
+                    `order_id` int(11) NULL COMMENT 'Opencart order ID for RC sale',
                     `sold_on` timestamp NULL,
                     PRIMARY KEY (`id`),
                     UNIQUE KEY `number` (`number`),
                     KEY `order_id` (`order_id`),
                     KEY `batch_id` (`batch_id`)
-                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='OneGo VGC list'";
+                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='OneGo Redeem Codes list'";
         $db->query($sql);
 
-        // create DB table to store VGC batches info
-        $sql = "CREATE TABLE IF NOT EXISTS `".DB_PREFIX."onego_vgc_batches` (
+        // create DB table to store RC batches info
+        $sql = "CREATE TABLE IF NOT EXISTS `".DB_PREFIX.self::DB_TABLE_BATCHES."` (
                   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-                  `nominal` varchar(36) NOT NULL COMMENT 'VGC nominal',
-                  `product_id` int(11) NULL COMMENT 'Opencart product ID for selling batch VGCs',
+                  `nominal` varchar(36) NOT NULL COMMENT 'RC nominal',
+                  `product_id` int(11) NULL COMMENT 'Opencart product ID for selling batch RCs',
                   `added_on` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
                   PRIMARY KEY (`id`),
                   KEY `product_id` (`product_id`)
-                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='OneGo VGC batches'";
+                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='OneGo RC batches'";
         $db->query($sql);
     }
 
-    public static function getPendingCardsCount()
+    public static function getPendingCodesCount()
     {
         $db = OneGoUtils::getRegistry()->get('db');
         $sql = "SELECT nominal, COUNT(*) AS cnt
-                FROM `".DB_PREFIX."onego_vgc_cards`
+                FROM `".DB_PREFIX.self::DB_TABLE_CODES."`
                 WHERE status='".self::STATUS_PENDING."'
                 GROUP BY nominal
                 ORDER BY nominal";
@@ -790,26 +793,26 @@ class OneGoVirtualGiftCards
         
     }
 
-    public static function resetPendingCards()
+    public static function resetPendingCodes()
     {
         $db = OneGoUtils::getRegistry()->get('db');
-        $sql = "DELETE FROM `".DB_PREFIX."onego_vgc_cards`
+        $sql = "DELETE FROM `".DB_PREFIX.self::DB_TABLE_CODES."`
                 WHERE status='".self::STATUS_PENDING."'";
         $res = $db->query($sql);
     }
 
-    public static function addPendingCard($number, $nominal, $is_active)
+    public static function addPendingCode($number, $nominal, $is_active)
     {
         if ($is_active) {
             $db = OneGoUtils::getRegistry()->get('db');
             $number = $db->escape($number);
-            $sql = "SELECT number FROM `".DB_PREFIX."onego_vgc_cards`
+            $sql = "SELECT number FROM `".DB_PREFIX.self::DB_TABLE_CODES."`
                     WHERE number='{$number}'";
             $res = $db->query($sql);
             if (!$res->num_rows) {
                 $nominal = $db->escape($nominal);
                 $status = self::STATUS_PENDING;
-                $sql = "INSERT INTO `".DB_PREFIX."onego_vgc_cards`
+                $sql = "INSERT INTO `".DB_PREFIX.self::DB_TABLE_CODES."`
                         (number, nominal, status)
                         VALUES
                         ('{$number}', '{$nominal}', '{$status}')";
@@ -824,7 +827,7 @@ class OneGoVirtualGiftCards
         $db = OneGoUtils::getRegistry()->get('db');
         $nominal = $db->escape($nominal);
         $product_id = (int) $product_id ? (int) $product_id : 'NULL';
-        $sql = "INSERT INTO `".DB_PREFIX."onego_vgc_batches`
+        $sql = "INSERT INTO `".DB_PREFIX.self::DB_TABLE_BATCHES."`
                 SET nominal='{$nominal}',
                     product_id={$product_id},
                     added_on=NOW()";
@@ -832,41 +835,41 @@ class OneGoVirtualGiftCards
         return $db->getLastId();
     }
 
-    public static function activatePendingCards($batch_id, $nominal)
+    public static function activatePendingCodes($batch_id, $nominal)
     {
         $db = OneGoUtils::getRegistry()->get('db');
         $nominal = $db->escape($nominal);
         $batch_id = (int) $batch_id;
-        $sql = "UPDATE `".DB_PREFIX."onego_vgc_cards`
+        $sql = "UPDATE `".DB_PREFIX.self::DB_TABLE_CODES."`
                 SET batch_id={$batch_id}, status='".self::STATUS_AVAILABLE."'
                 WHERE status='".self::STATUS_PENDING."' AND
                     nominal='{$nominal}'";
         $db->query($sql);
     }
 
-    public static function deleteUnsoldCards($product_id)
+    public static function deleteUnsoldCodes($product_id)
     {
         $db = OneGoUtils::getRegistry()->get('db');
         $product_id = (int) $product_id;
-        $sql = "DELETE FROM `".DB_PREFIX."onego_vgc_cards`
+        $sql = "DELETE FROM `".DB_PREFIX.self::DB_TABLE_CODES."`
                 WHERE batch_id IN (
-                    SELECT id FROM `".DB_PREFIX."onego_vgc_batches` WHERE product_id={$product_id}
+                    SELECT id FROM `".DB_PREFIX.self::DB_TABLE_BATCHES."` WHERE product_id={$product_id}
                 ) AND status='".self::STATUS_AVAILABLE."'";
         return $db->query($sql);
     }
 
-    public static function getCardsStock($product_id)
+    public static function getCodesStock($product_id)
     {
         $db = OneGoUtils::getRegistry()->get('db');
         $product_id = (int) $product_id;
         $sql = "SELECT COUNT(*) AS cnt
-                FROM ".DB_PREFIX."onego_vgc_batches b, ".DB_PREFIX."onego_vgc_cards c
+                FROM ".DB_PREFIX.self::DB_TABLE_BATCHES." b, ".DB_PREFIX.self::DB_TABLE_CODES." c
                 WHERE b.product_id={$product_id} AND b.id=c.batch_id AND c.status='".self::STATUS_AVAILABLE."'";
         $res = $db->query($sql);
         return $res->row['cnt'];
     }
 
-    public static function reserveCards($product_id, $quantity, $order_id)
+    public static function reserveCodes($product_id, $quantity, $order_id)
     {
         $db = OneGoUtils::getRegistry()->get('db');
         $order_id = (int) $order_id;
@@ -875,9 +878,9 @@ class OneGoVirtualGiftCards
 
         $db->query('START TRANSACTION');
 
-        // get cards IDs
+        // get codes IDs
         $sql = "SELECT c.id
-                FROM ".DB_PREFIX."onego_vgc_batches b, ".DB_PREFIX."onego_vgc_cards c
+                FROM ".DB_PREFIX.self::DB_TABLE_BATCHES." b, ".DB_PREFIX.self::DB_TABLE_CODES." c
                 WHERE b.product_id='{$product_id}' AND b.id=c.batch_id AND
                     c.status='".self::STATUS_AVAILABLE."'
                 LIMIT {$quantity}
@@ -889,9 +892,9 @@ class OneGoVirtualGiftCards
         }
 
         if (count($ids)) {
-            // reserve cards
+            // reserve codes
             $in = implode(', ', $ids);
-            $sql = "UPDATE `".DB_PREFIX."onego_vgc_cards`
+            $sql = "UPDATE `".DB_PREFIX.self::DB_TABLE_CODES."`
                     SET order_id={$order_id}, status='".self::STATUS_RESERVED."'
                     WHERE id IN ({$in})";
             $res = $db->query($sql);
@@ -904,11 +907,11 @@ class OneGoVirtualGiftCards
         return false;
     }
 
-    public static function sellCards($order_id)
+    public static function sellCodes($order_id)
     {
         $db = OneGoUtils::getRegistry()->get('db');
         $order_id = (int) $order_id;
-        $sql = "UPDATE `".DB_PREFIX."onego_vgc_cards`
+        $sql = "UPDATE `".DB_PREFIX.self::DB_TABLE_CODES."`
                 SET status='".self::STATUS_SOLD."'
                 WHERE order_id={$order_id}";
         return $db->query($sql);
@@ -917,30 +920,30 @@ class OneGoVirtualGiftCards
     public static function updateStock($product_id)
     {
         $product_id = (int) $product_id;
-        $stock = self::getCardsStock($product_id);
+        $stock = self::getCodesStock($product_id);
         $sql = "UPDATE ".DB_PREFIX."product SET quantity='{$stock}' WHERE product_id={$product_id}";
         $db = OneGoUtils::getRegistry()->get('db');
         return $db->query($sql);
     }
 
-    public static function getOrderCards($order_id)
+    public static function getOrderCodes($order_id)
     {
         $order_id = (int) $order_id;
         $sql = "SELECT c.id, c.number, c.nominal, b.product_id
-                FROM ".DB_PREFIX."onego_vgc_cards c
-                LEFT JOIN ".DB_PREFIX."onego_vgc_batches b ON c.batch_id=b.id
+                FROM ".DB_PREFIX.self::DB_TABLE_CODES." c
+                LEFT JOIN ".DB_PREFIX.self::DB_TABLE_BATCHES." b ON c.batch_id=b.id
                 WHERE c.order_id={$order_id}";
         $db = OneGoUtils::getRegistry()->get('db');
         $res = $db->query($sql);
         return $res->rows;
     }
 
-    public static function sendEmail($order_info, $cards, Model $model)
+    public static function sendEmail($order_info, $codes, Model $model)
     {
-        $cards_text = '';
-        foreach ($cards as $key => $card) {
-            $cards[$key]['nominal_str'] = $model->currency->format($cards[$key]['nominal'], $order_info['currency_code']);
-            $cards_text .= "{$card['number']} ({$cards[$key]['nominal_str']})\n";
+        $codes_text = '';
+        foreach ($codes as $key => $code) {
+            $codes[$key]['nominal_str'] = $model->currency->format($codes[$key]['nominal'], $order_info['currency_code']);
+            $codes_text .= "{$code['number']} ({$codes[$key]['nominal_str']})\n";
         }
 
         // generate email text
@@ -956,29 +959,29 @@ class OneGoVirtualGiftCards
         $template->data['store_name'] = $order_info['store_name'];
         $template->data['store_url'] = $order_info['store_url'];
 
-        $template->data['cards'] = $cards;
+        $template->data['codes'] = $codes;
         $template->data['logo'] = 'cid:' . md5(basename($model->config->get('config_logo')));
 
-        if (file_exists(DIR_TEMPLATE . $model->config->get('config_template') . '/template/mail/onego_vgc.tpl')) {
-            $html = $template->fetch($model->config->get('config_template') . '/template/mail/onego_vgc.tpl');
-        } else if (file_exists('/default/template/mail/onego_vgc.tpl')) {
-            $html = $template->fetch('/default/template/mail/onego_vgc.tpl');
+        if (file_exists(DIR_TEMPLATE . $model->config->get('config_template') . '/template/mail/onego_rc.tpl')) {
+            $html = $template->fetch($model->config->get('config_template') . '/template/mail/onego_rc.tpl');
+        } else if (file_exists('/default/template/mail/onego_rc.tpl')) {
+            $html = $template->fetch('/default/template/mail/onego_rc.tpl');
         } else {
-            $html = $template->fetch('mail/onego_vgc.tpl');
+            $html = $template->fetch('mail/onego_rc.tpl');
         }
 
-        $subject = $language->get('vgc_email_subject');
+        $subject = $language->get('rc_email_subject');
 
         $text = <<<END
-{$language->get('vgc_email_greeting_text')}
+{$language->get('rc_email_greeting_text')}
 
-{$cards_text}
-{$language->get('vgc_email_instructions')}
+{$codes_text}
+{$language->get('rc_email_instructions')}
 
 {$order_info['store_name']}
 {$order_info['store_url']}
 
-{$language->get('vgc_email_footer')}
+{$language->get('rc_email_footer')}
 END;
 
         $mail = new Mail();
@@ -999,11 +1002,11 @@ END;
         return $mail->send();
     }
 
-    public static function createDownload($order_info, $cards, Model $model)
+    public static function createDownload($order_info, $codes, Model $model)
     {
-        if (!empty($order_info) && !empty($cards)) {
-            $mask = 'giftcards_'.$order_info['order_id'].'.txt';
-            $file = 'giftcards_'.$order_info['language_code'].'.txt';
+        if (!empty($order_info) && !empty($codes)) {
+            $mask = 'redeem_codes_'.$order_info['order_id'].'.txt';
+            $file = 'redeem_codes_'.$order_info['language_code'].'.txt';
 
             $model->load->model('localisation/language');
             $language = new Language($order_info['language_directory']);
@@ -1015,10 +1018,10 @@ END;
             // create file if not existing
             if (!file_exists(DIR_DOWNLOAD.$file)) {
                 $text = <<<END
-{$language->get('vgc_email_greeting_text')}
+{$language->get('rc_email_greeting_text')}
 
-{%CARDSINFO%}
-{$language->get('vgc_email_instructions')}
+{%CODESINFO%}
+{$language->get('rc_email_instructions')}
 END;
                 file_put_contents(DIR_DOWNLOAD.$file, $text);
             }
@@ -1030,19 +1033,19 @@ END;
                 $db->query($sql);
 
                 $products = array();
-                foreach ($cards as $card) {
-                    if (!isset($products[$card['product_id']])) {
-                        $nominal = $model->currency->format($card['nominal'], $order_info['currency_code']);
-                        $name = $db->escape(sprintf($language->get('vgc_download_filename'), $nominal));
+                foreach ($codes as $code) {
+                    if (!isset($products[$code['product_id']])) {
+                        $nominal = $model->currency->format($code['nominal'], $order_info['currency_code']);
+                        $name = $db->escape(sprintf($language->get('rc_download_filename'), $nominal));
 
                         $sql = "INSERT INTO ".DB_PREFIX."order_download
                                 (order_id, order_product_id, name, filename, mask, remaining)
                                 VALUES
-                                ('{$order_info['order_id']}', '{$card['product_id']}',
+                                ('{$order_info['order_id']}', '{$code['product_id']}',
                                 '{$name}', '{$file}', '{$mask}', 50)";
                         $db->query($sql);
                     }
-                    $products[$card['product_id']] = true;
+                    $products[$code['product_id']] = true;
                 }
             }
         }
@@ -1051,5 +1054,5 @@ END;
 
 class OneGoException extends Exception {}
 class OneGoAuthenticationRequiredException extends OneGoException {}
-class OneGoVirtualGiftCardNumberInvalidException extends OneGoException {}
+class OneGoRedeemCodeInvalidException extends OneGoException {}
 class OneGoAPICallFailedException extends OneGoException {}

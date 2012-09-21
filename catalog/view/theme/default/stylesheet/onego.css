@@ -8,7 +8,7 @@
     text-align: center;
     padding-bottom: 10px;
 }
-#onego_giftcardredeem_container {
+#onego_rc_redeem_container {
     float: right;
     width: 360px;
     text-align: center;
@@ -21,10 +21,10 @@
 }
 #onego_funds_container .onego_funds_redeemed,
 #onego_funds_container .onego_funds_available,
-#onego_funds_container .onego_giftcard {
+#onego_funds_container .onego_rc {
     text-align: right;
 }
-#onego_funds_container .onego_giftcard {
+#onego_funds_container .onego_rc {
     margin-top: 5px;
 }
 #onego_panel {
@@ -79,28 +79,28 @@
     background: transparent url(../image/onego_loading.gif) no-repeat center center;
 }
 
-#onego_vgc_container {
+#onego_rc_container {
     width: 150px;
     display: inline-block;
     vertical-align: top;
     z-index: 1;
 }
-#onego_vgc_container div {
+#onego_rc_container div {
     position: relative;
     z-index: 1;
 }
-#onego_vgc_container input {
+#onego_rc_container input {
     position: absolute;
     width: 140px;
     top: 0;
     left: 0;
     padding: 2px;
 }
-input#onego_giftcard_number_template {
+input#onego_redeem_code_template {
     z-index: 1;
     color: silver;
 }
-input#onego_giftcard_number {
+input#onego_redeem_code_number {
     background: transparent;
     z-index: 2;
 }
