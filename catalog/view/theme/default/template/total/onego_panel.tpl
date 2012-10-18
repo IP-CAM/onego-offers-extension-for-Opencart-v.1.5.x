@@ -5,14 +5,18 @@
 <?php if (!$isAjaxRequest) { // do not show OneGo panel in checkout page. Remove this condition check to restore ?>
 
 <div id="onego_panel">
-  <div id="onego_panel_label"></div>
+  <!--<div id="onego_panel_label"></div>-->
   <div id="onego_panel_content">
       <form action="" method="post" id="onego_account">
           <input type="hidden" name="onego_cart_hash" id="onego_cart_hash" value="<?php echo $onego_modified_cart_hash ?>" />
           <?php if (empty($onego_user_authenticated)) { ?>
           <div id="onego_login_container">
+              <?php /*
               <div style="padding-bottom: 5px;"><?php echo $onego_login_invitation ?></div>
               <a href="<?php echo $onego_login_url; ?>" id="onego_login" class="button"><span><?php echo $onego_login_button; ?></span></a>
+              */ ?>
+              <div style="padding-bottom: 5px;"><?php echo $lang->get('onego_text_see_offers') ?></div>
+              <a href="#" id="onego_see_offers" class="button"><span><?php echo $lang->get('onego_button_see_offers'); ?></span></a>
           </div>
           <?php } else { ?>
           <div id="onego_authwidget_container" class="onego-authwidget" data-textcolor="#000" data-linkcolor="#38B0E3" data-fontsize="12px" data-font="arial" data-height="40" data-width="350" data-text="<?php echo $authWidgetText ?>">
@@ -54,7 +58,9 @@
               </div>
           </div>
           <?php } ?>
-          
+          <div style="clear: both;"></div>
+
+          <?php /*
           <div id="onego_panel_footer">
               <?php if (empty($onego_user_authenticated)) { ?>
               <hr />
@@ -62,6 +68,7 @@
               - <label for="onego_agree"><?php echo $onego_agree_email_expose ?></label>
               <?php } ?>
           </div>
+          */ ?>
       </form>
   </div>
 </div>
@@ -145,6 +152,11 @@ $('#onego_login').unbind().click(function(e){
    );
 });
 <?php } ?>
+
+$('#onego_see_offers').unbind().click(function(e){
+    e.preventDefault();
+    OneGoWidget.show();
+});
 
 $('#onego_rc_redeem').unbind('click').click(function(e) {
     e.preventDefault();

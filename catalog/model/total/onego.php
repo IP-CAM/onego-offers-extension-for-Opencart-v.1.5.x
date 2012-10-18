@@ -210,6 +210,8 @@ class ModelTotalOnego extends Model
                                     OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl());
                             $lastOrder->set('transactionDelayed', true);
                         }
+                        $transactionState->set('transaction', $transaction);
+                        $lastOrder->set('transactionState', $transactionState);
                         $lastOrder->set('prepaidReceived', $transaction->getPrepaidAmountReceived());
 
                         if (!$tokenState->isBuyerAnonymous()) {

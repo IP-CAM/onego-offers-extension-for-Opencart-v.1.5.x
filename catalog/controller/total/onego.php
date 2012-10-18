@@ -24,18 +24,17 @@ class ControllerTotalOnego extends Controller {
         }
         
         // widget plugin
-        if (OneGoConfig::get('widgetShow') == 'Y') {
-            $topOffset = (int) OneGoConfig::get('widgetTopOffset');
-            $isFrozen = (OneGoConfig::get('widgetFrozen') == 'Y') ? 'true' : 'false';
-            $html .= <<<END
+        $topOffset = (int) OneGoConfig::get('widgetTopOffset');
+        $isFrozen = (OneGoConfig::get('widgetFrozen') == 'Y') ? 'true' : 'false';
+        $html .= <<<END
 var OneGoWidget = OneGo.plugins.slideInWidget.init({
     topOffset: {$topOffset}, 
     isFixed: {$isFrozen},
-    handleImage: 'catalog/view/theme/{$this->config->get('config_template')}/image/onego_handle.png'
+    //handleImage: 'catalog/view/theme/{$this->config->get('config_template')}/image/onego_handle.png',
+    showOnFirstView: true
 });
 
 END;
-        }
         
         // OneGo events listeners
         $isAjaxCall = !empty($this->request->request['route']) && 
@@ -47,11 +46,9 @@ END;
                 "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);\n" :
                 "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoff);\n";
         } else {
-            if (OneGoConfig::get('autologinOn')) {
-                $html .= $isAjaxCall ? 
-                    "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);\n" :
-                    "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processAutoLogin);\n";
-            }
+            $html .= $isAjaxCall ? 
+                "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);\n" :
+                "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processAutoLogin);\n";
         }
 
         // transaction autorefresh
@@ -186,6 +183,7 @@ END;
         $this->data['onego_error_spend_prepaid'] = $this->language->get('error_api_call_failed');
         $this->data['isAjaxRequest'] = OneGoUtils::isAjaxRequest();
         $this->data['onego_success'] = $onego->pullFlashMessage('success');
+        $this->data['lang'] = $this->language;
         
         $isCheckoutPage = OneGoUtils::isAjaxRequest();
         $this->data['onego_is_checkout_page'] = $isCheckoutPage;
@@ -227,54 +225,83 @@ END;
         
         $this->language->load('total/onego');
         $orderInfo = $onego->getCompletedOrder();
-        
-        $this->data['onego_suggest_disclose'] = $this->language->get('suggest_disclose');
-        $this->data['onego_button_agree'] = $this->language->get('button_agree_disclose');
-        $this->data['onego_claim_benefits'] = $this->language->get('title_claim_your_benefits');
-        $this->data['onego_buyer_created'] = 
-                sprintf($this->language->get('anonymous_buyer_created'), OneGoConfig::get('anonymousRegistrationURI'));
-        $this->data['onego_button_register'] = $this->language->get('button_register_anonymous');
-        
-        if ($onego->isAnonymousRewardsApplyable()) {
-            $this->data['onego_benefits_applyable'] = true;
-            
-            // get reward amount
-            try {
-                $receivable = $onego->getPrepaidReceivableForLastOrder();
-            } catch (OneGoAPI_Exception $e) {
-                // TODO error handling
-                $receivable = false;
-            }
-            if (!empty($receivable['rcRemainder'])) {
-                // RC funds not fully used
-                if ($receivable['prepaid']) {
-                    $this->data['onego_funds_receivable'] = sprintf(
-                        $this->language->get('rc_remainder_plus_prepaid_available'), 
-                        $this->currency->format($receivable['prepaid']),
-                        $this->currency->format($receivable['rcRemainder']),
-                        $this->currency->format($receivable['rcRemainder']));
-                } else {
-                    $this->data['onego_funds_receivable'] = sprintf(
-                        $this->language->get('rc_remainder_available'), 
-                        $this->currency->format($receivable['rcRemainder']));
-                }                
-            } else if (!empty($receivable['prepaid'])) {
-                // prepaid is available to receive
-                $this->data['onego_funds_receivable'] = sprintf(
-                        $this->language->get('funds_receivable_descr'), 
-                        $this->currency->format($receivable['prepaid']));
-            }
-        } else {
-            if ($onego->isAnonymousRewardsApplied()) {
-                $this->data['onego_benefits_applied'] = true;
-            }
-            $text = $orderInfo->get('transactionDelayed') ?
-                    $this->language->get('funds_to_be_received') :
-                    $this->language->get('funds_received');
-            $this->data['onego_funds_received'] = $orderInfo->get('prepaidReceived') ?
-                sprintf($text, $this->currency->format($orderInfo->get('prepaidReceived'))) : false;
+        if (!$orderInfo || !$orderInfo->get('orderId')) {
+            $this->response->setOutput('');
+            return;
         }
         
+        $isAnonymous = !$orderInfo->get('oAuthTokenState') || $orderInfo->get('oAuthTokenState')->get('buyerAnonymous');
+        $isDelayedTransaction = $orderInfo->get('transactionDelayed');
+
+        $transaction = $orderInfo->get('transactionState') ? $orderInfo->get('transactionState')->get('transaction') : false;
+        if ($isAnonymous) {
+            try {
+                // need to fetch possible cashback for anonymous buyers
+                $cart = $orderInfo->get('cart');
+                if ($cart) {
+                    $cartEntries = $onego->collectCartEntries($cart);
+                    $modifiedCart = $onego->getApi()->getAnonymousAwards($cartEntries);
+                }
+            } catch (OneGoAPI_Exception $e) {
+                // ignore
+            }
+        } else {
+            $modifiedCart = $transaction->getModifiedCart();
+        }
+        if (!empty($modifiedCart)) {
+            $prepaidReceived = $modifiedCart->getPrepaidReceived();
+            if ($prepaidReceived) {
+                if ($isAnonymous) {
+                    $text = $this->language->get('onego_cashback_possible');
+                } else if ($isDelayedTransaction) {
+                    $text = $this->language->get('onego_cashback_delayed');
+                } else {
+                    $text = $this->language->get('onego_cashback_received');
+                }
+                $this->data['onego_prepaid_received'] = sprintf($text, $this->currency->format($prepaidReceived->getAmount()->visible));
+
+                if (!empty($prepaidReceived->validFrom)) {
+                    $this->data['onego_prepaid_received_pending'] = sprintf(
+                            $this->language->get('onego_pending_till'),
+                            date($this->language->get('onego_date_format'), $prepaidReceived->validFrom / 1000));
+                }
+            }
+        }
+
+        if ($transaction && ($rc = $transaction->getRedeemCode())) {
+            foreach (array('spent', 'remaining', 'redeemed') as $key) {
+                if (!empty($rc->$key) && (float) $rc->$key) {
+                    $this->data['onego_rc_funds'][$key] = sprintf(
+                            $this->language->get('onego_rc_funds_'.$key),
+                            $this->currency->format($rc->$key));
+                }
+            }
+        }
+
+        if (!$isAnonymous) {
+            $this->data['onego_giftcard_balance'] = sprintf(
+                    $this->language->get('onego_giftcard_balance'),
+                    $this->currency->format($transaction->getPrepaidAvailable()));
+        } else {
+            $this->data['show_registration_invite'] = !$onego->isUserAuthenticated();
+            $this->data['onego_anonymous_buyer_invitation'] = !empty($prepaidReceived) ?
+                    sprintf($this->language->get('onego_registration_invitation_prepaid_received'),
+                            $orderInfo->get('buyerEmail')) :
+                    sprintf($this->language->get('onego_registration_invitation'),
+                            $orderInfo->get('buyerEmail'));
+            if (!empty($rc) && (float) $rc->remaining) {
+                $this->data['onego_registration_notification'] = sprintf(
+                        $this->language->get('onego_registration_notice_rc_transfer'),
+                        $this->currency->format($rc->remaining)
+                        );
+            }
+            $this->data['onego_registration_button'] = $this->language->get('onego_registration_button');
+        }
+
+        if ($isDelayedTransaction && !empty($prepaidReceived)) {
+            $this->data['onego_transaction_notice'] = $this->language->get('onego_delayed_transaction_notice');
+        }
+
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_success.tpl')) {
             $this->template = $this->config->get('config_template') . '/template/total/onego_success.tpl';
         } else {

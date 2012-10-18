@@ -1,29 +1,42 @@
-<?php if (!empty($onego_benefits_applied) ||
-        !empty($onego_benefits_applyable) ||
-        !empty($onego_funds_received)) 
-{ ?>
 <div id="onego_panel">
   <div id="onego_panel_label"></div>
   <div id="onego_panel_content">
-    
-    <?php if (!empty($onego_benefits_applied)) { ?>
-        <?php if (!empty($onego_funds_received)) { ?>
-            <?php echo $onego_funds_received ?><br />
-        <?php } ?>
-        <?php echo $onego_buyer_created ?>
-        <br />
-        <br />
-        <div class="right"><a href="<?php echo $onego_register; ?>" class="button"><span><?php echo $onego_button_register ?></span></a></div>
-    
-    <?php } else if (!empty($onego_benefits_applyable)) { ?>
-        <strong><?php echo $onego_claim_benefits ?></strong><br />
-        <br />
-        <?php echo (!empty($onego_funds_receivable)) ? $onego_funds_receivable : $onego_suggest_disclose; ?>
-        <br /><br />
-        <a href="<?php echo $onego_claim; ?>" class="button"><span><?php echo $onego_button_agree ?></span></a>
-    <?php } else if (!empty($onego_funds_received)) { ?>
-        <?php echo $onego_funds_received ?><br />  
+
+    <?php if (!empty($onego_prepaid_received)) { ?>
+      <?php echo !empty($onego_prepaid_received_pending) ? $onego_prepaid_received.' '.$onego_prepaid_received_pending : $onego_prepaid_received; ?>
+      <br />
+    <?php } ?>
+
+    <?php if (!empty($onego_giftcard_balance)) echo $onego_giftcard_balance.'<br />'; ?>
+      
+    <?php
+    if (!empty($onego_rc_funds)) {
+        foreach ($onego_rc_funds as $key => $text) {
+            echo $text.'<br />';
+        }
+    }
+    ?>
+
+    <?php echo !empty($onego_transaction_notice) ? '<br />'.$onego_transaction_notice.'<br />' : '' ?>
+
+    <?php if (!empty($show_registration_invite)) { ?>
+      <br />
+      <?php echo $onego_anonymous_buyer_invitation ?>
+      <br />
+      <?php echo !empty($onego_registration_notification) ? $onego_registration_notification.'<br />' : '' ?>
+      <br />
+
+      <a id="onego_register_anonymous" class="button"><span><?php echo $onego_registration_button ?></span></a>
     <?php } ?>
   </div>
 </div>
-<?php } ?>
+
+<script type="text/javascript">
+$(document).ready(function(){
+    $('#onego_register_anonymous').click(function(e){
+        e.preventDefault();
+        OneGoWidget.getWidget().loadRegistrationPage('aaa@bbb.com');
+        OneGoWidget.show();
+    })
+})
+</script>

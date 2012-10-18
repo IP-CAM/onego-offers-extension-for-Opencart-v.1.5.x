@@ -4,8 +4,6 @@ define('ONEGO_EXTENSION_VERSION', '0.9.5');
 
 $oneGoConfig = array();
 
-$oneGoConfig['autologinOn'] = true;
-
 // transaction timeout, in minutes
 $oneGoConfig['transactionTTL'] = 15;
 
@@ -36,9 +34,8 @@ $oneGoConfig['authorizationURI'] = 'http://mobile.dev.onego.com/authorize';
 $oneGoConfig['oAuthURI'] = 'http://oauth.dev.onego.cloud:8080/oauth';
 
 // OneGo JS SDK host URI
-$oneGoConfig['jsSdkURI'] = 'http://plugins.dev.onego.com/webapp/v1/main.js';
+$oneGoConfig['jsSdkURI'] = 'http://plugins-local.dev.onego.com/app_dev.php/webapp/v1/main.js';
 
-$oneGoConfig['widgetShow'] = 'Y';
 $oneGoConfig['widgetTopOffset'] = '50';
 $oneGoConfig['widgetFrozen'] = 'Y';
 

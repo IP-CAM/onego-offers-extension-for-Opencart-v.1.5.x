@@ -47,6 +47,12 @@
     border-radius: 5px;
 }
 
+a.button span.onego_logo_white {
+    background: transparent url("../image/onego.png") no-repeat scroll center 1px;
+    width: 30px;
+    vertical-align: middle;
+}
+
 #onego_panel_content {
     background-color:#F0F0F0;
     border: 1px solid #D8DEE1; 

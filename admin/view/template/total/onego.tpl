@@ -27,7 +27,7 @@
             <td><?php echo $row['title']; ?></td>
             <?php } ?>
             <td>
-                <?php if (in_array($field, array('widgetShow', 'widgetFrozen', 'autologinOn'))) { ?>
+                <?php if (in_array($field, array('widgetFrozen'))) { ?>
 
                 <input type="hidden" name="onego_<?php echo $field ?>" value="" />
                 <input type="checkbox" name="onego_<?php echo $field ?>" id="cfgField_<?php echo $field ?>" value="Y" <?php echo $row['value'] == 'Y' ? ' checked="checked"' : '' ?> />
@@ -95,20 +95,8 @@ $(document).ready(function(){
         return true;
     }
 
-    function hideCfgParams()
-    {
-        var dependableParams = $('#cfgRow_widgetCode, #cfgRow_widgetPosition, #cfgRow_widgetTopOffset, #cfgRow_widgetFrozen');
-        if (!$('#cfgField_widgetShow').is(':checked')) {
-            dependableParams.hide();
-        } else {
-            dependableParams.show();
-        }
-    }
-
-    hideCfgParams();
     checkScriptAvailability();
 
-    $('#cfgField_widgetShow').click(hideCfgParams);
     $('input.orderstatus').click(function(){
         if ($(this).is(':checked')) {
             $('input.orderstatus_'+$(this).val()).attr('checked', false);

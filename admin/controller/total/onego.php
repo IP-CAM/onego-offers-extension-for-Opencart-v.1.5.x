@@ -104,8 +104,8 @@ class ControllerTotalOnego extends Controller {
         $this->data['onego_sortorder_text'] = $this->language->get('entry_help_sortorder');
         
         $config_fields = array('clientId', 'clientSecret', 'terminalId', 'checkCredentials',
-            /*'shippingCode', */'transactionTTL', 'confirmOnOrderStatus', 'delayedTransactionTTL', 'cancelOnOrderStatus',
-            'widgetShow', 'widgetFrozen', 'widgetTopOffset', 'autologinOn');
+            'shippingCode', 'transactionTTL', 'confirmOnOrderStatus', 'delayedTransactionTTL', 'cancelOnOrderStatus',
+            'widgetFrozen', 'widgetTopOffset');
         $fields = array();
         foreach ($config_fields as $field) {
             $help_key = 'entry_help_'.$field;
