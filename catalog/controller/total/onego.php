@@ -78,8 +78,7 @@ END;
 
                 foreach ($log as $row) {
                     $msg = 'OneGo: '.$row['message'];
-                    $msg = preg_replace('/[\r\n]+/', ' ', $msg);
-                    $msg = preg_replace('/\'/', '\\\'', $msg);
+                    $msg = OneGoUtils::escapeJsString($msg);
                     list($usec, $sec) = explode(" ", $row['time']);
                     if (!empty($sec)) {
                         $msg .= ' ['.date('H:i:s', $sec).']';

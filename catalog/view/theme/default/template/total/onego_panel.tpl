@@ -114,7 +114,7 @@ function spendPrepaid()
             } else if (errorMessage) {
                 OneGoOpencart.flashWarningBefore($('#onego_panel'), errorMessage);
             } else {
-                OneGoOpencart.flashWarningBefore($('#onego_panel'), '<?php echo $onego_error_spend_prepaid ?>');
+                OneGoOpencart.flashWarningBefore($('#onego_panel'), '<?php echo OneGoUtils::escapeJsString($onego_error_spend_prepaid) ?>');
             }
             OneGoOpencart.unsetAsLoading($('#use_onego_funds'));
             cancelCheck($('#use_onego_funds'));
@@ -176,7 +176,7 @@ $('#onego_rc_redeem').unbind('click').click(function(e) {
             },
             function(errorMessage) {
                 OneGoOpencart.unsetAsLoading($('#onego_rc_redeem'));
-                var errorMessage = errorMessage || '<?php echo $onego_redeem_failed ?>';
+                var errorMessage = errorMessage || '<?php echo OneGoUtils::escapeJsString($onego_redeem_failed) ?>';
                 OneGoOpencart.flashWarningBefore($('#onego_panel'), errorMessage);
             },
             <?php echo $isAjaxRequest ? 'false' : 'true' ?>
@@ -234,7 +234,7 @@ $(document).ready(function(){
     })
 
     <?php if (!empty($onego_success)) { ?>
-    OneGoOpencart.flashSuccessBefore($('#onego_panel'), '<?php echo $onego_success ?>');
+    OneGoOpencart.flashSuccessBefore($('#onego_panel'), '<?php echo OneGoUtils::escapeJsString($onego_success) ?>');
     <?php } ?>
 })
 </script>

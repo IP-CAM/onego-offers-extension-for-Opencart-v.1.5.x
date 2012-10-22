@@ -51,19 +51,19 @@ $_['transaction_operation_failed'] = 'Transaction operation failed: [%s] %s - %s
 $_['button_confirm_transaction'] = 'Confirm';
 $_['button_cancel_transaction'] = 'Cancel';
 $_['button_check_credentials'] = 'Check';
-$_['confirm_transaction_confirm'] = 'If you confirm this transaction, your customer\\\'s gift card balance will be used/rewarded.
+$_['confirm_transaction_confirm'] = 'If you confirm this transaction, your customer\'s gift card balance will be used/rewarded.
     \nIMPORTANT: this action cannot be undone.';
-$_['confirm_transaction_cancel'] = 'If you cancel this transaction, your customer\\\'s gift card balance will not be used/rewarded.
+$_['confirm_transaction_cancel'] = 'If you cancel this transaction, your customer\'s gift card balance will not be used/rewarded.
     \nIMPORTANT: this action cannot be undone.';
-$_['confirm_transaction_delay'] = 'Delaying transactions ensures they do not expire before a customer\\\'s order is completely
+$_['confirm_transaction_delay'] = 'Delaying transactions ensures they do not expire before a customer\'s order is completely
     processed (either confirming or cancelling an order). This ensures that all gift card balance transactions are appropriately
     applied and offers marked as used.';
 $_['delay_period'] = array(0 => 'Today', 1 => 'One day', 2 => 'Two days', 3 => 'Three days',
     5 => 'Five days', 7 => 'One week', 14 => 'Two weeks', 30 => '30 days', 60 => '60 days');
 $_['delay_for_period'] = 'Delay for';
 $_['button_delay_transaction'] = 'Delay';
-$_['transaction_will_confirm'] = 'Transaction will be confirmed when you save your changes. Customer\\\'s gift card balance will be used and/or rewards received.';
-$_['transaction_will_cancel'] = 'Transaction will be canceled when you save your changes. Customer\\\'s gift card balance will not be used and/or rewards received.';
+$_['transaction_will_confirm'] = 'Transaction will be confirmed when you save your changes. Customer\'s gift card balance will be used and/or rewards received.';
+$_['transaction_will_cancel'] = 'Transaction will be canceled when you save your changes. Customer\'s gift card balance will not be used and/or rewards received.';
 $_['status_failure'] = 'failed';
 $_['status_delayed'] = 'delayed until %s';
 $_['status_confirmed'] = 'confirmed';

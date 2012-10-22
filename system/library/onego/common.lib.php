@@ -591,6 +591,19 @@ class OneGoUtils
     {
         return version_compare(VERSION, $compareTo);
     }
+
+    /**
+     * Escape string for inclusion in Javascript strings (enclosed by '')
+     *
+     */
+    public static function escapeJsString($str)
+    {
+        $str = str_replace('\n', '##br##', $str);
+        $str = addslashes($str);
+        $str = preg_replace('/\s*[\r\n]+\s*/', ' ', $str);
+        $str = str_replace('##br##', '\n', $str);
+        return $str;
+    }
 }
 
 class OneGoTransactionsLog

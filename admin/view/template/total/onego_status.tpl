@@ -91,9 +91,9 @@ $(document).ready(function(){
         var shouldCancel = (st == 'cancel');
         if (shouldConfirm || shouldCancel) {
             if (shouldConfirm) {
-                var notification = '<?php echo preg_replace('/\r|\n/', '', $status_will_confirm) ?>';
+                var notification = '<?php echo OneGoUtils::escapeJsString($status_will_confirm) ?>';
             } else {
-                var notification = '<?php echo preg_replace('/\r|\n/', '', $status_will_cancel) ?>';
+                var notification = '<?php echo OneGoUtils::escapeJsString($status_will_cancel) ?>';
             }
             $('#onego_transaction_change_notification').html(notification);
             $('#onego_transaction_change_notification').show();
@@ -128,7 +128,7 @@ $(document).ready(function(){
     // handle order transaction processing buttons
     $('#btn_onego_confirm').unbind('click').click(function(e){
         OneGoOpencart.setAsLoading($(this));
-        if (confirm('<?php echo preg_replace('/\r|\n/', '', $confirm_confirm) ?>')) {
+        if (confirm('<?php echo OneGoUtils::escapeJsString($confirm_confirm) ?>')) {
             endTransaction('<?php echo OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM ?>');
         } else {
             OneGoOpencart.unsetAsLoading($(this));
@@ -136,7 +136,7 @@ $(document).ready(function(){
     });
     $('#btn_onego_cancel').unbind('click').click(function(e){
         OneGoOpencart.setAsLoading($(this));
-        if (confirm('<?php echo preg_replace('/\r|\n/', '', $confirm_cancel) ?>')) {
+        if (confirm('<?php echo OneGoUtils::escapeJsString($confirm_cancel) ?>')) {
             endTransaction('<?php echo OneGoAPI_DTO_TransactionEndDto::STATUS_CANCEL ?>');
         } else {
             OneGoOpencart.unsetAsLoading($(this));
@@ -144,7 +144,7 @@ $(document).ready(function(){
     });
     $('#btn_onego_delay').unbind('click').click(function(e){
         OneGoOpencart.setAsLoading($(this));
-        if (confirm('<?php echo preg_replace('/\r|\n/', '', $confirm_delay) ?>')) {
+        if (confirm('<?php echo OneGoUtils::escapeJsString($confirm_delay) ?>')) {
             var params = { duration: $('#onego_delay_duration').val() };
             endTransaction('<?php echo OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY ?>', params);
         } else {
