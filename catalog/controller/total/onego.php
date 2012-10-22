@@ -296,6 +296,7 @@ END;
             }
             $this->data['onego_registration_button'] = $this->language->get('onego_registration_button');
         }
+        $this->data['buyer_email'] = $orderInfo->get('buyerEmail');
 
         if ($isDelayedTransaction && !empty($prepaidReceived)) {
             $this->data['onego_transaction_notice'] = $this->language->get('onego_delayed_transaction_notice');

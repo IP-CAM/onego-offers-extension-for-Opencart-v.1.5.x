@@ -35,7 +35,7 @@
 $(document).ready(function(){
     $('#onego_register_anonymous').click(function(e){
         e.preventDefault();
-        OneGoWidget.getWidget().loadRegistrationPage('aaa@bbb.com');
+        OneGoWidget.getWidget().loadRegistrationPage('<?php echo $buyer_email ?>');
         OneGoWidget.show();
     })
 })
