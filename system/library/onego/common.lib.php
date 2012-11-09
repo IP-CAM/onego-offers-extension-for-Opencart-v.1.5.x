@@ -233,6 +233,13 @@ class OneGoCompletedOrderState extends OneGoPersistentState
     {
         return parent::loadCurrent(new self());
     }
+
+    public function isAnonymous()
+    {
+        return !$this->get('newBuyerRegistered') && 
+                (!$this->get('oAuthTokenState') || $this->get('oAuthTokenState')->get('buyerAnonymous'));
+    }
+
 }
 
 /**
@@ -603,6 +610,19 @@ class OneGoUtils
         $str = preg_replace('/\s*[\r\n]+\s*/', ' ', $str);
         $str = str_replace('##br##', '\n', $str);
         return $str;
+    }
+
+    public static function setJsEventHandler($event, $javascriptCallback)
+    {
+        $handlers = self::getFromRegistry('JsEventHandlers', array());
+        $handlers[$event] = $javascriptCallback;
+        self::saveToRegistry('JsEventHandlers', $handlers);
+    }
+
+    public static function getJsEventHandler($event)
+    {
+        $handlers = self::getFromRegistry('JsEventHandlers', array());
+        return !empty($handlers[$event]) ? $handlers[$event] : false;
     }
 }
 

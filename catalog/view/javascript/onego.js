@@ -15,7 +15,7 @@ OneGoOpencart = {
         }
     },
     loginPromptSuccess: false,
-    processLoginDynamic: function(){
+    processLoginDynamic: function(params){
         OneGoOpencart.autologin(function(){
             OneGoOpencart.reloadCheckoutOrderInfo();
             // listen for widget logoff
@@ -23,7 +23,7 @@ OneGoOpencart = {
             OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);
         });
     },
-    processLogoffDynamic: function(){
+    processLogoffDynamic: function(params){
         OneGoOpencart.logoff(function(){
             OneGoOpencart.reloadCheckoutOrderInfo();
             // listen for widget login
@@ -31,13 +31,32 @@ OneGoOpencart = {
             OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);
         });
     },
-    processAutoLogin: function(){
+    processAutoLogin: function(params){
         if (OneGoOpencart.isAutologinAllowed()) {
             window.location.href = OneGoOpencart.config.autologinUri;
         }
     },
-    processLogoff: function(){
+    processLogoff: function(params){
         window.location.href = OneGoOpencart.config.logoffUri;
+    },
+    catchSignInOnAnonymousOrderSuccess: function(params){
+        OneGoOpencart.setAsLoading($('#onego_register_anonymous'));
+        if (params.sessionToken) {
+            $.ajax({
+                url: $('base').attr('href') + 'index.php?route=total/onego/bindSessionToken',
+                data: params,
+                type: 'POST',
+                success: function(){
+                    OneGoOpencart.processAutoLogin(params);
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                    OneGoOpencart.unsetAsLoading($('#onego_register_anonymous'));
+                    // TO DO handle error
+                }
+            });
+        } else {
+            OneGoOpencart.processAutoLogin(params);
+        }
     },
     reloadCheckoutOrderInfo: function(warnCartChange){
         if ($('#confirm .checkout-content').length && $('#confirm .checkout-content').is(':visible')) {
@@ -316,5 +335,33 @@ OneGoOpencart = {
         } else {
             alert('OneGo extension is not compatible with selected payment type and may not function correctly!');
         }
+    },
+    applyRedemptionCodeTemplate: function($input, $template)
+    {
+        $template.focus(function(){
+            $input.focus();
+        })
+        var rcnumber = ''
+        $input.keyup(function(e){
+            if (rcnumber != e.target.value) {
+                val = e.target.value.toUpperCase();
+                valCleaned = val.replace(/[^A-Z0-9]/g, '');
+                strlen = valCleaned.length
+                if (strlen > 10) {
+                    valCleaned = valCleaned.substr(0, 10);
+                }
+                tplval = valCleaned;
+                while (tplval.length < 10) {
+                    tplval += 'X'
+                }
+                separator = /^[^A-Z0-9]$/;
+                if (strlen > 5 && valCleaned.substr(0, 1) != '-' || separator.test(val.substr(5, 1))) {
+                    valCleaned = valCleaned.substr(0, 5) + '-' + valCleaned.substr(5)
+                }
+                e.target.value = rcnumber = valCleaned;
+
+                $template.val(tplval.substr(0, 5) + '-' + tplval.substr(5))
+            }
+        })
     }
 }

@@ -39,13 +39,23 @@ END;
         // OneGo events listeners
         $isAjaxCall = !empty($this->request->request['route']) && 
                 ($this->request->request['route'] == 'checkout/checkout');
+        
+        $signedInHandler = OneGoUtils::getJsEventHandler('UserIsSignedIn');
+        if ($signedInHandler) {
+            $html .= "OneGo.events.on('UserIsSignedIn', {$signedInHandler});\n";
+        }
 
-        if ($onego->isUserAuthenticated()) {
+        $signedOutHandler = OneGoUtils::getJsEventHandler('UserIsSignedOut');
+        if ($signedOutHandler) {
+            $html .= "OneGo.events.on('UserIsSignedOut', {$signedOutHandler});\n";
+        }
+
+        if ($onego->isUserAuthenticated() && !$signedOutHandler) {
             // listen for logoff event
             $html .= $isAjaxCall ? 
                 "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);\n" :
                 "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoff);\n";
-        } else {
+        } else if (!$onego->isUserAuthenticated() && !$signedInHandler) {
             $html .= $isAjaxCall ? 
                 "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);\n" :
                 "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processAutoLogin);\n";
@@ -61,6 +71,7 @@ END;
             $html .= 'OneGoOpencart.setTransactionAutorefresh('.($firstTimeout*1000).', '.($nextTimeout*1000).');'."\n";
         }
 
+        // include optional code for different OC versions compatibility
         $html .= $this->compatibilitySettingsJS();
 
         $initParams = array();
@@ -68,14 +79,30 @@ END;
         $this->data['initParamsStr'] = implode(",\n", $initParams);
         $this->data['html'] = $html;
         
-        // logging output
-        $log = OneGoUtils::getLog(true);
+        $this->data['debuggingCode'] = $this->getDebugModeHeaderHTML();
+        
+        $this->template = 'default/template/common/onego_header.tpl';
+        $this->response->setOutput($this->render());
+    }
+
+    private function compatibilitySettingsJS()
+    {
+        $html = '';
+        if (OneGoUtils::compareVersion('1.5.2') >= 0) {
+            $html .= "OneGoOpencart.config.compatibility['checkout/confirm'].dataType = 'HTML';\n";
+        }
+        return $html;
+    }
+
+    private function getDebugModeHeaderHTML()
+    {
         $html = '';
         if (OneGoConfig::get('debugModeOn')) {
+            $onego = $this->getModel();
             $html .= '<script type="text/javascript">';
             $html .= 'if (console && console.dir) { '."\r\n";
+            $log = OneGoUtils::getLog(true);
             if (!empty($log)) {
-
                 foreach ($log as $row) {
                     $msg = 'OneGo: '.$row['message'];
                     $msg = OneGoUtils::escapeJsString($msg);
@@ -119,18 +146,6 @@ END;
             $html .= 'var cartHash = {\'modifiedCartHash\' : $.parseJSON('.json_encode(json_encode($onego->getModifiedCartHash())).')};'."\r\n";
             $html .= 'console.dir(cartHash);'."\r\n";
             $html .= '}</script>'."\r\n";
-        }
-        $this->data['debuggingCode'] = $html;
-        
-        $this->template = 'default/template/common/onego_header.tpl';
-        $this->response->setOutput($this->render());
-    }
-
-    private function compatibilitySettingsJS()
-    {
-        $html = '';
-        if (OneGoUtils::compareVersion('1.5.2') >= 0) {
-            $html .= "OneGoOpencart.config.compatibility['checkout/confirm'].dataType = 'HTML';\n";
         }
         return $html;
     }
@@ -229,7 +244,7 @@ END;
             return;
         }
         
-        $isAnonymous = !$orderInfo->get('oAuthTokenState') || $orderInfo->get('oAuthTokenState')->get('buyerAnonymous');
+        $isAnonymous = $orderInfo->isAnonymous();
         $isDelayedTransaction = $orderInfo->get('transactionDelayed');
 
         $transaction = $orderInfo->get('transactionState') ? $orderInfo->get('transactionState')->get('transaction') : false;
@@ -244,7 +259,7 @@ END;
             } catch (OneGoAPI_Exception $e) {
                 // ignore
             }
-        } else {
+        } else if ($transaction) {
             $modifiedCart = $transaction->getModifiedCart();
         }
         if (!empty($modifiedCart)) {
@@ -295,6 +310,9 @@ END;
                         );
             }
             $this->data['onego_registration_button'] = $this->language->get('onego_registration_button');
+
+            // set buyer sign-in/sign-up listener to bind buyer account to completed order
+            OneGoUtils::setJsEventHandler('UserIsSignedIn', 'OneGoOpencart.catchSignInOnAnonymousOrderSuccess');
         }
         $this->data['buyer_email'] = $orderInfo->get('buyerEmail');
 
@@ -309,6 +327,30 @@ END;
         }
         
         $this->response->setOutput($this->render());
+    }
+
+    /**
+     * Bind session token to claim completed anonymous purchase rewards
+     */
+    public function bindSessionToken()
+    {
+        $onego = $this->getModel();
+        $request = $this->registry->get('request');
+
+        $res = array('success' => false);
+
+        $sessionToken = !empty($request->post['sessionToken']) ? $request->post['sessionToken'] : false;
+
+        $orderInfo = $onego->getCompletedOrder();
+        if ($orderInfo && $orderInfo->get('orderId') && $orderInfo->isAnonymous() && $sessionToken) {
+            try {
+                $onego->bindSessionToken($sessionToken, $orderInfo);
+                $res['success'] = true;
+            } catch (Exception $e) {
+
+            }
+        }
+        $this->response->setOutput(OneGoAPI_JSON::encode($res));
     }
     
     public function spendprepaid()
@@ -490,131 +532,6 @@ END;
         $onego->deleteAnonymousModifiedCart();
         
         $this->redirect($referer);
-    }
-    
-    public function agree()
-    {
-        $onego = $this->getModel();
-        $agreed = (bool) !empty($this->request->post['agree']);
-        OneGoTransactionState::getCurrent()->set(OneGoTransactionState::AGREED_DISCLOSE_EMAIL, $agreed);
-        $res = array('success' => true);
-        $this->response->setOutput(OneGoAPI_JSON::encode($res));
-    }
-    
-    public function claimbenefits()
-    {
-        $this->language->load('total/onego');
-        $onego = $this->getModel();
-        $lastOrder = OneGoCompletedOrderState::getCurrent();
-        if ($lastOrder->get('benefitsApplied')) {
-            $this->redirect($this->url->link('checkout/success'));
-        }
-        
-        if (!$lastOrder->get('newBuyerRegistered')) {
-            try {
-                $fundsReceived = $onego->bindEmailForOrder($lastOrder);
-            } catch (OneGoAPI_InvalidInputException $e) {
-                $this->data['onego_error'] = $this->language->get('error_bindnew_invalid_email');
-            } catch (Exception $e) {
-                $this->data['onego_error'] = $this->language->get('error_bindnew_failed');
-                $this->data['onego_error'] = $e->getMessage();
-                $this->data['show_try_again'] = true;
-            }
-        } else {
-            $fundsReceived = $lastOrder->get('prepaidReceived');
-        }
-        $text = $lastOrder->get('transactionDelayed') ? $this->language->get('funds_to_be_received') : $this->language->get('funds_received');
-        $this->data['onego_rewarded'] = !empty($fundsReceived) ?
-                sprintf($text, $this->currency->format($fundsReceived)) : false;
-        $this->data['onego_anonymous_buyer_created'] = 
-                sprintf($this->language->get('anonymous_buyer_created'), OneGoConfig::get('anonymousRegistrationURI'));
-        $this->data['onego_button_register'] = $this->language->get('button_register_anonymous');
-        $this->data['onego_registration_uri'] = OneGoConfig::get('anonymousRegistrationURI');
-        
-        // rest of page output
-        $this->data['onego_claim_benefits'] = $this->language->get('title_claim_your_benefits');
-        $this->data['onego_button_try_again'] = $this->language->get('button_try_again');
-        $this->data['link_reload'] = $this->url->link('total/onego/claimbenefits');
-        $this->data['onego_benefits_claimed'] = $this->language->get('title_benefits_claimed');
-        
-        $this->language->load('checkout/success');
-
-        $this->document->setTitle($this->language->get('title_claim_your_benefits'));
-
-        $this->data['breadcrumbs'] = array();
-
-        $this->data['breadcrumbs'][] = array(
-            'href' => $this->url->link('common/home'),
-            'text' => $this->language->get('text_home'),
-            'separator' => false
-        );
-
-        $this->data['breadcrumbs'][] = array(
-            'href' => $this->url->link('checkout/cart'),
-            'text' => $this->language->get('text_basket'),
-            'separator' => $this->language->get('text_separator')
-        );
-
-        $this->data['breadcrumbs'][] = array(
-            'href' => $this->url->link('checkout/checkout', '', 'SSL'),
-            'text' => $this->language->get('text_checkout'),
-            'separator' => $this->language->get('text_separator')
-        );
-
-        $this->data['breadcrumbs'][] = array(
-            'href' => $this->url->link('total/onego/claimbenefits'),
-            'text' => $this->language->get('title_claim_your_benefits'),
-            'separator' => $this->language->get('text_separator')
-        );
-
-        $this->data['heading_title'] = $this->language->get('heading_title');
-
-        if (version_compare(VERSION, '1.5.4', 'ge')) {
-            // success texts were changed on Opencart ver. 1.5.4
-            if ($this->customer->isLogged()) {
-                $success_message = sprintf(
-                        $this->language->get('text_customer'),
-                        $this->url->link('account/order/info&order_id=' . $this->session->data['last_order_id'], '', 'SSL'),
-                        $this->session->data['last_order_id'],
-                        $this->url->link('account/account', '', 'SSL'),
-                        $this->url->link('account/order', '', 'SSL'),
-                        $this->url->link('account/download', '', 'SSL'),
-                        $this->url->link('information/contact'));
-            } else {
-                $success_message = sprintf($this->language->get('text_guest'),
-                        $this->session->data['last_order_id'],
-                        $this->url->link('information/contact'));
-            }
-        } else {
-            if ($this->customer->isLogged()) {
-                $success_message = sprintf($this->language->get('text_customer'), $this->url->link('account/account', '', 'SSL'), $this->url->link('account/order', '', 'SSL'), $this->url->link('account/download', '', 'SSL'), $this->url->link('information/contact'));
-            } else {
-                $success_message = sprintf($this->language->get('text_guest'), $this->url->link('information/contact'));
-            }
-        }
-        $this->data['text_message'] = $success_message;
-
-        $this->data['button_continue'] = $this->language->get('button_continue');
-
-        $this->data['continue'] = $this->url->link('common/home');
-        
-        
-        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/total/onego_claimed.tpl')) {
-            $this->template = $this->config->get('config_template') . '/template/total/onego_claimed.tpl';
-        } else {
-            $this->template = 'default/template/total/onego_claimed.tpl';
-        }
-
-        $this->children = array(
-            'common/column_left',
-            'common/column_right',
-            'common/content_top',
-            'common/content_bottom',
-            'common/footer',
-            'common/header'
-        );
-
-        $this->response->setOutput($this->render());
     }
     
     public function useredeemcode()

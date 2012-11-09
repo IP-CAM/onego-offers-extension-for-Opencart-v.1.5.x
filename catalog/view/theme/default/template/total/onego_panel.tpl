@@ -11,10 +11,6 @@
           <input type="hidden" name="onego_cart_hash" id="onego_cart_hash" value="<?php echo $onego_modified_cart_hash ?>" />
           <?php if (empty($onego_user_authenticated)) { ?>
           <div id="onego_login_container">
-              <?php /*
-              <div style="padding-bottom: 5px;"><?php echo $onego_login_invitation ?></div>
-              <a href="<?php echo $onego_login_url; ?>" id="onego_login" class="button"><span><?php echo $onego_login_button; ?></span></a>
-              */ ?>
               <div style="padding-bottom: 5px;"><?php echo $lang->get('onego_text_see_offers') ?></div>
               <a href="#" id="onego_see_offers" class="button"><span><?php echo $lang->get('onego_button_see_offers'); ?></span></a>
           </div>
@@ -44,6 +40,8 @@
                       $st = $onego_prepaid_spent ? ' checked="checked"' : '';
                       echo '<label for="use_onego_funds">'.$onego_funds['title'].'</label> ';
                       echo '<input type="checkbox" name="use_onego_funds" class="onego_funds" id="use_onego_funds" value="y"'.$disabled.$st.' /> ';
+                  } else {
+                      echo $onego_rc_invitation;
                   }
                   ?>
               </div>
@@ -59,16 +57,6 @@
           </div>
           <?php } ?>
           <div style="clear: both;"></div>
-
-          <?php /*
-          <div id="onego_panel_footer">
-              <?php if (empty($onego_user_authenticated)) { ?>
-              <hr />
-              <input type="checkbox" id="onego_agree" value="y" <?php echo !empty($onego_agreed) ? 'checked="checked"' : '' ?> />
-              - <label for="onego_agree"><?php echo $onego_agree_email_expose ?></label>
-              <?php } ?>
-          </div>
-          */ ?>
       </form>
   </div>
 </div>
@@ -121,36 +109,6 @@ function spendPrepaid()
         }
     );
 }
-
-<?php } else { // when user is not authenticated ?>
-    
-$('#onego_agree').unbind().change(function(e){
-    OneGoOpencart.setAsLoading($('#onego_agree'));
-    $.ajax({
-        url: OneGoOpencart.config.agreeRegisterUri,
-        type: 'post',
-        data: { 'agree': $(this).is(':checked') ? 1 : 0 },
-        dataType: 'json',
-        success: function() {
-            <?php echo $js_page_reload_callback ?>();
-        },
-        error: function() {
-            OneGoOpencart.unsetAsLoading($('#onego_agree'));
-            cancelCheck($('#onego_agree'));
-        }
-    });
-})
-
-$('#onego_login').unbind().click(function(e){
-    e.preventDefault();
-    OneGoOpencart.setAsLoading($('#onego_login'));
-    OneGoOpencart.promptLogin(
-            <?php echo $js_page_reload_callback ?>, 
-            function() { 
-                OneGoOpencart.unsetAsLoading($('#onego_login')) 
-            }
-   );
-});
 <?php } ?>
 
 $('#onego_see_offers').unbind().click(function(e){
@@ -207,32 +165,8 @@ OneGoOpencart.resetTransactionAutorefresh();
 <?php } ?>
 
 $(document).ready(function(){
-    $('#onego_redeem_code_template').focus(function(){
-        $('#onego_redeem_code_number').focus();
-    })
-    var rcnumber = ''
-    $('#onego_redeem_code_number').keyup(function(e){
-        if (rcnumber != e.target.value) {
-            val = e.target.value.toUpperCase();
-            valCleaned = val.replace(/[^A-Z0-9]/g, '');
-            strlen = valCleaned.length
-            if (strlen > 10) {
-                valCleaned = valCleaned.substr(0, 10);
-            }
-            tplval = valCleaned;
-            while (tplval.length < 10) {
-                tplval += 'X'
-            }
-            separator = /^[^A-Z0-9]$/;
-            if (strlen > 5 && valCleaned.substr(0, 1) != '-' || separator.test(val.substr(5, 1))) {
-                valCleaned = valCleaned.substr(0, 5) + '-' + valCleaned.substr(5)
-            }
-            e.target.value = rcnumber = valCleaned;
-
-            $('#onego_redeem_code_template').val(tplval.substr(0, 5) + '-' + tplval.substr(5))
-        }
-    })
-
+    OneGoOpencart.applyRedemptionCodeTemplate($('#onego_redeem_code_number'), $('#onego_redeem_code_template'));
+    
     <?php if (!empty($onego_success)) { ?>
     OneGoOpencart.flashSuccessBefore($('#onego_panel'), '<?php echo OneGoUtils::escapeJsString($onego_success) ?>');
     <?php } ?>

@@ -301,8 +301,9 @@ class ModelTotalOnego extends Model
         
         $version = ONEGO_EXTENSION_VERSION;
         $text = <<<END
-WARNING: order #{$orderId} has been processed using OneGo benefits, but transaction confirmation failed.
-If buyer chose to spend his OneGo funds or use single use coupon the discount was applied to order but OneGo funds were not charged.
+WARNING: order #{$orderId} has been processed using OneGo trnsaction, but transaction confirmation failed.
+If buyer chose to spend his gift card balance or use single use offers a discount may be applied to order but
+actual buyer's OneGo balance was not charged.
 You may want to consider revising order status.
 Please contact OneGo support for more information, including these details:
 
@@ -336,100 +337,83 @@ END;
         $mail->setText(html_entity_decode($text, ENT_QUOTES, 'UTF-8'));
         $mail->send();
     }
-    
-    public function isAnonymousRewardsApplied()
-    {
-        $lastOrder = $this->getCompletedOrder();
-        return $lastOrder->get('newBuyerRegistered');
-    }
-    
-    public function isAnonymousRewardsApplyable()
-    {
-        $lastOrder = $this->getCompletedOrder();
-        $transactionState = $lastOrder->get('transactionState');
-        return $transactionState && $lastOrder &&
-               !$transactionState->get('agreedToDiscloseEmail') && !$lastOrder->get('benefitsApplied');
-    }
 
-    /**
-     * Wrapper for binding email for last order
-     *
-     * @throws OneGoAPI_Exception
-     * @param OneGoCompletedOrderState $order
-     * @return bool
-     */
-    public function bindEmailForOrder(OneGoCompletedOrderState &$order)
+    public function bindSessionToken($sessionToken, OneGoCompletedOrderState &$orderState)
     {
-        $tokenState = $order->get('oAuthTokenState');
-        $transactionState = $order->get('transactionState');
-        $transaction = $transactionState->get('transaction');
-        $fundsReceived = false;
-        $email = trim($order->get('buyerEmail'));
-        if ($tokenState->isBuyerAnonymous() && !empty($transaction)) {
-            try {
-                $transaction->bindEmail($email);
-                OneGoUtils::log('bindEmail() executed');
-                $order->set('newBuyerRegistered', true);
-                $fundsReceived = $transaction->getPrepaidAmountReceived();
-                $order->set('prepaidReceived', $fundsReceived);
-            } catch (OneGoAPI_Exception $e) {
-                OneGoUtils::logCritical('bindEmail() failed', $e);
-                throw $e;
-            }
-        } else if ($tokenState->isBuyerAnonymous()) {
-            $orderCart = $order->get('cart') ? $order->get('cart') : array();
-            $cart = $this->collectCartEntries($orderCart);
-            try {
-                $receiptNumber = '#'.$order->get('orderId');
-                
-                // detect whether transaction is to be confirmed or delayed
-                $orderInfo = $this->getOrderInfo($order->get('orderId'));
-                if ($this->isOrderStatusConfirmable($orderInfo['order_status_id'])) {
-                    $delayTtl = false;
-                } else {
-                    $delayTtl = $this->getDelayTtl();
+        if ($orderState->isAnonymous()) {
+            $transaction = $orderState->get('transactionState')->get('transaction');
+            $fundsReceived = false;
+            if ($transaction) {
+                try {
+                    $transaction->bindSessionToken($sessionToken);
+                    OneGoUtils::log('bindSessionToken() executed');
+                    $orderState->set('newBuyerRegistered', true);
+                    // fetch transaction status
+                    $transactionState = $orderState->get('transactionState');
+                    $transactionState->set('transaction', $transaction);
+                    $orderState->set('transactionState', $transactionState);
+                } catch (OneGoAPI_Exception $e) {
+                    OneGoUtils::logCritical('bindSessionToken() failed', $e);
+                    throw $e;
                 }
-                
-                $transaction = $this->getApi()->bindEmailNew(
-                        $order->get('buyerEmail'), 
-                        $receiptNumber,
-                        $delayTtl,
-                        $cart);
-                $this->saveTransaction($transaction);
-                $modifiedCart = $transaction->getModifiedCart();
-                if ($modifiedCart && $modifiedCart->getPrepaidReceived()) {
-                    $fundsReceived = $modifiedCart->getPrepaidReceived()->getAmount()->visible;
+            } else {
+                $orderCart = $orderState->get('cart') ? $orderState->get('cart') : array();
+                $cart = $this->collectCartEntries($orderCart);
+                try {
+                    $receiptNumber = '#'.$orderState->get('orderId');
+
+                    // detect whether transaction is to be confirmed or delayed
+                    $orderInfo = $this->getOrderInfo($orderState->get('orderId'));
+                    if ($this->isOrderStatusConfirmable($orderInfo['order_status_id'])) {
+                        $delayTtl = false;
+                    } else {
+                        $delayTtl = $this->getDelayTtl();
+                    }
+
+                    $transaction = $this->getApi()->bindSessionTokenNew(
+                            $sessionToken,
+                            $receiptNumber,
+                            $delayTtl,
+                            $cart);
+                    //$this->saveTransaction($transaction);
+                    $modifiedCart = $transaction->getModifiedCart();
+                    if ($modifiedCart && $modifiedCart->getPrepaidReceived()) {
+                        $fundsReceived = $modifiedCart->getPrepaidReceived()->getAmount()->visible;
+                    }
+                    $transactionState = new OneGoTransactionState();
+                    $transactionState->set('transaction', $transaction);
+                    $orderState->set('transactionState', $transactionState);
+                    $orderState->set('newBuyerRegistered', true);
+                    $orderState->set('prepaidReceived', $fundsReceived);
+
+                    // log transaction complete
+                    if ($delayTtl) {
+                        OneGoTransactionsLog::log($orderState->get('orderId'), $transaction->getId()->id,
+                                OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $delayTtl);
+                        $orderState->set('transactionDelayed', true);
+                    } else {
+                        OneGoTransactionsLog::log($orderState->get('orderId'), $transaction->getId()->id,
+                                OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM);
+                        $orderState->set('transactionDelayed', false);
+                    }
+                } catch (OneGoAPI_Exception $e) {
+                    OneGoUtils::logCritical('bindSessionTokenNew() failed', $e);
+                    // log failed transaction complete
+                    if ($delayTtl) {
+                        OneGoTransactionsLog::log($orderState->get('orderId'), $transaction->getId()->id,
+                                OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $delayTtl,
+                                true, $e->getMessage());
+                    } else {
+                        OneGoTransactionsLog::log($orderState->get('orderId'), $transaction->getId()->id,
+                                OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM, null,
+                                true, $e->getMessage());
+                    }
+                    throw $e;
                 }
-                $order->set('newBuyerRegistered', true);
-                $order->set('prepaidReceived', $fundsReceived);
-                
-                // log transaction complete
-                if ($delayTtl) {
-                    OneGoTransactionsLog::log($order->get('orderId'), $transaction->getId()->id, 
-                            OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $delayTtl);
-                    $order->set('transactionDelayed', true);
-                } else {
-                    OneGoTransactionsLog::log($order->get('orderId'), $transaction->getId()->id, 
-                            OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM);
-                    $order->set('transactionDelayed', false);
-                }
-            } catch (OneGoAPI_Exception $e) {
-                OneGoUtils::logCritical('bindEmailNew() failed', $e);
-                // log failed transaction complete
-                if ($delayTtl) {
-                    OneGoTransactionsLog::log($order->get('orderId'), $transaction->getId()->id, 
-                            OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $delayTtl,
-                            true, $e->getMessage());
-                } else {
-                    OneGoTransactionsLog::log($order->get('orderId'), $transaction->getId()->id, 
-                            OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM, null,
-                            true, $e->getMessage());
-                }
-                throw $e;
             }
         }
-        return $fundsReceived;
     }
+
 
     /**
      * @param integer $orderId
