@@ -27,11 +27,8 @@ $oneGoConfig['cartItemCodePrefix'] = 'eshopitem_';
 // OneGo API URL address
 $oneGoConfig['apiURI'] = 'https://api.dev.onego.com/pos/v1/';
 
-// OneGo authorization endpoint URL address
-$oneGoConfig['authorizationURI'] = 'http://mobile.dev.onego.com/authorize';
-
-// OneGo OAuth service URL address
-$oneGoConfig['oAuthURI'] = 'http://oauth.dev.onego.cloud:8080/oauth';
+// OneGo OAuth service base URI
+$oneGoConfig['oAuthBaseURI'] = 'http://mobile-local.dev.onego.com/oauth2/';
 
 // OneGo JS SDK host URI
 $oneGoConfig['jsSdkURI'] = 'http://plugins-local.dev.onego.com/app_dev.php/webapp/v1/main.js';

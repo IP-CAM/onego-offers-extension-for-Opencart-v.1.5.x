@@ -91,7 +91,7 @@ OneGoOpencart = {
     reloadPage: function(){
         window.location.href = window.location.href;
     },
-    useRedeemCode: function(code, onSuccess, onError, setFlashMessage) {
+    useRedemptionCode: function(code, onSuccess, onError, setFlashMessage) {
         $.ajax({
             url: $('base').attr('href') + 'index.php?route=total/onego/useredeemcode',
             type: 'post',

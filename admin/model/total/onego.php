@@ -88,10 +88,10 @@ class ModelTotalOnego extends Model {
                 ($this->config->get('config_complete_status_id') == $order_info['order_status_id']))
         {
             // order status changed to confirmed, may now send RC details to buyer
-            $codes = OneGoRedeemCodes::getOrderCodes($order_id);
+            $codes = OneGoRedemptionCodes::getOrderCodes($order_id);
             if (!empty($codes)) {
-                OneGoRedeemCodes::createDownload($order_info, $codes, $this);
-                return OneGoRedeemCodes::sendEmail($order_info, $codes, $this);
+                OneGoRedemptionCodes::createDownload($order_info, $codes, $this);
+                return OneGoRedemptionCodes::sendEmail($order_info, $codes, $this);
             }
         }
         return false;

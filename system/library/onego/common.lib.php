@@ -370,8 +370,7 @@ class OneGoUtils
         $cfg = new OneGoAPI_OAuthConfig(
                 OneGoConfig::get('clientId'),
                 OneGoConfig::get('clientSecret'),
-                OneGoConfig::get('authorizationURI'),
-                OneGoConfig::get('oAuthURI'),
+                OneGoConfig::get('oAuthBaseURI'),
                 OneGoConfig::get('httpConnectionTimeout')
         );
         return OneGoAPI_Impl_SimpleOAuth::init($cfg);
@@ -766,7 +765,7 @@ class OneGoTransactionsLog
     }
 }
 
-class OneGoRedeemCodes
+class OneGoRedemptionCodes
 {
     const DB_TABLE_CODES = 'onego_redeem_codes';
     const DB_TABLE_BATCHES = 'onego_redeem_codes_batches';
@@ -1087,5 +1086,5 @@ END;
 
 class OneGoException extends Exception {}
 class OneGoAuthenticationRequiredException extends OneGoException {}
-class OneGoRedeemCodeInvalidException extends OneGoException {}
+class OneGoRedemptionCodeInvalidException extends OneGoException {}
 class OneGoAPICallFailedException extends OneGoException {}

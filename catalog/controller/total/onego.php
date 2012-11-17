@@ -282,7 +282,7 @@ END;
             }
         }
 
-        if ($transaction && ($rc = $transaction->getRedeemCode())) {
+        if ($transaction && ($rc = $transaction->getRedemptionCode())) {
             foreach (array('spent', 'remaining', 'redeemed') as $key) {
                 if (!empty($rc->$key) && (float) $rc->$key) {
                     $this->data['onego_rc_funds'][$key] = sprintf(
@@ -544,15 +544,15 @@ END;
             $response = false;
             
             try {
-                $redeemCode = preg_replace('/[^a-z0-9]/i', '', $request->post['code']);
+                $redemptionCode = preg_replace('/[^a-z0-9]/i', '', $request->post['code']);
                 if ($onego->isTransactionStarted()) {
                     $transaction = $onego->refreshTransaction();
                     
-                    if ($onego->useRedeemCode($redeemCode)) {
+                    if ($onego->useRedemptionCode($redemptionCode)) {
                         $success = true;
                     }
                 } else {
-                    $onego->useRedeemCodeAnonymously($redeemCode);
+                    $onego->useRedemptionCodeAnonymously($redemptionCode);
                     $success = true;
                 }
                 
@@ -562,7 +562,7 @@ END;
                     'error' => get_class($e),
                     'message' => $errorMessage,
                 );
-            } catch (OneGoRedeemCodeInvalidException $e) {
+            } catch (OneGoRedemptionCodeInvalidException $e) {
                 $errorMessage = $this->language->get('error_redeem_code_invalid');
                 $response = array(
                     'error' => get_class($e),

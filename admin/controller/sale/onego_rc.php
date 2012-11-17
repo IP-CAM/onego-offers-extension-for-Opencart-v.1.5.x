@@ -28,7 +28,7 @@ class ControllerSaleOnegoRc extends Controller
             $this->data['error_warning'] = $this->language->get('extension_disabled');
         } else {
 
-            OneGoRedeemCodes::init();
+            OneGoRedemptionCodes::init();
 
             if (!empty($this->request->post['action']) && !empty($this->request->post['selected'])) {
                 $action = $this->request->post['action'];
@@ -88,7 +88,7 @@ class ControllerSaleOnegoRc extends Controller
         $model = $this->getModel();
         
         // get list of pending codes
-        $list = OneGoRedeemCodes::getPendingCodesCount();
+        $list = OneGoRedemptionCodes::getPendingCodesCount();
         $rc_nominal = false;
         if (count($list) > 1) {
             $this->data['error_warning'] = $this->language->get('rc_error_cards_import_duplicate');
@@ -179,7 +179,7 @@ class ControllerSaleOnegoRc extends Controller
 
         if (!empty($codes_loaded)) {
             // refresh pending codes count
-            $list = OneGoRedeemCodes::getPendingCodesCount();
+            $list = OneGoRedemptionCodes::getPendingCodesCount();
 
             list($rc_nominal, $rc_count) = each($list);
             $this->data['rc_count'] = $rc_count;
@@ -210,7 +210,7 @@ class ControllerSaleOnegoRc extends Controller
 
     public function cancel()
     {
-        OneGoRedeemCodes::resetPendingCodes();
+        OneGoRedemptionCodes::resetPendingCodes();
         return $this->forward('sale/onego_rc');
     }
 

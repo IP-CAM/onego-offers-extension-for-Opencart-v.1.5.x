@@ -22,7 +22,7 @@ class ControllerTotalOnego extends Controller {
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && ($this->validate())) {
 
             OneGoTransactionsLog::init();
-            OneGoRedeemCodes::init();
+            OneGoRedemptionCodes::init();
             $this->addPermissions();
 
             $post = $this->request->post;

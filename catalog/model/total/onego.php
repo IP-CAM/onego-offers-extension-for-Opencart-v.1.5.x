@@ -112,7 +112,7 @@ class ModelTotalOnego extends Model
                 // redemption code and OneGo account funds spent
                 $funds_spent = 0;
                 if ($this->isTransactionStarted()) {
-                    $rc = $this->getTransaction()->getRedeemCode();
+                    $rc = $this->getTransaction()->getRedemptionCode();
                     if ($rc && $rc->spent) {
                         $funds_spent += $rc->spent;
                     }
@@ -259,7 +259,7 @@ class ModelTotalOnego extends Model
             if (($this->config->get('config_complete_status_id') != $orderStatusBefore) &&
                     ($this->config->get('config_complete_status_id') == $orderInfo['order_status_id']))
             {
-                $this->sendRedeemCodes($orderId);
+                $this->sendRedemptionCodes($orderId);
             }
         }
     }
@@ -838,7 +838,7 @@ END;
                 if ($spent) {
                     $available += $spent;
                 }
-                $rc = $transaction->getRedeemCode();
+                $rc = $transaction->getRedemptionCode();
                 if ($rc) {
                     $available -= $rc->spent;
                 }
@@ -1200,7 +1200,7 @@ END;
     public function getRCUsedNominal()
     {
         if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::RC_REDEEMED)) {
-            $rc = $this->getTransaction()->getRedeemCode();
+            $rc = $this->getTransaction()->getRedemptionCode();
             if ($rc) {
                 return (float) $rc->original;
             }
@@ -1212,7 +1212,7 @@ END;
     public function getRCUsedAmountRedeemed()
     {
         if (OneGoTransactionState::getCurrent()->get(OneGoTransactionState::RC_REDEEMED)) {
-            $rc = $this->getTransaction()->getRedeemCode();
+            $rc = $this->getTransaction()->getRedemptionCode();
             if ($rc) {
                 return (float) $rc->redeemed;
             }
@@ -1355,14 +1355,14 @@ END;
      * Request OAuth access token by Redemption Code number
      *
      * @throws OneGoAPI_OAuthException
-     * @param string $redeemCode
+     * @param string $redemptionCode
      * @return OneGoAPI_Impl_OAuthToken
      */
-    public function requestOAuthAccessTokenByRC($redeemCode)
+    public function requestOAuthAccessTokenByRC($redemptionCode)
     {
         $auth = $this->getAuth();
         try {
-            $token = $auth->requestAccessTokenByRedeemCode($redeemCode, $this->getOAuthRedirectUri());
+            $token = $auth->requestAccessTokenByRedemptionCode($redemptionCode, $this->getOAuthRedirectUri());
             OneGoUtils::log('OAuth token issued by RC', OneGoUtils::LOG_NOTICE);
             
             if ($this->isTransactionStarted()) {
@@ -1383,8 +1383,8 @@ END;
         if (!empty($lastOrder)) {
             if ($lastOrder->get('transactionState')->get('transaction')) {
                 $transaction = $lastOrder->get('transactionState')->get('transaction');
-                $rcRemainder = $transaction->getRedeemCode() ?
-                        (float) $transaction->getRedeemCode()->remaining : 0;
+                $rcRemainder = $transaction->getRedemptionCode() ?
+                        (float) $transaction->getRedemptionCode()->remaining : 0;
                 $prepaidReceivable = (float) $transaction->getPrepaidAmountReceived();
                 $receivable = array(
                     'rcRemainder'   => round($rcRemainder, 2),
@@ -1413,24 +1413,24 @@ END;
     }
 
     /**
-     * @throws OneGoAPI_Exception|OneGoAPI_RedeemCodeNotFoundException|OneGoRedeemCodeInvalidException
-     * @param string $redeemCode
+     * @throws OneGoAPI_Exception|OneGoAPI_RedemptionCodeNotFoundException|OneGoRedemptionCodeInvalidException
+     * @param string $redemptionCode
      * @return bool Success
      */
-    public function useRedeemCode($redeemCode)
+    public function useRedemptionCode($redemptionCode)
     {
         $transaction = $this->getTransaction();
         try {
-            $transaction->useRedeemCode($redeemCode);
-            OneGoUtils::log('RC redeemed '.$redeemCode, OneGoUtils::LOG_NOTICE);
+            $transaction->useRedemptionCode($redemptionCode);
+            OneGoUtils::log('RC redeemed '.$redemptionCode, OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
-            OneGoTransactionState::getCurrent()->set(OneGoTransactionState::RC_REDEEMED, $redeemCode);
+            OneGoTransactionState::getCurrent()->set(OneGoTransactionState::RC_REDEEMED, $redemptionCode);
             return true;
-        } catch (OneGoAPI_RedeemCodeNotFoundException $e) {
+        } catch (OneGoAPI_RedemptionCodeNotFoundException $e) {
             OneGoUtils::log('Redeem code invalid', OneGoUtils::LOG_ERROR);
-            throw new OneGoRedeemCodeInvalidException($e->getMessage());
+            throw new OneGoRedemptionCodeInvalidException($e->getMessage());
         } catch (OneGoAPI_Exception $e) {
-            OneGoUtils::log('useRedeemCode failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
+            OneGoUtils::log('useRedemptionCode failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
     }
@@ -1438,18 +1438,18 @@ END;
     /**
      * Redeem RC for anonymous buyer
      *
-     * @throws Exception|OneGoAPI_OAuthInvalidGrantException|OneGoRedeemCodeInvalidException
-     * @param $redeemCode
+     * @throws Exception|OneGoAPI_OAuthInvalidGrantException|OneGoRedemptionCodeInvalidException
+     * @param $redemptionCode
      * @return void
      */
-    public function useRedeemCodeAnonymously($redeemCode)
+    public function useRedemptionCodeAnonymously($redemptionCode)
     {
         try {
-            $token = $this->requestOAuthAccessTokenByRC($redeemCode);
+            $token = $this->requestOAuthAccessTokenByRC($redemptionCode);
             $this->beginTransaction($token);
-            $this->useRedeemCode($redeemCode);
+            $this->useRedemptionCode($redemptionCode);
         } catch (OneGoAPI_OAuthInvalidGrantException $e) {
-            throw new OneGoRedeemCodeInvalidException($e->getMessage());
+            throw new OneGoRedemptionCodeInvalidException($e->getMessage());
         } catch (Exception $e) {
             throw $e;
         }
@@ -1465,7 +1465,7 @@ END;
     {
         if ($state->get('redeemedRC')) {
             try {
-                $this->useRedeemCode($state->get('redeemedRC'));
+                $this->useRedemptionCode($state->get('redeemedRC'));
             } catch (Exception $e) {
                 // ignore
             }
@@ -1486,7 +1486,7 @@ END;
     public function getRCProductsIds()
     {
         $sql = "SELECT p.product_id
-                FROM (".DB_PREFIX.OneGoRedeemCodes::DB_TABLE_BATCHES." b, ".DB_PREFIX."product p)
+                FROM (".DB_PREFIX.OneGoRedemptionCodes::DB_TABLE_BATCHES." b, ".DB_PREFIX."product p)
                 WHERE b.product_id=p.product_id
                 GROUP BY p.product_id";
         $res = $this->db->query($sql);
@@ -1508,8 +1508,8 @@ END;
             $products = $this->model_account_order->getOrderProducts($orderId);
             foreach ($products as $product) {
                 if (in_array($product['product_id'], $rcProductsIds)) {
-                    OneGoRedeemCodes::reserveCodes($product['product_id'], $product['quantity'], $orderId);
-                    OneGoRedeemCodes::updateStock($product['product_id']);
+                    OneGoRedemptionCodes::reserveCodes($product['product_id'], $product['quantity'], $orderId);
+                    OneGoRedemptionCodes::updateStock($product['product_id']);
                 }
             }
         }
@@ -1517,26 +1517,26 @@ END;
 
     public function markRCCardsSold($orderId)
     {
-        OneGoRedeemCodes::sellCodes($orderId);
+        OneGoRedemptionCodes::sellCodes($orderId);
     }
 
     private function confirmRCSale($orderId)
     {
-        OneGoRedeemCodes::sellCodes($orderId);
-        $this->sendRedeemCodes($orderId);
+        OneGoRedemptionCodes::sellCodes($orderId);
+        $this->sendRedemptionCodes($orderId);
     }
 
-    private function sendRedeemCodes($orderId)
+    private function sendRedemptionCodes($orderId)
     {
         $this->load->model('checkout/order');
         $order_info = $this->model_checkout_order->getOrder($orderId);
         if ($order_info && ($this->config->get('config_complete_status_id') == $order_info['order_status_id']))
         {
             // order status changed to confirmed, may now send RC details to buyer
-            $codes = OneGoRedeemCodes::getOrderCodes($orderId);
+            $codes = OneGoRedemptionCodes::getOrderCodes($orderId);
             if (!empty($codes)) {
-                OneGoRedeemCodes::createDownload($order_info, $codes, $this);
-                return OneGoRedeemCodes::sendEmail($order_info, $codes, $this);
+                OneGoRedemptionCodes::createDownload($order_info, $codes, $this);
+                return OneGoRedemptionCodes::sendEmail($order_info, $codes, $this);
             }
         }
         return false;
@@ -1550,7 +1550,7 @@ END;
      */
     public function getOrderRCText($orderId, $productId)
     {
-        $codes = OneGoRedeemCodes::getOrderCodes($orderId);
+        $codes = OneGoRedemptionCodes::getOrderCodes($orderId);
         $str = '';
         if (!empty($codes)) {
             foreach ($codes as $code) {

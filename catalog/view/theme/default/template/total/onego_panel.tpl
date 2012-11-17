@@ -121,14 +121,14 @@ $('#onego_rc_redeem').unbind('click').click(function(e) {
     
     OneGoOpencart.setAsLoading($('#onego_rc_redeem'));
     
-    var redeemCode = $('#onego_redeem_code_number').val();
-    if (!redeemCode.length) {
+    var redemptionCode = $('#onego_redeem_code_number').val();
+    if (!redemptionCode.length) {
         $('#onego_redeem_code_number').focus();
         OneGoOpencart.unsetAsLoading($('#onego_rc_redeem'));
         return false;
     } else {
-        OneGoOpencart.useRedeemCode(
-            redeemCode,
+        OneGoOpencart.useRedemptionCode(
+            redemptionCode,
             function() {
                 <?php echo $js_page_reload_callback ?>();
             },
