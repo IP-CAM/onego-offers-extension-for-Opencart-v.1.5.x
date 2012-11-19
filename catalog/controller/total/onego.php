@@ -11,35 +11,61 @@ class ControllerTotalOnego extends Controller {
         $onego = $this->getModel();
         
         $this->data['theme'] = $this->config->get('config_template');
-        $clientId = OneGoConfig::get('clientId');
-        $terminalId = OneGoConfig::get('terminalId');
-        $this->data['onego_jssdk_url'] = OneGoConfig::get('jsSdkURI')."?c={$clientId}";
         
-        $html = '';
+        $js = '';
         
         // autologin attempts are blocked
         if ($onego->autologinBlockedUntil()) {
             $autologinBlockedFor = ($onego->autologinBlockedUntil() - time()) * 1000;
-            $html .= "OneGoOpencart.blockAutologin({$autologinBlockedFor});\n";
+            $js .= "OneGoOpencart.blockAutologin({$autologinBlockedFor});\n";
         }
+
+        // transaction autorefresh
+        if (OneGoConfig::get('transactionRefreshIn') && $onego->isTransactionStarted()) {
+            $firstTimeout = $onego->getTransaction()->getExpiresIn() - OneGoConfig::get('transactionRefreshIn');
+            if ($firstTimeout < 0) {
+                $firstTimeout = 0;
+            }
+            $nextTimeout = $onego->getTransaction()->getTtl() - OneGoConfig::get('transactionRefreshIn');
+            $js .= 'OneGoOpencart.setTransactionAutorefresh('.($firstTimeout*1000).', '.($nextTimeout*1000).');'."\n";
+        }
+
+        // include optional code for different OC versions compatibility
+        $js .= $this->compatibilitySettingsJS();
+
+        $this->data['js'] = $js;
         
+        $this->data['debuggingCode'] = $this->getDebugModeHeaderHTML();
+        
+        $this->template = 'default/template/common/onego_header.tpl';
+        $this->response->setOutput($this->render());
+    }
+
+    public function body()
+    {
+        $onego = $this->getModel();
+
+        $this->data['onego_jssdk_url'] = OneGoConfig::get('jsSdkURI').'?c='.OneGoConfig::get('clientId');
+
+        $html = '';
+
         // widget plugin
         $topOffset = (int) OneGoConfig::get('widgetTopOffset');
         $isFrozen = (OneGoConfig::get('widgetFrozen') == 'Y') ? 'true' : 'false';
         $html .= <<<END
-var OneGoWidget = OneGo.plugins.slideInWidget.init({
-    topOffset: {$topOffset}, 
+window.OneGoWidget = OneGo.plugins.slideInWidget.init({
+    topOffset: {$topOffset},
     isFixed: {$isFrozen},
     //handleImage: 'catalog/view/theme/{$this->config->get('config_template')}/image/onego_handle.png',
     showOnFirstView: true
 });
 
 END;
-        
+
         // OneGo events listeners
-        $isAjaxCall = !empty($this->request->request['route']) && 
+        $isAjaxCall = !empty($this->request->request['route']) &&
                 ($this->request->request['route'] == 'checkout/checkout');
-        
+
         $signedInHandler = OneGoUtils::getJsEventHandler('UserIsSignedIn');
         if ($signedInHandler) {
             $html .= "OneGo.events.on('UserIsSignedIn', {$signedInHandler});\n";
@@ -52,36 +78,21 @@ END;
 
         if ($onego->isUserAuthenticated() && !$signedOutHandler) {
             // listen for logoff event
-            $html .= $isAjaxCall ? 
+            $html .= $isAjaxCall ?
                 "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoffDynamic);\n" :
                 "OneGo.events.on('UserIsSignedOut', OneGoOpencart.processLogoff);\n";
         } else if (!$onego->isUserAuthenticated() && !$signedInHandler) {
-            $html .= $isAjaxCall ? 
+            $html .= $isAjaxCall ?
                 "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processLoginDynamic);\n" :
                 "OneGo.events.on('UserIsSignedIn', OneGoOpencart.processAutoLogin);\n";
         }
+        $this->data['html'] = $html;
 
-        // transaction autorefresh
-        if (OneGoConfig::get('transactionRefreshIn') && $onego->isTransactionStarted()) {
-            $firstTimeout = $onego->getTransaction()->getExpiresIn() - OneGoConfig::get('transactionRefreshIn');
-            if ($firstTimeout < 0) {
-                $firstTimeout = 0;
-            }
-            $nextTimeout = $onego->getTransaction()->getTtl() - OneGoConfig::get('transactionRefreshIn');
-            $html .= 'OneGoOpencart.setTransactionAutorefresh('.($firstTimeout*1000).', '.($nextTimeout*1000).');'."\n";
-        }
-
-        // include optional code for different OC versions compatibility
-        $html .= $this->compatibilitySettingsJS();
 
         $initParams = array();
-        
         $this->data['initParamsStr'] = implode(",\n", $initParams);
-        $this->data['html'] = $html;
-        
-        $this->data['debuggingCode'] = $this->getDebugModeHeaderHTML();
-        
-        $this->template = 'default/template/common/onego_header.tpl';
+
+        $this->template = 'default/template/common/onego_body.tpl';
         $this->response->setOutput($this->render());
     }
 

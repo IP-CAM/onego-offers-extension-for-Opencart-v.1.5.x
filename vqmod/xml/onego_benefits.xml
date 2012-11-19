@@ -13,8 +13,9 @@
             <add><![CDATA[
             if ($this->config->get('onego_status')) {
                 $this->data['onego_header'] = $this->getChild('total/onego/header');
+                $this->data['onego_body'] = $this->getChild('total/onego/body');
             } else {
-                $this->data['onego_header'] = '';
+                $this->data['onego_header'] = $this->data['onego_body'] = '';
             }
             ]]></add>
         </operation>
@@ -101,8 +102,16 @@
             <?php echo !empty($onego_header) ? $onego_header : ''; ?>
             ]]></add>
         </operation>
+        <operation>
+            <search position="after"><![CDATA[
+            <body>
+            ]]></search>
+            <add><![CDATA[
+            <?php echo !empty($onego_body) ? $onego_body : ''; ?>
+            ]]></add>
+        </operation>
     </file>
-    
+
     <file name="catalog/view/theme/*/template/common/success.tpl">
         <operation>
         <search position="after"><![CDATA[
