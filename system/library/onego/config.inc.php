@@ -1,6 +1,6 @@
 <?php
 // do not change or remove this
-define('ONEGO_EXTENSION_VERSION', '0.9.5');
+define('ONEGO_EXTENSION_VERSION', '0.9.4');
 
 $oneGoConfig = array();
 
@@ -28,16 +28,16 @@ $oneGoConfig['cartItemCodePrefix'] = 'eshopitem_';
 $oneGoConfig['apiURI'] = 'https://api.dev.onego.com/pos/v1/';
 
 // OneGo OAuth service base URI
-$oneGoConfig['oAuthBaseURI'] = 'http://mobile-local.dev.onego.com/oauth2/';
+$oneGoConfig['oAuthBaseURI'] = 'http://auth.onego.com/oauth2/';
 
 // OneGo JS SDK host URI
-$oneGoConfig['jsSdkURI'] = 'http://plugins-local.dev.onego.com/app_dev.php/webapp/v1/main.js';
+$oneGoConfig['jsSdkURI'] = 'http://plugins.onego.com/webapp/v1/main.js';
 
 $oneGoConfig['widgetTopOffset'] = '50';
 $oneGoConfig['widgetFrozen'] = 'Y';
 
 // link to onego.com registration page for newly created buyers
-$oneGoConfig['anonymousRegistrationURI'] = 'http://register.onego.com';
+$oneGoConfig['anonymousRegistrationURI'] = 'http://business.onego.com/';
 
 // HTTP connection timeout - seconds
 $oneGoConfig['httpConnectionTimeout'] = 10;
