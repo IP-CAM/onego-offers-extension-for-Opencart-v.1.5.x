@@ -47,7 +47,7 @@ $oneGoConfig['logFile'] = DIR_LOGS.'onego.log';
 // show extension activity details in browser console
 // ATTENTION: do not use on live e-shop, because revealing debug info may be a 
 // security threat
-$oneGoConfig['debugModeOn'] = true;
+$oneGoConfig['debugModeOn'] = false;
 
 // log API calls to logFile (works only if debugModeOn=true)
 $oneGoConfig['logAPICalls'] = true;
