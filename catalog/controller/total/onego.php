@@ -11,7 +11,7 @@ class ControllerTotalOnego extends Controller {
         $onego = $this->getModel();
         
         $this->data['theme'] = $this->config->get('config_template');
-        
+
         $js = '';
         
         // autologin attempts are blocked
@@ -45,7 +45,7 @@ class ControllerTotalOnego extends Controller {
     {
         $onego = $this->getModel();
 
-        $this->data['onego_jssdk_url'] = OneGoConfig::get('jsSdkURI').'?c='.OneGoConfig::get('clientId');
+        $this->data['onego_jssdk_url'] = OneGoConfig::get('jsSdkURI').'?apikey='.OneGoConfig::get('clientId');
 
         $html = '';
 
@@ -246,7 +246,6 @@ END;
     {
         $onego = $this->getModel();
         $this->data['onego_claim'] = $this->url->link('total/onego/claimbenefits');
-        $this->data['onego_register'] = OneGoConfig::get('anonymousRegistrationURI');
         
         $this->language->load('total/onego');
         $orderInfo = $onego->getCompletedOrder();

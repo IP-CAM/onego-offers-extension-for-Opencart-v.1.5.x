@@ -25,19 +25,16 @@ $oneGoConfig['delayedTransactionTTL'] = 2400; // 100 days
 $oneGoConfig['cartItemCodePrefix'] = 'eshopitem_';
 
 // OneGo API URL address
-$oneGoConfig['apiURI'] = 'https://api.dev.onego.com/pos/v1/';
+$oneGoConfig['apiURI'] = 'https://api.onego.com/pos/v1/';
 
 // OneGo OAuth service base URI
-$oneGoConfig['oAuthBaseURI'] = 'http://mobile-local.dev.onego.com/oauth2/';
+$oneGoConfig['oAuthBaseURI'] = 'https://auth.onego.com/oauth2/';
 
 // OneGo JS SDK host URI
-$oneGoConfig['jsSdkURI'] = 'http://plugins-local.dev.onego.com/app_dev.php/webapp/v1/main.js';
+$oneGoConfig['jsSdkURI'] = '//plugins.onego.com/webapp/v1/main.js';
 
 $oneGoConfig['widgetTopOffset'] = '50';
 $oneGoConfig['widgetFrozen'] = 'Y';
-
-// link to onego.com registration page for newly created buyers
-$oneGoConfig['anonymousRegistrationURI'] = 'http://register.onego.com';
 
 // HTTP connection timeout - seconds
 $oneGoConfig['httpConnectionTimeout'] = 10;
