@@ -28,7 +28,6 @@ class ControllerTotalOnego extends Controller {
             $post = $this->request->post;
             $post['onego_confirmOnOrderStatus'] = implode('|', empty($post['onego_confirmOnOrderStatus']) ? array() : $post['onego_confirmOnOrderStatus']);
             $post['onego_cancelOnOrderStatus'] = implode('|', empty($post['onego_cancelOnOrderStatus']) ? array() : $post['onego_cancelOnOrderStatus']);
-            $status_before = $this->config->get('onego_status');
             $this->model_setting_setting->editSetting('onego', $post);
 
             $this->session->data['success'] = $this->language->get('text_success');
@@ -103,7 +102,7 @@ class ControllerTotalOnego extends Controller {
         }
         $this->data['onego_sortorder_text'] = $this->language->get('entry_help_sortorder');
         
-        $config_fields = array('clientId', 'clientSecret', 'terminalId', 'checkCredentials',
+        $config_fields = array('apiKey', 'apiSecret', 'terminalId', 'checkCredentials',
             'shippingCode', 'transactionTTL', 'confirmOnOrderStatus', 'delayedTransactionTTL', 'cancelOnOrderStatus',
             'widgetFrozen', 'widgetTopOffset');
         $fields = array();
@@ -254,8 +253,8 @@ class ControllerTotalOnego extends Controller {
         $resp .= $this->language->get('check_credentials').': ';
         if ($curlOk) {
             $APIConfig = OneGoUtils::getAPIConfig();
-            $APIConfig->clientId = $params['onego_clientId'];
-            $APIConfig->clientSecret = $params['onego_clientSecret'];
+            $APIConfig->apiKey = $params['onego_apiKey'];
+            $APIConfig->apiSecret = $params['onego_apiSecret'];
             $APIConfig->terminalId = $params['onego_terminalId'];
             $api = OneGoAPI_Impl_SimpleAPI::init($APIConfig);
     
@@ -359,15 +358,15 @@ class ControllerTotalOnego extends Controller {
         }
         
         // cleanup
-        $this->request->post['onego_clientId'] = trim($this->request->post['onego_clientId']);
-        $this->request->post['onego_clientSecret'] = trim($this->request->post['onego_clientSecret']);
+        $this->request->post['onego_apiKey'] = trim($this->request->post['onego_apiKey']);
+        $this->request->post['onego_apiSecret'] = trim($this->request->post['onego_apiSecret']);
         $this->request->post['onego_terminalId'] = trim($this->request->post['onego_terminalId']);
         $this->request->post['onego_transactionTTL'] = (int) trim($this->request->post['onego_transactionTTL']) > 0 ? 
                 (int) trim($this->request->post['onego_transactionTTL']) : '';
         
         // validate
         $post = $this->request->post;
-        $requiredFields = array('onego_clientId', 'onego_clientSecret', 'onego_terminalId',
+        $requiredFields = array('onego_apiKey', 'onego_apiSecret', 'onego_terminalId',
             'onego_transactionTTL', 'onego_confirmOnOrderStatus', 'onego_cancelOnOrderStatus');
         foreach ($requiredFields as $field) {
             if (empty($post[$field])) {

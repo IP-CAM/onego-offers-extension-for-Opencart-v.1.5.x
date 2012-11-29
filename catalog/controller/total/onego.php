@@ -45,7 +45,7 @@ class ControllerTotalOnego extends Controller {
     {
         $onego = $this->getModel();
 
-        $this->data['onego_jssdk_url'] = OneGoConfig::get('jsSdkURI').'?apikey='.OneGoConfig::get('clientId');
+        $this->data['onego_jssdk_url'] = OneGoConfig::get('jsSdkURI').'?apikey='.OneGoConfig::get('apiKey');
 
         $html = '';
 

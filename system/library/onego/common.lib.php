@@ -337,8 +337,8 @@ class OneGoUtils
     public static function getAPIConfig()
     {
         $cfg = new OneGoAPI_APIConfig(
-                OneGoConfig::get('clientId'),
-                OneGoConfig::get('clientSecret'),
+                OneGoConfig::get('apiKey'),
+                OneGoConfig::get('apiSecret'),
                 OneGoConfig::get('terminalId'),
                 OneGoConfig::get('transactionTTL')*60,
                 true,
@@ -368,8 +368,8 @@ class OneGoUtils
     public static function initOAuth()
     {
         $cfg = new OneGoAPI_OAuthConfig(
-                OneGoConfig::get('clientId'),
-                OneGoConfig::get('clientSecret'),
+                OneGoConfig::get('apiKey'),
+                OneGoConfig::get('apiSecret'),
                 OneGoConfig::get('oAuthBaseURI'),
                 OneGoConfig::get('httpConnectionTimeout')
         );

@@ -10,8 +10,8 @@ $_['text_success']     = 'OneGo extension settings have been modified.';
 $_['entry_status']     = 'Status:';
 $_['entry_sort_order'] = 'Sort Order:';
 
-$_['entry_clientId']  = 'API key: *';
-$_['entry_clientSecret']  = 'API secret: *';
+$_['entry_apiKey']  = 'API key: *';
+$_['entry_apiSecret']  = 'API secret: *';
 $_['entry_terminalId']  = 'Terminal ID: *';
 $_['entry_transactionTTL']  = 'Transaction TTL: *';
 $_['entry_delayedTransactionTTL']  = 'Delayed transaction timeout: *';
@@ -23,8 +23,8 @@ $_['entry_confirmOnOrderStatus'] = 'Confirm OneGo transactions when order status
 $_['entry_cancelOnOrderStatus'] = 'Cancel OneGo transactions when order status is: *';
 $_['entry_checkCredentials'] = 'Check configuration:';
 
-$_['entry_help_clientId']  = 'Your API key is generated in your OneGo business account in the "Point of Sale" section under "Manage".';
-$_['entry_help_clientSecret']  = 'Your API secret is generated in your OneGo business account in the "Point of Sale" section under "Manage".';
+$_['entry_help_apiKey']  = 'Your API key is generated in your OneGo business account in the "Point of Sale" section under "Manage".';
+$_['entry_help_apiSecret']  = 'Your API secret is generated in your OneGo business account in the "Point of Sale" section under "Manage".';
 $_['entry_help_terminalId']  = 'A unique identifier for your e-shop - you can use your store name here.';
 $_['entry_help_transactionTTL']  = 'Cancels OneGo transactions when customers fail to complete purchase (in minutes).';
 $_['entry_help_delayedTransactionTTL']  = 'Number of hours for an order to complete processing. OneGo transactions will be
