@@ -45,6 +45,9 @@ admin/view/javascript/*
 !admin/view/stylesheet/
 admin/view/stylesheet/*
 !admin/view/stylesheet/onego.css
+!admin/view/image/
+admin/view/image/*
+!admin/view/image/onego_*
 
 !system/
 system/*
