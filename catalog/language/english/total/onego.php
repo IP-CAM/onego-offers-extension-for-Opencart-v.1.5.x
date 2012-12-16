@@ -12,7 +12,6 @@ $_['onego_cart_discount'] = 'Your discount';
 $_['onego_cart_discount_percents'] = 'Your discount (%s%%)';
 $_['text_sub_total'] = 'Sub-Total with your offers applied';
 $_['prepaid_spent'] = 'Gift card balance used';
-//$_['vgc_spent'] = 'Gift card funds spent';
 $_['funds_receivable'] = 'Cash back rewards earned';
 $_['text_shipping_discount'] = 'Your shipping discount';
 
@@ -22,30 +21,13 @@ $_['funds_prepaid'] = 'Use my gift card balance: %s';
 $_['auth_widget_text_loading'] = 'Hello!';
 $_['auth_widget_text'] = 'Hello, {%NAME%}. {%LOGOUT|Not you?%}';
 
-/*
-$_['agree_email_expose'] = 'I agree to disclose my e-mail to OneGo for offers, rewards and gift cards from us for this and future purchases';
-
-$_['funds_received'] = 'You have received %s into your gift card account.';
-$_['funds_to_be_received'] = 'You will receive %s into your gift card account once we receive your payment and your order is confirmed.';
-$_['funds_receivable_descr'] = 'You will receive %s into your gift card account for future purchases if you agree to disclose your e-mail to OneGo.';
-$_['suggest_disclose'] = 'Do you agree that we disclose your e-mail address to OneGo to create your account, to receive offers and rewards from us and use gift card balance in the future?';
-$_['button_agree_disclose'] = 'I agree';
-$_['title_claim_your_benefits'] = 'Claim your offers and use gift card balance';
-$_['title_benefits_claimed'] = 'You have successfully claimed your offers!';
-$_['anonymous_buyer_created'] = 'Your OneGo account was created!<br />'
-    .'You can now proceed with completing your account registration using your e-mail address, or do it later at <a href="%s">onego.com</a> site.';
-$_['button_register_anonymous'] = 'Create OneGo account';
-$_['invite_to_login'] = 'Already have OneGo account?';
- */
 $_['invite_to_use_rc'] = 'Do you have a redemption code?';
 $_['button_redeem'] = 'Redeem';
-//$_['vgc_number'] = 'Gift card number';
 $_['or'] = 'or';
 $_['button_try_again'] = 'Try again';
 $_['rc_funds_redeemed'] = 'Redemption Code balance';
 $_['warning_cart_changed'] = 'Your session has refreshed. Please check and make sure the items in your cart are correct.';
 
-$_['onego_button_see_offers'] = '<span class="onego_logo_white"></span>';
 $_['onego_text_see_offers'] = 'See offers available:';
 
 $_['onego_cashback_possible'] = 'Cash back rewards earned: %s';

@@ -5,14 +5,13 @@
 <?php if (!$isAjaxRequest) { // do not show OneGo panel in checkout page. Remove this condition check to restore ?>
 
 <div id="onego_panel">
-  <!--<div id="onego_panel_label"></div>-->
   <div id="onego_panel_content">
       <form action="" method="post" id="onego_account">
           <input type="hidden" name="onego_cart_hash" id="onego_cart_hash" value="<?php echo $onego_modified_cart_hash ?>" />
           <?php if (empty($onego_user_authenticated)) { ?>
           <div id="onego_login_container">
-              <div style="padding-bottom: 5px;"><?php echo $lang->get('onego_text_see_offers') ?></div>
-              <a href="#" id="onego_see_offers" class="button"><span><?php echo $lang->get('onego_button_see_offers'); ?></span></a>
+              <div><?php echo $lang->get('onego_text_see_offers') ?></div>
+              <a href="#" id="onego_see_offers" class="button"><span><span class="onego_logo_white">&nbsp;</span></span></a>
           </div>
           <?php } else { ?>
           <div id="onego_authwidget_container" class="onego-authwidget" data-textcolor="#000" data-linkcolor="#38B0E3" data-fontsize="12px" data-font="arial" data-height="40" data-width="350" data-text="<?php echo $authWidgetText ?>">
@@ -22,14 +21,16 @@
           
           <?php if (empty($onego_transaction_started)) { ?>
           <div id="onego_rc_redeem_container">
-              <div style="padding-bottom: 5px;"><?php echo $onego_rc_invitation ?></div>
+              <div><?php echo $onego_rc_invitation ?></div>
               <div id="onego_rc_container">
-                  <div>
-                    <input type="text" name="onego_rc" id="onego_redeem_code_number" value="" autocomplete="off" />
-                    <input type="text" id="onego_redeem_code_template" class="" value="XXXXX-XXXXX" />
+                  <div class="rc_inputs">
+                      <div>
+                        <input type="text" name="onego_rc" id="onego_redeem_code_number" value="" autocomplete="off" />
+                        <input type="text" id="onego_redeem_code_template" value="XXXXX-XXXXX" />
+                      </div>
                   </div>
+                  <a href="#" class="button" id="onego_rc_redeem"><span><?php echo $onego_button_redeem ?></span></a>
               </div>
-              <a href="#" class="button" id="onego_rc_redeem"><span><?php echo $onego_button_redeem ?></span></a>
           </div>
           <?php } else { ?>
           <div id="onego_funds_container">
@@ -45,14 +46,14 @@
                   }
                   ?>
               </div>
-              <div class="onego_rc">
-                  <div id="onego_rc_container">
-                    <div>
+              <div id="onego_rc_container">
+                  <div class="rc_inputs">
+                      <div>
                         <input type="text" name="onego_rc" id="onego_redeem_code_number" value="" autocomplete="off" />
-                        <input type="text" id="onego_redeem_code_template" class="" value="XXXXX-XXXXX" />
-                    </div>
-                </div>
-                  <input type="button" id="onego_rc_redeem" value="<?php echo $onego_button_redeem ?>" />
+                        <input type="text" id="onego_redeem_code_template" value="XXXXX-XXXXX" />
+                      </div>
+                  </div>
+                  <a href="#" class="button" id="onego_rc_redeem"><span><?php echo $onego_button_redeem ?></span></a>
               </div>
           </div>
           <?php } ?>
