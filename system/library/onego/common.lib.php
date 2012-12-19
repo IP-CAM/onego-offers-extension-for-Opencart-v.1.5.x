@@ -340,12 +340,11 @@ class OneGoUtils
                 OneGoConfig::get('apiKey'),
                 OneGoConfig::get('apiSecret'),
                 OneGoConfig::get('terminalId'),
+                OneGoConfig::get('apiURI'),
                 OneGoConfig::get('transactionTTL')*60,
                 true,
                 OneGoConfig::get('httpConnectionTimeout')
         );
-        $cfg->apiUri = OneGoConfig::get('apiURI');
-        $cfg->currencyCode = OneGoUtils::getRegistry()->get('config')->get('config_currency');
         return $cfg;
     }
     
@@ -357,7 +356,7 @@ class OneGoUtils
     public static function initAPI()
     {
         $cfg = self::getAPIConfig();
-        return OneGoSDK_Impl_SimpleAPI::init($cfg);
+        return OneGoSDK_API::init($cfg);
     }
     
     /**
@@ -373,7 +372,7 @@ class OneGoUtils
                 OneGoConfig::get('oAuthBaseURI'),
                 OneGoConfig::get('httpConnectionTimeout')
         );
-        return OneGoSDK_Impl_SimpleOAuth::init($cfg);
+        return OneGoSDK_OAuth::init($cfg);
     }
 
     /**
