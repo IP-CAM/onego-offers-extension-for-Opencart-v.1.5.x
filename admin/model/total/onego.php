@@ -57,11 +57,11 @@ class ModelTotalOnego extends Model {
         $title = $titleHtml = '';
         if (!$transactionsLogRow['success']) {
             $title = $this->language->get('status_failure');
-        } else if ($transactionsLogRow['operation'] == OneGoAPI_DTO_TransactionEndDto::STATUS_CANCEL) {
+        } else if ($transactionsLogRow['operation'] == OneGoSDK_DTO_TransactionEndDto::STATUS_CANCEL) {
             $title = $this->language->get('status_canceled');
-        } else if ($transactionsLogRow['operation'] == OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM) {
+        } else if ($transactionsLogRow['operation'] == OneGoSDK_DTO_TransactionEndDto::STATUS_CONFIRM) {
             $title = $this->language->get('status_confirmed');
-        } else if ($transactionsLogRow['operation'] == OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY) {
+        } else if ($transactionsLogRow['operation'] == OneGoSDK_DTO_TransactionEndDto::STATUS_DELAY) {
             $expiresOnTs = strtotime($transactionsLogRow['inserted_on']) + $transactionsLogRow['expires_in'];
             $expiresOn = date('Y-m-d H:i', $expiresOnTs);
             if ($expiresOnTs <= time()) {

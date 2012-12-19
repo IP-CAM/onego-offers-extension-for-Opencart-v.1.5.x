@@ -201,13 +201,13 @@ class ModelTotalOnego extends Model
                         if ($this->isOrderStatusConfirmable($orderInfo['order_status_id'])) {
                             $transaction = $this->confirmTransaction();
                             OneGoTransactionsLog::log($orderId, $transactionId,
-                                    OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM);
+                                    OneGoSDK_DTO_TransactionEndDto::STATUS_CONFIRM);
                             $lastOrder->set('transactionDelayed', false);
                         } else {
                             $doDelay = true;
                             $transaction = $this->delayTransaction();
                             OneGoTransactionsLog::log($orderId, $transactionId,
-                                    OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl());
+                                    OneGoSDK_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl());
                             $lastOrder->set('transactionDelayed', true);
                         }
                         $transactionState->set('transaction', $transaction);
@@ -226,10 +226,10 @@ class ModelTotalOnego extends Model
                         $this->registerFailedTransaction($orderId, $e->getMessage(), $transactionId);
                         if (!empty($doDelay)) {
                             OneGoTransactionsLog::log($orderId, $transactionId,
-                                    OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl(), true, $e->getMessage());
+                                    OneGoSDK_DTO_TransactionEndDto::STATUS_DELAY, $this->getDelayTtl(), true, $e->getMessage());
                         } else {
                             OneGoTransactionsLog::log($orderId, $transactionId,
-                                    OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM, null, true, $e->getMessage());
+                                    OneGoSDK_DTO_TransactionEndDto::STATUS_CONFIRM, null, true, $e->getMessage());
                         }
                         $this->throwError($e->getMessage());
                     }
@@ -352,7 +352,7 @@ END;
                     $transactionState = $orderState->get('transactionState');
                     $transactionState->set('transaction', $transaction);
                     $orderState->set('transactionState', $transactionState);
-                } catch (OneGoAPI_Exception $e) {
+                } catch (OneGoSDK_Exception $e) {
                     OneGoUtils::logCritical('bindSessionToken() failed', $e);
                     throw $e;
                 }
@@ -389,23 +389,23 @@ END;
                     // log transaction complete
                     if ($delayTtl) {
                         OneGoTransactionsLog::log($orderState->get('orderId'), $transaction->getId()->id,
-                                OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $delayTtl);
+                                OneGoSDK_DTO_TransactionEndDto::STATUS_DELAY, $delayTtl);
                         $orderState->set('transactionDelayed', true);
                     } else {
                         OneGoTransactionsLog::log($orderState->get('orderId'), $transaction->getId()->id,
-                                OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM);
+                                OneGoSDK_DTO_TransactionEndDto::STATUS_CONFIRM);
                         $orderState->set('transactionDelayed', false);
                     }
-                } catch (OneGoAPI_Exception $e) {
+                } catch (OneGoSDK_Exception $e) {
                     OneGoUtils::logCritical('bindSessionTokenNew() failed', $e);
                     // log failed transaction complete
                     if ($delayTtl) {
                         OneGoTransactionsLog::log($orderState->get('orderId'), $transaction->getId()->id,
-                                OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY, $delayTtl,
+                                OneGoSDK_DTO_TransactionEndDto::STATUS_DELAY, $delayTtl,
                                 true, $e->getMessage());
                     } else {
                         OneGoTransactionsLog::log($orderState->get('orderId'), $transaction->getId()->id,
-                                OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM, null,
+                                OneGoSDK_DTO_TransactionEndDto::STATUS_CONFIRM, null,
                                 true, $e->getMessage());
                     }
                     throw $e;
@@ -438,7 +438,7 @@ END;
     /**
      * Return current OneGo transaction object from session
      *
-     * @return OneGoAPI_Impl_Transaction
+     * @return OneGoSDK_Impl_Transaction
      */
     public function getTransaction()
     {
@@ -466,7 +466,7 @@ END;
     
     /**
      *
-     * @return OneGoAPI_DTO_TransactionIdDto OneGo transaction's id value
+     * @return OneGoSDK_DTO_TransactionIdDto OneGo transaction's id value
      */
     private function getTransactionId()
     {
@@ -477,7 +477,7 @@ END;
     /**
      * Singleton factory for SimpleAPI
      *
-     * @return OneGoAPI_Impl_SimpleAPI Instance of SimpleAPI
+     * @return OneGoSDK_Impl_SimpleAPI Instance of SimpleAPI
      */    
     public function getApi()
     {
@@ -503,7 +503,7 @@ END;
     /**
      * Singleton factory for SimpleOAuth
      *
-     * @return OneGoAPI_Impl_SimpleOAuth Instance of SimpleOAuth
+     * @return OneGoSDK_Impl_SimpleOAuth Instance of SimpleOAuth
      */    
     public function getAuth()
     {
@@ -546,7 +546,7 @@ END;
      * @param string $token
      * @return boolean Operation status 
      */
-    public function beginTransaction(OneGoAPI_Impl_OAuthToken $token, $receiptNumber = false)
+    public function beginTransaction(OneGoSDK_Impl_OAuthToken $token, $receiptNumber = false)
     {
         $api = $this->getApi();
         $api->setOAuthToken($token);
@@ -573,7 +573,7 @@ END;
     /**
      * Confirm OneGo transaction, unset saved transaction
      *
-     * @return mixed OneGoAPI_Impl_Transaction on success, false on fail 
+     * @return mixed OneGoSDK_Impl_Transaction on success, false on fail 
      */
     public function confirmTransaction()
     {
@@ -625,7 +625,7 @@ END;
     /**
      * Delay OneGo transaction, unset saved transaction
      *
-     * @return mixed OneGoAPI_Impl_Transaction on success, false on fail 
+     * @return mixed OneGoSDK_Impl_Transaction on success, false on fail 
      */
     public function delayTransaction()
     {
@@ -756,9 +756,9 @@ END;
     }
 
     /**
-     * Collect opencart cart entries into OneGoAPI_Impl_Cart object
+     * Collect opencart cart entries into OneGoSDK_Impl_Cart object
      *
-     * @return OneGoAPI_Impl_Cart
+     * @return OneGoSDK_Impl_Cart
      */
     public function collectCartEntries($eshopCart = null)
     {
@@ -890,7 +890,7 @@ END;
         
     /**
      *
-     * @return OneGoAPI_Impl_OAuthToken 
+     * @return OneGoSDK_Impl_OAuthToken 
      */
     public function getSavedOAuthToken()
     {
@@ -900,11 +900,11 @@ END;
     /**
      * Persist OAuth token
      *
-     * @param OneGoAPI_Impl_OAuthToken $token
+     * @param OneGoSDK_Impl_OAuthToken $token
      * @param bool $isAnonymous
      * @return void
      */
-    public function saveOAuthToken(OneGoAPI_Impl_OAuthToken $token, $isAnonymous = false)
+    public function saveOAuthToken(OneGoSDK_Impl_OAuthToken $token, $isAnonymous = false)
     {
         OneGoOAuthTokenState::getCurrent()->set('token', $token);
         OneGoOAuthTokenState::getCurrent()->set('buyerAnonymous', $isAnonymous);
@@ -921,7 +921,7 @@ END;
         return OneGoTransactionState::getCurrent()->get('transaction');;
     }
     
-    public function saveTransaction(OneGoAPI_Impl_Transaction $transaction)
+    public function saveTransaction(OneGoSDK_Impl_Transaction $transaction)
     {
         OneGoTransactionState::getCurrent()->set('transaction', $transaction);
     }
@@ -976,7 +976,7 @@ END;
         return $discount;
     }
     
-    public function isShippingItem(OneGoAPI_DTO_CartEntryDto $transactionCartEntry)
+    public function isShippingItem(OneGoSDK_DTO_CartEntryDto $transactionCartEntry)
     {
         return $this->isShippingItemCode($transactionCartEntry->itemCode);
     }
@@ -987,7 +987,7 @@ END;
     }
 
     /**
-     * @throws OneGoAPI_Exception
+     * @throws OneGoSDK_Exception
      * @return bool API operation succeeded
      */
     public function spendPrepaid()
@@ -1003,7 +1003,7 @@ END;
             OneGoUtils::log('Spent prepaid: '.$transaction->getPrepaidSpent(), OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
-        } catch (OneGoAPI_Exception $e) {
+        } catch (OneGoSDK_Exception $e) {
             OneGoUtils::log('Spend prepaid failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
@@ -1025,7 +1025,7 @@ END;
             OneGoUtils::log('Spend prepaid canceled', OneGoUtils::LOG_NOTICE);
             $this->saveTransaction($transaction);
             return true;
-        } catch (OneGoAPI_Exception $e) {
+        } catch (OneGoSDK_Exception $e) {
             OneGoUtils::log('Cancel spending prepaid failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
         }
         return false;
@@ -1040,18 +1040,18 @@ END;
     {
         $token = $this->getSavedOAuthToken();
         return $token && 
-                $token->hasScope(OneGoAPI_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY) &&
-                $token->hasScope(OneGoAPI_Impl_OneGoOAuth::SCOPE_USE_BENEFITS);
+                $token->hasScope(OneGoSDK_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY) &&
+                $token->hasScope(OneGoSDK_Impl_OneGoOAuth::SCOPE_USE_BENEFITS);
     }
     
     /**
      * Check if new token is valid for current transaction, restart transaction
      * with new token if not.
      *
-     * @param OneGoAPI_Impl_OAuthToken $newToken 
+     * @param OneGoSDK_Impl_OAuthToken $newToken 
      * @return boolean If transaction was refreshed
      */
-    public function verifyTransactionWithNewToken(OneGoAPI_Impl_OAuthToken $newToken)
+    public function verifyTransactionWithNewToken(OneGoSDK_Impl_OAuthToken $newToken)
     {
         if (!$this->isTransactionStarted()) {
             return false;
@@ -1062,7 +1062,7 @@ END;
         try {
             $res = $transaction->get();
             OneGoUtils::log('Transaction readable with new token', OneGoUtils::LOG_NOTICE);
-        } catch (OneGoAPI_OperationNotAllowedException $e) {
+        } catch (OneGoSDK_OperationNotAllowedException $e) {
             OneGoUtils::log('Transaction does not accept new token: '.$e->getMessage(), OneGoUtils::LOG_NOTICE);
             
             // getting transaction has failed, restart
@@ -1093,7 +1093,7 @@ END;
      *
      * @throws OneGoAPICallFailedException|OneGoAuthenticationRequiredException
      * @param bool $forceUpdate Update transaction even if not expired
-     * @return OneGoAPI_Impl_Transaction refreshed transaction
+     * @return OneGoSDK_Impl_Transaction refreshed transaction
      */
     public function refreshTransaction($forceUpdate = false)
     {
@@ -1116,7 +1116,7 @@ END;
                     
                     $tokenRefreshed = true;
                     OneGoUtils::log('OAuth token refreshed', OneGoUtils::LOG_NOTICE);
-                } catch (OneGoAPI_Exception $e) {
+                } catch (OneGoSDK_Exception $e) {
                     OneGoUtils::log('OAuth token refresh failed: ['.get_class($e).'] '.$e->getMessage(), OneGoUtils::LOG_ERROR);
                     throw new OneGoAPICallFailedException('OAuth token refresh failed', null, $e);
                 }
@@ -1158,7 +1158,7 @@ END;
                     $this->restoreTransactionState($stateBeforeRestart);
                 }
                 
-            } catch (OneGoAPI_Exception $e) {
+            } catch (OneGoSDK_Exception $e) {
                 throw new OneGoAPICallFailedException("Transaction {$action} failed", null, $e);
             }
         }
@@ -1255,7 +1255,7 @@ END;
     }
 
     /**
-     * @return OneGoAPI_DTO_ModifiedCartDTO
+     * @return OneGoSDK_DTO_ModifiedCartDTO
      */
     private function getModifiedCart()
     {
@@ -1280,7 +1280,7 @@ END;
     
     /**
      *
-     * @return OneGoAPI_DTO_ModifiedCartDto 
+     * @return OneGoSDK_DTO_ModifiedCartDto 
      */
     private function getAnonymousModifiedCart()
     {
@@ -1299,7 +1299,7 @@ END;
                 OneGoUtils::saveToSession('anonymousModifiedCart', $modifiedCart);
                 OneGoUtils::saveToSession('anonymousModifiedCartHash', $this->getEshopCartHash());
                 OneGoUtils::saveToRegistry('anonymousRequestFailed', false);
-            } catch (OneGoAPI_Exception $e) {
+            } catch (OneGoSDK_Exception $e) {
                 // ignore
                 OneGoUtils::log('Anonymous awards request failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
                 OneGoUtils::saveToRegistry('anonymousRequestFailed', true);
@@ -1323,10 +1323,10 @@ END;
     /**
      * Request OAuth token by OAuth authorization code (received on buyer authentication)
      *
-     * @throws OneGoAPI_OAuthException
+     * @throws OneGoSDK_OAuthException
      * @param string $authorizationCode
      * @param array $requestedScopes
-     * @return OneGoAPI_Impl_OAuthToken
+     * @return OneGoSDK_Impl_OAuthToken
      */
     public function requestOAuthAccessToken($authorizationCode, $requestedScopes = false)
     {
@@ -1344,7 +1344,7 @@ END;
                 $this->verifyTransactionWithNewToken($token);
             }
             $this->saveOAuthToken($token, false);
-        } catch (OneGoAPI_OAuthException $e) {
+        } catch (OneGoSDK_OAuthException $e) {
             OneGoUtils::log('Issuing OAuth token failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
@@ -1354,9 +1354,9 @@ END;
     /**
      * Request OAuth access token by Redemption Code number
      *
-     * @throws OneGoAPI_OAuthException
+     * @throws OneGoSDK_OAuthException
      * @param string $redemptionCode
-     * @return OneGoAPI_Impl_OAuthToken
+     * @return OneGoSDK_Impl_OAuthToken
      */
     public function requestOAuthAccessTokenByRC($redemptionCode)
     {
@@ -1370,7 +1370,7 @@ END;
             }
             
             $this->saveOAuthToken($token, true);
-        } catch (OneGoAPI_OAuthException $e) {
+        } catch (OneGoSDK_OAuthException $e) {
             OneGoUtils::log('Issuing OAuth token failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
@@ -1398,7 +1398,7 @@ END;
                             ->getAnonymousAwards($this->collectCartEntries($cart))
                             ->getPrepaidReceived();
                     $awards = !empty($prepaidReceivable) ? $prepaidReceivable->getAmount()->visible : null;
-                } catch (OneGoAPI_Exception $e) {
+                } catch (OneGoSDK_Exception $e) {
                     OneGoUtils::logCritical('Failed retrieving anonymous awards', $e);
                     throw $e;
                 }
@@ -1413,7 +1413,7 @@ END;
     }
 
     /**
-     * @throws OneGoAPI_Exception|OneGoAPI_RedemptionCodeNotFoundException|OneGoRedemptionCodeInvalidException
+     * @throws OneGoSDK_Exception|OneGoSDK_RedemptionCodeNotFoundException|OneGoRedemptionCodeInvalidException
      * @param string $redemptionCode
      * @return bool Success
      */
@@ -1426,10 +1426,10 @@ END;
             $this->saveTransaction($transaction);
             OneGoTransactionState::getCurrent()->set(OneGoTransactionState::RC_REDEEMED, $redemptionCode);
             return true;
-        } catch (OneGoAPI_RedemptionCodeNotFoundException $e) {
+        } catch (OneGoSDK_RedemptionCodeNotFoundException $e) {
             OneGoUtils::log('Redeem code invalid', OneGoUtils::LOG_ERROR);
             throw new OneGoRedemptionCodeInvalidException($e->getMessage());
-        } catch (OneGoAPI_Exception $e) {
+        } catch (OneGoSDK_Exception $e) {
             OneGoUtils::log('useRedemptionCode failed: '.$e->getMessage(), OneGoUtils::LOG_ERROR);
             throw $e;
         }
@@ -1438,7 +1438,7 @@ END;
     /**
      * Redeem RC for anonymous buyer
      *
-     * @throws Exception|OneGoAPI_OAuthInvalidGrantException|OneGoRedemptionCodeInvalidException
+     * @throws Exception|OneGoSDK_OAuthInvalidGrantException|OneGoRedemptionCodeInvalidException
      * @param $redemptionCode
      * @return void
      */
@@ -1448,7 +1448,7 @@ END;
             $token = $this->requestOAuthAccessTokenByRC($redemptionCode);
             $this->beginTransaction($token);
             $this->useRedemptionCode($redemptionCode);
-        } catch (OneGoAPI_OAuthInvalidGrantException $e) {
+        } catch (OneGoSDK_OAuthInvalidGrantException $e) {
             throw new OneGoRedemptionCodeInvalidException($e->getMessage());
         } catch (Exception $e) {
             throw $e;

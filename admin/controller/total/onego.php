@@ -162,7 +162,7 @@ class ControllerTotalOnego extends Controller {
             }
         }
         if (!empty($statusSuccess)) {
-            if ($statusSuccess['operation'] == OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY) {
+            if ($statusSuccess['operation'] == OneGoSDK_DTO_TransactionEndDto::STATUS_DELAY) {
                 // delayed transaction
                 $expiresOn = strtotime($statusSuccess['inserted_on']) + $statusSuccess['expires_in'];
                 if ($expiresOn <= time()) {
@@ -256,18 +256,18 @@ class ControllerTotalOnego extends Controller {
             $APIConfig->apiKey = $params['onego_apiKey'];
             $APIConfig->apiSecret = $params['onego_apiSecret'];
             $APIConfig->terminalId = $params['onego_terminalId'];
-            $api = OneGoAPI_Impl_SimpleAPI::init($APIConfig);
+            $api = OneGoSDK_Impl_SimpleAPI::init($APIConfig);
     
             try {
                 $api->getAnonymousAwards();
                 $resp .= '<span class="onego_ok">'.$this->language->get('ok').'</span>';
-            } catch (OneGoAPI_HTTPConnectionTimeoutException $e) {
+            } catch (OneGoSDK_HTTPConnectionTimeoutException $e) {
                 $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
                 $resp .= ' ['.$this->language->get('error_connection_timeout').']';
-            } catch (OneGoAPI_ForbiddenException $e) {
+            } catch (OneGoSDK_ForbiddenException $e) {
                 $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
                 $resp .= ' ['.$this->language->get('error_forbidden').']';
-            } catch (OneGoAPI_Exception $e) {
+            } catch (OneGoSDK_Exception $e) {
                 $resp .= '<span class="onego_error">'.$this->language->get('failed').'</span>';
                 $resp .= ' ['.$e->getMessage().']';
             }
@@ -281,7 +281,7 @@ class ControllerTotalOnego extends Controller {
     /**
      * OneGo transaction processing for Opencart orders
      *
-     * @throws Exception|OneGoAPI_Exception
+     * @throws Exception|OneGoSDK_Exception
      * @return void
      */
     public function endTransaction()
@@ -294,7 +294,7 @@ class ControllerTotalOnego extends Controller {
         if (!$this->config->get('onego_status') || 
                 !$this->user->hasPermission('modify', 'sale/order') ||
                 empty($orderId) || empty($action) ||
-                !in_array($action, OneGoAPI_DTO_TransactionEndDto::getStatusesAvailable()))
+                !in_array($action, OneGoSDK_DTO_TransactionEndDto::getStatusesAvailable()))
         {
             $ret = array('error' => 'Unauthorized call');
         } else {
@@ -311,18 +311,18 @@ class ControllerTotalOnego extends Controller {
 
                     try {
                         $delayTtl = null;
-                        if ($action == OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY) {
+                        if ($action == OneGoSDK_DTO_TransactionEndDto::STATUS_DELAY) {
                             $delayDays = (int) $this->request->post['duration'];
                             $delayPeriodEnd = mktime(23, 59, 59, date('m'), date('d')+$delayDays, date('Y'));
                             $delayTtl = $delayPeriodEnd - time();
 
                             $transaction->delay($delayTtl);
 
-                        } else if ($action == OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM) {
+                        } else if ($action == OneGoSDK_DTO_TransactionEndDto::STATUS_CONFIRM) {
 
                             $transaction->confirm();
 
-                        } else if ($action == OneGoAPI_DTO_TransactionEndDto::STATUS_CANCEL) {
+                        } else if ($action == OneGoSDK_DTO_TransactionEndDto::STATUS_CANCEL) {
 
                             $transaction->cancel();
 
@@ -331,7 +331,7 @@ class ControllerTotalOnego extends Controller {
                             'success' => true
                         );
                         OneGoTransactionsLog::log($orderId, $transactionId, $action, $delayTtl);
-                    } catch (OneGoAPI_Exception $e) {
+                    } catch (OneGoSDK_Exception $e) {
                         // log operation
                         OneGoTransactionsLog::log($orderId, $transactionId, $action, $delayTtl,
                                 true, $e->getMessage());

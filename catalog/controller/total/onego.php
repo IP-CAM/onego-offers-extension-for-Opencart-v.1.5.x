@@ -266,7 +266,7 @@ END;
                     $cartEntries = $onego->collectCartEntries($cart);
                     $modifiedCart = $onego->getApi()->getAnonymousAwards($cartEntries);
                 }
-            } catch (OneGoAPI_Exception $e) {
+            } catch (OneGoSDK_Exception $e) {
                 // ignore
             }
         } else if ($transaction) {
@@ -360,7 +360,7 @@ END;
 
             }
         }
-        $this->response->setOutput(OneGoAPI_JSON::encode($res));
+        $this->response->setOutput(OneGoSDK_JSON::encode($res));
     }
     
     public function spendprepaid()
@@ -398,7 +398,7 @@ END;
                 );
             }
             
-            $this->response->setOutput(OneGoAPI_JSON::encode($response));
+            $this->response->setOutput(OneGoSDK_JSON::encode($response));
         }
     }
     
@@ -408,7 +408,7 @@ END;
         $referer = $this->getReferer();
         
         $auth = $onego->getAuth();
-        $reqScope = OneGoAPI_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY;
+        $reqScope = OneGoSDK_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY;
         
         // login not required if user is already athenticated with OneGo, return
         $token = $onego->getSavedOAuthToken();
@@ -441,7 +441,7 @@ END;
         $returnpage = empty($returnpage) ? $this->getReferer() : $returnpage;
         
         $auth = $onego->getAuth();
-        $reqScope = array(OneGoAPI_Impl_OneGoOAuth::SCOPE_USE_BENEFITS, OneGoAPI_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY);
+        $reqScope = array(OneGoSDK_Impl_OneGoOAuth::SCOPE_USE_BENEFITS, OneGoSDK_Impl_OneGoOAuth::SCOPE_RECEIVE_ONLY);
         
         // login not required if user is already athenticated with OneGo, return
         $token = $onego->getSavedOAuthToken();
@@ -474,9 +474,9 @@ END;
         try {
             $this->processAuthorizationResponse($request->get, $auth_request);
             OneGoUtils::saveToSession('authorizationSuccess', true);
-        } catch (OneGoAPI_OAuthAccessDeniedException $e) {
+        } catch (OneGoSDK_OAuthAccessDeniedException $e) {
             $errorMessage = $this->language->get('error_authorization_access_denied');
-        } catch (OneGoAPI_OAuthTemporarilyUnavailableException $e) {
+        } catch (OneGoSDK_OAuthTemporarilyUnavailableException $e) {
             $errorMessage = $this->language->get('error_authorization_temporarily_unavailable');
             $onego->blockAutologin($autologinBlockTtl);
         } catch (Exception $e) {
@@ -594,7 +594,7 @@ END;
                 }
             }
             
-            $this->response->setOutput(OneGoAPI_JSON::encode($response));
+            $this->response->setOutput(OneGoSDK_JSON::encode($response));
         }
     }
 
@@ -615,7 +615,7 @@ END;
                 unset($response['success']);
             }
         }
-        $this->response->setOutput(OneGoAPI_JSON::encode($response));
+        $this->response->setOutput(OneGoSDK_JSON::encode($response));
     }
     
     
@@ -667,13 +667,13 @@ END;
             $onego->requestOAuthAccessToken($response_params['code'], $requestedScopes);
             return true;
         } else {
-            // transform response to OneGoAPI_OAuthException
+            // transform response to OneGoSDK_OAuthException
             $error_code = !empty($response_params['error']) ? 
                 $response_params['error'] : '';
             $error_message = !empty($response_params['error_description']) ? 
                 $response_params['error_description'] : '';
-            $errorDto = OneGoAPI_Impl_Transform::transform('OneGoAPI_DTO_OAuthErrorDto', (object) $response_params);
-            throw OneGoAPI_Exception::fromError($errorDto);
+            $errorDto = OneGoSDK_Impl_Transform::transform('OneGoSDK_DTO_OAuthErrorDto', (object) $response_params);
+            throw OneGoSDK_Exception::fromError($errorDto);
         }
     }
 }

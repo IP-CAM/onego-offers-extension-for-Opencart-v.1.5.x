@@ -1,5 +1,5 @@
 <?php
-require_once 'php-api/src/OneGoAPI/init.php';
+require_once 'sdk/src/OneGoSDK/init.php';
 OneGoUtils::initAPILogging();
 
 /**
@@ -332,11 +332,11 @@ class OneGoUtils
 
     /**
      * @static
-     * @return OneGoAPI_APIConfig
+     * @return OneGoSDK_APIConfig
      */
     public static function getAPIConfig()
     {
-        $cfg = new OneGoAPI_APIConfig(
+        $cfg = new OneGoSDK_APIConfig(
                 OneGoConfig::get('apiKey'),
                 OneGoConfig::get('apiSecret'),
                 OneGoConfig::get('terminalId'),
@@ -350,34 +350,34 @@ class OneGoUtils
     }
     
     /**
-     * Initializes OneGoAPI_Impl_SimpleAPI
+     * Initializes OneGoSDK_Impl_SimpleAPI
      *
-     * @return OneGoAPI_Impl_SimpleAPI 
+     * @return OneGoSDK_Impl_SimpleAPI 
      */
     public static function initAPI()
     {
         $cfg = self::getAPIConfig();
-        return OneGoAPI_Impl_SimpleAPI::init($cfg);
+        return OneGoSDK_Impl_SimpleAPI::init($cfg);
     }
     
     /**
-     * Initialize OneGoAPI_Impl_SimpleOAuth
+     * Initialize OneGoSDK_Impl_SimpleOAuth
      *
-     * @return OneGoAPI_Impl_SimpleOAuth 
+     * @return OneGoSDK_Impl_SimpleOAuth 
      */
     public static function initOAuth()
     {
-        $cfg = new OneGoAPI_OAuthConfig(
+        $cfg = new OneGoSDK_OAuthConfig(
                 OneGoConfig::get('apiKey'),
                 OneGoConfig::get('apiSecret'),
                 OneGoConfig::get('oAuthBaseURI'),
                 OneGoConfig::get('httpConnectionTimeout')
         );
-        return OneGoAPI_Impl_SimpleOAuth::init($cfg);
+        return OneGoSDK_Impl_SimpleOAuth::init($cfg);
     }
 
     /**
-     * Initialize logging for OneGoAPI_Log
+     * Initialize logging for OneGoSDK_Log
      *
      * @static
      * @return void
@@ -385,8 +385,8 @@ class OneGoUtils
     public static function initAPILogging()
     {
         if (OneGoConfig::get('debugModeOn')) {
-            OneGoAPI_Log::setLevel(OneGoAPI_Log::DEBUG);
-            OneGoAPI_Log::setCallback(array('OneGoUtils', 'logAPICall'));
+            OneGoSDK_Log::setLevel(OneGoSDK_Log::DEBUG);
+            OneGoSDK_Log::setCallback(array('OneGoUtils', 'logAPICall'));
         }
     }
     
@@ -473,7 +473,7 @@ class OneGoUtils
     }
 
     /**
-     * Callback method for OneGoAPI_Log::setCallback()
+     * Callback method for OneGoSDK_Log::setCallback()
      *
      * @static
      * @param string $message
@@ -667,9 +667,9 @@ class OneGoTransactionsLog
         $orderId = (int) $orderId;
         $transactionId = $db->escape($transactionId);
         if (!in_array($operation, array(
-            OneGoAPI_DTO_TransactionEndDto::STATUS_CONFIRM, 
-            OneGoAPI_DTO_TransactionEndDto::STATUS_CANCEL, 
-            OneGoAPI_DTO_TransactionEndDto::STATUS_DELAY))) 
+            OneGoSDK_DTO_TransactionEndDto::STATUS_CONFIRM, 
+            OneGoSDK_DTO_TransactionEndDto::STATUS_CANCEL, 
+            OneGoSDK_DTO_TransactionEndDto::STATUS_DELAY))) 
         {
             throw new OneGoException('Invalid transaction operation: '.$operation);
         }
