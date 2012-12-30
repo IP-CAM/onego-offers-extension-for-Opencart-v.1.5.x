@@ -50,9 +50,9 @@
 
 a.button span.onego_logo_white {
     background: transparent url("../image/onego.png") no-repeat scroll center 1px;
-    width: 60px;
-    vertical-align: middle;
-    display: block;
+    width: 30px;
+    vertical-align: top;
+    display: inline-block;
 }
 
 #onego_panel_content {
