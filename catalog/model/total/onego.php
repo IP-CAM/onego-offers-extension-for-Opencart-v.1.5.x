@@ -90,7 +90,7 @@ class ModelTotalOnego extends Model
 
                 // cart discount
                 $discount = $this->getTotalDiscount();
-                $discountAmount = !empty($discount) ? $discount->getAmount() : null;
+                $discountAmount = !empty($discount) ? $discount->getAmount()->getVisible() : null;
                 if (!empty($discountAmount) && ($discountAmount != $shipping_discount)) {
                     $discountPercents = $this->calculateDiscountPercentage();
                     if (!empty($discountPercents)) {
@@ -378,7 +378,7 @@ END;
                     //$this->saveTransaction($transaction);
                     $modifiedCart = $transaction->getModifiedCart();
                     if ($modifiedCart && $modifiedCart->getPrepaidReceived()) {
-                        $fundsReceived = $modifiedCart->getPrepaidReceived()->getAmount()->visible;
+                        $fundsReceived = $modifiedCart->getPrepaidReceived()->getAmount()->getVisible();
                     }
                     $transactionState = new OneGoTransactionState();
                     $transactionState->set('transaction', $transaction);
@@ -882,7 +882,7 @@ END;
             }
             $discount = $this->getTotalDiscount();
             if ($total) {
-                return round($discount->getAmount() * 100 / $total, 2);
+                return round($discount->getAmount()->getVisible() * 100 / $total, 2);
             }
         }
         return false;
@@ -969,7 +969,7 @@ END;
         if ($cart) {
             foreach ($cart->getEntries() as $cartEntry) {
                 if ($this->isShippingItem($cartEntry) && $cartEntry->getDiscount()) {
-                    $discount += $cartEntry->getDiscount()->getAmount();
+                    $discount += $cartEntry->getDiscount()->getAmount()->getVisible();
                 }
             }
         }
@@ -1192,7 +1192,7 @@ END;
     {
         $cart = $this->getModifiedCart();
         if ($cart && ($prepaidReceived = $cart->getPrepaidReceived())) {
-            return $prepaidReceived->getAmount()->visible;
+            return $prepaidReceived->getAmount()->getVisible();
         }
         return false;
     }
@@ -1397,7 +1397,7 @@ END;
                     $prepaidReceivable = $this->getApi()
                             ->getAnonymousAwards($this->collectCartEntries($cart))
                             ->getPrepaidReceived();
-                    $awards = !empty($prepaidReceivable) ? $prepaidReceivable->getAmount()->visible : null;
+                    $awards = !empty($prepaidReceivable) ? $prepaidReceivable->getAmount()->getVisible() : null;
                 } catch (OneGoSDK_Exception $e) {
                     OneGoUtils::logCritical('Failed retrieving anonymous awards', $e);
                     throw $e;

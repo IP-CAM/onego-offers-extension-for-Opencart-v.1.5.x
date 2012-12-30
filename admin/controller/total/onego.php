@@ -307,7 +307,7 @@ class ControllerTotalOnego extends Controller {
                 $api = OneGoUtils::initAPI();
                 try {
                     $transactionId = $operation['transaction_id'];
-                    $transaction = $api->fetchById($transactionId);
+                    $transaction = $api->fetchTransactionById($transactionId);
 
                     try {
                         $delayTtl = null;

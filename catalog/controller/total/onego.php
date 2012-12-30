@@ -282,7 +282,7 @@ END;
                 } else {
                     $text = $this->language->get('onego_cashback_received');
                 }
-                $this->data['onego_prepaid_received'] = sprintf($text, $this->currency->format($prepaidReceived->getAmount()->visible));
+                $this->data['onego_prepaid_received'] = sprintf($text, $this->currency->format($prepaidReceived->getAmount()->getVisible()));
 
                 if (!empty($prepaidReceived->validFrom)) {
                     $this->data['onego_prepaid_received_pending'] = sprintf(
