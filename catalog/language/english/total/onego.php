@@ -1,7 +1,4 @@
 <?php
-// Heading 
-$_['heading_title'] = 'My OneGo account';
-
 // Text
 $_['benefits_disabled'] = 'Your benefits withheld.';
 
