@@ -301,7 +301,7 @@ class ModelTotalOnego extends Model
         
         $version = ONEGO_EXTENSION_VERSION;
         $text = <<<END
-WARNING: order #{$orderId} has been processed using OneGo trnsaction, but transaction confirmation failed.
+WARNING: order #{$orderId} has been processed using OneGo transaction, but transaction confirmation failed.
 If buyer chose to spend his gift card balance or use single use offers a discount may be applied to order but
 actual buyer's OneGo balance was not charged.
 You may want to consider revising order status.
