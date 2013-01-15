@@ -1,5 +1,5 @@
 OneGo extension for Opencart
-v.0.9.7
+v.0.9.8
 
 Contents of this document:
 1. Extension overview
@@ -44,6 +44,8 @@ changes configured there to your code manually.
 ------------------------------------------------------------------------------------------------------------------------
 3. Changelog
 
+v.0.9.8 - Jan 15 2012
+  * account status checking (through JS SDK errors) added
 v.0.9.7 - Jan 2, 2012
   * minor fix
 v.0.9.6 - Dec 31, 2012
