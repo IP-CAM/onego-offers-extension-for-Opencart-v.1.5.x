@@ -83,6 +83,7 @@
     </div>
   </div>
 </div>
+<iframe src="about:blank" id="onego_account_status_checker"></iframe>
 
 <script type="text/javascript">
 $(document).ready(function(){
@@ -112,11 +113,24 @@ $(document).ready(function(){
                 function(data){
                     $('#onego_check_results').html(data).slideDown();
                     OneGoOpencart.unsetAsLoading($('#btn_onego_check'));
+                    var checkerUri = '<?php echo str_replace('&amp;', '&', $onego_check_account_uri) ?>&'+jQuery.param({'apikey': $('#cfgField_apiKey').val()});
+                    $('#onego_account_status_checker').attr('src', checkerUri);
+                    OneGoOpencart.setAsLoading($('#onego_account_status'));
                 }
             );
         }
     })
 })
+window.OneGoAccountStatusError = function(errorMessage)
+{
+    $('#onego_account_status').removeClass('onego_ok onego_error');
+    if (!errorMessage) {
+        $('#onego_account_status').addClass('onego_ok').html('<?php echo $lang->get('ok'); ?>');
+    } else {
+        $('#onego_account_status').addClass('onego_error').html('<?php echo $lang->get('failed'); ?> [' + errorMessage + ']');
+    }
+    OneGoOpencart.unsetAsLoading($('#onego_account_status'));
+}
 </script>
 
 <?php echo $footer; ?>

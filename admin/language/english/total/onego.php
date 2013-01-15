@@ -73,6 +73,7 @@ $_['status_expired'] = 'expired %s';
 $_['check_credentials'] = 'Credential check';
 $_['check_environment'] = 'Server environment check';
 $_['check_opencart_version'] = 'Opencart version check';
+$_['check_account_status'] = 'OneGo JS SDK check';
 $_['ok'] = 'OK';
 $_['failed'] = 'FAILED';
 $_['cannot_check'] = 'cannot be checked';
