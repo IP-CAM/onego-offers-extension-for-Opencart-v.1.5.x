@@ -8,8 +8,8 @@ class ControllerSaleOnegoRc extends Controller
 
     public function index()
     {
-        $this->load->language('catalog/product');
-        $this->load->language('total/onego');
+        $this->language->load('catalog/product');
+        $this->language->load('total/onego');
         $this->document->setTitle($this->language->get('rc_heading_title'));
         $this->data['heading_title'] = $this->language->get('rc_heading_title');
         $this->data['lang'] = $this->language;
@@ -71,8 +71,8 @@ class ControllerSaleOnegoRc extends Controller
 
     public function upload()
     {
-        $this->load->language('catalog/product');
-        $this->load->language('total/onego');
+        $this->language->load('catalog/product');
+        $this->language->load('total/onego');
         $this->document->setTitle($this->language->get('rc_heading_title'));
         $this->data['heading_title'] = $this->language->get('rc_upload');
         $this->data['lang'] = $this->language;

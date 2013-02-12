@@ -236,6 +236,17 @@
             }
             ]]></add>
         </operation>
+        <operation error="skip">
+            <search position="after"><![CDATA[
+                $this->data['order_totals'] = $this->model_sale_order->getOrderTotals($this->request->get['order_id'])
+            ]]></search>
+            <add><![CDATA[
+                if ($this->config->get('onego_status')) {
+                    $this->load->model('total/onego');
+                    $this->model_total_onego->updateTotalsTitles($this->data['order_totals']);
+                }
+            ]]></add>
+        </operation>
     </file>
 
     <file name="admin/view/template/common/header.tpl">
@@ -266,12 +277,27 @@
             ]]></add>
         </operation>
         <operation>
-        <search position="before"><![CDATA[
+            <ignoreif><![CDATA[
+            $this->language->load('common/header');
+            ]]></ignoreif>
+            <search position="before"><![CDATA[
             $this->load->language('common/header');
             ]]></search>
 
             <add><![CDATA[
             $this->load->language('total/onego');
+            ]]></add>
+        </operation>
+        <operation>
+            <ignoreif><![CDATA[
+            $this->load->language('common/header');
+            ]]></ignoreif>
+            <search position="before"><![CDATA[
+            $this->language->load('common/header');
+            ]]></search>
+
+            <add><![CDATA[
+            $this->language->load('total/onego');
             ]]></add>
         </operation>
     </file>

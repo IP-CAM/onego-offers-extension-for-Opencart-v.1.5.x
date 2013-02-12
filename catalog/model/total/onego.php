@@ -59,7 +59,7 @@ class ModelTotalOnego extends Model
                 // ignore
             }
 
-            $this->load->language('total/onego');
+            $this->language->load('total/onego');
 
             if ($this->isTransactionStarted() || $this->hasAgreedToDiscloseEmail()) {
                 // items discounts
