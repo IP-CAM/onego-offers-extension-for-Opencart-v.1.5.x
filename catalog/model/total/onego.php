@@ -838,10 +838,6 @@ END;
                 if ($spent) {
                     $available += $spent;
                 }
-                $rc = $transaction->getRedemptionCode();
-                if ($rc) {
-                    $available -= $rc->spent;
-                }
                 $funds = array(
                     'title'     => sprintf($this->language->get('funds_prepaid'), 
                             $this->currency->format($available)),
