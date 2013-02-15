@@ -20,7 +20,7 @@ class ModelTotalOnego extends Model {
         
         $statuses = OneGoTransactionsLog::getStatusesForOrders($ordersIds);
         
-        $this->load->language('total/onego');
+        $this->language->load('total/onego');
         
         foreach ($ordersList as $key => $order) {
             if (isset($statuses[$order['order_id']])) {
@@ -49,7 +49,7 @@ class ModelTotalOnego extends Model {
      */
     public function getStatusString($transactionsLogRow)
     {
-        $this->load->language('total/onego');
+        $this->language->load('total/onego');
         
         $class = !$transactionsLogRow['success'] ? 
             'onego_transaction_status_failed' : 'onego_transaction_status_ok';
@@ -95,5 +95,21 @@ class ModelTotalOnego extends Model {
             }
         }
         return false;
+    }
+
+    /**
+     * Update totals titles to show their virtual values (i.e. for chargeback)
+     *
+     * @param array $totals List of order totals
+     * @return array
+     */
+    public function updateTotalsTitles(array &$totals)
+    {
+        foreach ($totals as $key => $val) {
+            if ($val['code'] == 'onego' && !(float) $val['value']) {
+                $totals[$key]['title'] .= ' ('.$val['text'].')';
+            }
+        }
+        return $totals;
     }
 }

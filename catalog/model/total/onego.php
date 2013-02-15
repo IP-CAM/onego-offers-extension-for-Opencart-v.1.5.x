@@ -59,7 +59,7 @@ class ModelTotalOnego extends Model
                 // ignore
             }
 
-            $this->load->language('total/onego');
+            $this->language->load('total/onego');
 
             if ($this->isTransactionStarted() || $this->hasAgreedToDiscloseEmail()) {
                 // items discounts
@@ -837,10 +837,6 @@ END;
                 $spent = $transaction->getPrepaidSpent();
                 if ($spent) {
                     $available += $spent;
-                }
-                $rc = $transaction->getRedemptionCode();
-                if ($rc) {
-                    $available -= $rc->spent;
                 }
                 $funds = array(
                     'title'     => sprintf($this->language->get('funds_prepaid'), 
