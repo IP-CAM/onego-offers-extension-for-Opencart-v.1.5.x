@@ -1,12 +1,15 @@
+<html>
+<head>
+
+</head>
+<body>
+...
 <script id="OneGoSdkLoader">
   var initializer = function() {
-    OneGo.init({ <?php echo $initParamsStr ?> });
-    <?php echo $html ?>
+    parent.OneGoAccountStatusError(false);
   };
   var onError = function(error) {
-    if (console.warn && typeof console.warn == 'function') {
-      console.warn('OneGo SDK error: ' + error.message);
-    }
+    parent.OneGoAccountStatusError(error.message);
   };
 
   (function(d, successCallback, errorCallback){
@@ -19,3 +22,5 @@
     window.oneGoAsyncOnError = errorCallback;
   }(document, initializer, onError));
 </script>
+</body>
+</html>

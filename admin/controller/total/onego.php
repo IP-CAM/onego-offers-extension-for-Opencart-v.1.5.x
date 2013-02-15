@@ -126,9 +126,12 @@ class ControllerTotalOnego extends Controller {
 
         $this->data['onego_button_check'] = $this->language->get('button_check_credentials');
         $this->data['onego_check_uri'] = $this->url->link('total/onego/check', 'token=' . $this->session->data['token'], 'SSL');
+        $this->data['onego_check_account_uri'] = $this->url->link('total/onego/checkaccount', 'token=' . $this->session->data['token'], 'SSL');
         $this->data['onego_error_js_missing'] = $this->language->get('error_javascript_not_loaded');
 
         $this->data['onego_extension_info'] = $this->language->get('onego_extension_info');
+
+        $this->data['lang'] = $this->language;
 
         $this->template = 'total/onego.tpl';
         $this->children = array(
@@ -274,8 +277,24 @@ class ControllerTotalOnego extends Controller {
         } else {
             $resp .= '<span class="onego_error">'.$this->language->get('cannot_check').'</span>';
         }
+        $resp .= '<br />';
+
+        // check account status
+        $resp .= $this->language->get('check_account_status').': <span id="onego_account_status">checking...</span>';
 
         $this->response->setOutput($resp);
+    }
+
+    /**
+     * JS SDK loader to check for credentials validity
+     */
+    public function checkaccount()
+    {
+        $this->data['lang'] = $this->language;
+        $apiKey = preg_replace('/[^[:alnum:]]/i', '', $this->request->get['apikey']);
+        $this->data['onego_jssdk_url'] = OneGoConfig::get('jsSdkURI').'?apikey='.$apiKey;
+        $this->template = 'total/onego_status_jssdk.tpl';
+        $this->response->setOutput($this->render());
     }
 
     /**

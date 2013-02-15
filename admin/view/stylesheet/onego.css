@@ -25,11 +25,15 @@
 }
 #onego_check_results {
     overflow: auto;
-    height: 50px;
+    height: 60px;
     display: none;
     border: 1px solid silver;
     margin-top: 5px;
     padding: 5px;
+}
+#onego_account_status_checker {
+    width: 0;
+    height: 0;
 }
 .onego_ok {
     color: green;
