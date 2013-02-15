@@ -26,7 +26,7 @@
       <?php echo !empty($onego_registration_notification) ? $onego_registration_notification.'<br />' : '' ?>
       <br />
 
-      <a id="onego_register_anonymous" class="button"><span><?php echo $onego_registration_button ?></span></a>
+      <a id="onego_register_anonymous" class="button"><span><?php echo str_replace('OneGo', '<img src="catalog/view/theme/default/image/onego.png" style="vertical-align: -1px;" />', $onego_registration_button) ?></span></a>
     <?php } ?>
   </div>
 </div>

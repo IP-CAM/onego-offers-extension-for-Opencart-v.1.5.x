@@ -1,5 +1,5 @@
 OneGo extension for Opencart
-v.0.9.6
+v.0.9.7
 
 Contents of this document:
 1. Extension overview
@@ -44,7 +44,9 @@ changes configured there to your code manually.
 ------------------------------------------------------------------------------------------------------------------------
 3. Changelog
 
-v.0.9.6 - Dec 31, 2012
+v.0.9.7 - Jan 2, 2013
+  * minor fix
+v.0.9.6 - Dec 31, 2013
   * removed unused translations
 v.0.9.5 - Dec 30, 2012
   * PHP SDK updated
@@ -56,7 +58,7 @@ v.0.9.4 - Dec 1, 2012
 4. Licence and disclaimer
 
 The MIT License (MIT)
-Copyright © 2012 OneGo Inc.
+Copyright © 213 OneGo Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software
 and associated documentation files (the “Software”), to deal in the Software without restriction,

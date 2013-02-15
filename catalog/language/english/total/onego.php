@@ -44,7 +44,7 @@ $_['onego_registration_invitation_prepaid_received'] = 'We use OneGo to give you
     create OneGo account using your email address (<strong>%s</strong>).';
 $_['onego_registration_notice_rc_transfer'] = 'Please note: redemption code balance (%s)
     will be transferred to your gift card account.';
-$_['onego_registration_button'] = 'Create my <span class="onego_logo_white"></span> account';
+$_['onego_registration_button'] = 'Create my OneGo account';
 $_['onego_delayed_transaction_notice'] = 'Please note: your cash back rewards are pending
     until we receive your payment and confirm your order.';
 
