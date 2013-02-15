@@ -1,0 +1,119 @@
+#onego_authwidget_container {
+    float: left;
+    width: 350px;
+}
+#onego_login_container {
+    float: left;
+    width: 360px;
+    text-align: center;
+    padding-bottom: 10px;
+}
+#onego_login_container .button {
+    margin-top: 5px;
+}
+#onego_rc_redeem_container {
+    float: right;
+    width: 360px;
+    text-align: center;
+    padding-bottom: 10px;
+}
+#onego_funds_container {
+    width: 360px;
+    float: right;
+    margin: 0px;
+    padding: 0px;
+}
+#onego_funds_container .onego_funds_redeemed,
+#onego_funds_container .onego_funds_available,
+#onego_funds_container #onego_rc_container {
+    text-align: right;
+}
+#onego_panel {
+    margin: 0px;
+    padding: 10px 15px;
+    position: relative;
+    margin-bottom: 10px;
+    display: block;
+}
+
+#onego_panel_label {
+    background: transparent url("../image/onego.png") no-repeat scroll center center;
+    height: 22px;
+    left: 30px;
+    position: absolute;
+    top: 0;
+    width: 90px;
+    background-color: #585858;
+    border: 1px solid #585858; 
+    border-radius: 5px;
+}
+
+a.button span.onego_logo_white {
+    background: transparent url("../image/onego.png") no-repeat scroll center 1px;
+    width: 30px;
+    vertical-align: top;
+    display: inline-block;
+}
+
+#onego_panel_content {
+    background-color:#F0F0F0;
+    border: 1px solid #D8DEE1; 
+    border-radius: 5px;
+    padding: 10px;
+    padding-top: 20px;
+}
+
+#onego_panel_footer {
+    clear: both;
+    text-align: center;
+}
+
+#onego_panel hr {
+    display: block;
+    position: relative;
+    padding: 0;
+    margin: 8px auto;
+    width: 100%;
+    clear: both;
+    border: none;
+    border-top: 1px solid #AAA;
+    border-bottom: 1px solid #FFF;
+    font-size: 1px;
+    line-height: 0;
+    overflow: visible;
+}
+
+.onego_loading_container {
+    background: transparent url(../image/onego_loading.gif) no-repeat center center;
+}
+
+#onego_rc_container {
+    margin-top: 5px;
+}
+
+#onego_rc_container .rc_inputs {
+    display: inline-block;
+    zoom: 1;
+    *display: inline;
+    width: 150px;
+    vertical-align: top;
+}
+#onego_rc_container .rc_inputs div {
+    position: relative;
+    z-index: 1;
+}
+#onego_rc_container .rc_inputs input {
+    width: 140px;
+    margin: 0;
+    position: absolute;
+    top: 1px;
+    left: 0;
+}
+input#onego_redeem_code_template {
+    z-index: 1;
+    color: silver;
+}
+input#onego_redeem_code_number {
+    background: transparent;
+    z-index: 2;
+}

@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modification>
+    <id>OneGo buyer benefits extension</id>
+    <version>0.9.4</version>
+    <vqmver>1.0.9</vqmver>
+    <author>onego.com</author>
+    <file name="catalog/controller/common/header.php">
+        <operation>
+            <search position="before"><![CDATA[
+            $this->render();
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status')) {
+                $this->data['onego_header'] = $this->getChild('total/onego/header');
+                $this->data['onego_body'] = $this->getChild('total/onego/body');
+            } else {
+                $this->data['onego_header'] = $this->data['onego_body'] = '';
+            }
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="catalog/controller/checkout/confirm.php">
+        <operation>
+            <search position="before"><![CDATA[
+            $this->render()
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status')) {
+                $this->data['onego_panel'] = $this->getChild('total/onego/panel');
+            } else {
+                $this->data['onego_panel'] = '';
+            }
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="catalog/controller/checkout/success.php">
+        <operation>
+            <search position="after"><![CDATA[
+            public function index() {
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status')) {
+                $this->data['onego_info'] = $this->getChild('total/onego/success');
+            } else {
+                $this->data['onego_info'] = '';
+            }
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/controller/checkout/cart.php">
+        <operation>
+            <search position="after"><![CDATA[
+            public function index() {
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status')) {
+                $this->data['onego_panel'] = $this->getChild('total/onego/panel');
+            } else {
+                $this->data['onego_panel'] = '';
+            }
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/view/theme/*/template/checkout/cart.tpl">
+        <operation>
+            <search position="before"><![CDATA[
+            <div class="cart-total">
+            ]]></search>
+
+            <add><![CDATA[
+            <?php echo !empty($onego_panel) ? $onego_panel : ''; ?>
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="catalog/view/theme/*/template/checkout/confirm.tpl">
+        <operation>
+            <search position="top"><![CDATA[
+            ]]></search>
+
+            <add><![CDATA[
+            <?php echo $onego_panel ?>
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="catalog/view/theme/*/template/common/header.tpl">
+        <operation>
+            <search position="before"><![CDATA[
+            </head>
+            ]]></search>
+            
+            <add><![CDATA[
+            <?php echo !empty($onego_header) ? $onego_header : ''; ?>
+            ]]></add>
+        </operation>
+        <operation>
+            <search position="after"><![CDATA[
+            <body>
+            ]]></search>
+            <add><![CDATA[
+            <?php echo !empty($onego_body) ? $onego_body : ''; ?>
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/view/theme/*/template/common/success.tpl">
+        <operation>
+        <search position="after"><![CDATA[
+            <?php echo $text_message; ?>
+            ]]></search>
+            
+            <add><![CDATA[
+            <?php echo !empty($onego_info) ? $onego_info : ''; ?>
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="catalog/model/checkout/order.php">
+        <operation>
+        <search position="replace"><![CDATA[
+            public function confirm($order_id
+            ]]></search>
+            
+            <add><![CDATA[
+            // wrapper for original confirm() to always call ModelTotalOnego::confirm() in the end
+            public function confirm($order_id)
+            {
+                $args = func_get_args();
+                call_user_func_array(
+                    array($this, '_confirm_onego_wrapped'),
+                    $args
+                );
+                
+                if ($this->config->get('onego_status')) {
+                    $this->load->model('total/onego');
+                    $this->model_total_onego->confirmOrder($order_id);
+                }
+            }
+            
+            private function _confirm_onego_wrapped($order_id
+            ]]></add>
+        </operation>
+        <operation>
+        <search position="replace"><![CDATA[
+            public function update($order_id
+            ]]></search>
+
+            <add><![CDATA[
+            public function update($order_id)
+            {
+                // status before
+                $order_info = $this->getOrder($order_id);
+                $order_status_before = $order_info['order_status_id'];
+
+                $args = func_get_args();
+                call_user_func_array(
+                    array($this, '_update_onego_wrapped'),
+                    $args
+                );
+
+                if ($this->config->get('onego_status')) {
+                    $this->load->model('total/onego');
+                    $this->model_total_onego->updateOrder($order_id, $order_status_before);
+                }
+            }
+
+            private function _update_onego_wrapped($order_id
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="admin/view/template/common/header.tpl">
+        <operation>
+        <search position="before"><![CDATA[
+            </head>
+            ]]></search>
+            
+            <add><![CDATA[
+            <link rel="stylesheet" type="text/css" href="view/stylesheet/onego.css" />
+            <script type="text/javascript" src="view/javascript/onego.js"></script>
+            ]]></add>
+        </operation>
+    </file>
+    
+    <file name="admin/view/template/sale/order_info.tpl">
+        <operation>
+        <search position="after"><![CDATA[
+            <div id="history"></div>
+            ]]></search>
+            
+            <add><![CDATA[
+            <script type="text/javascript">
+            $('document').ready(function(){
+                OneGoOpencart.loadOrderStatus('<?php echo $token ?>', <?php echo $order_id ?>);
+            })
+            </script>
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/view/template/sale/order_form.tpl">
+        <operation error="skip">
+        <search position="after"><![CDATA[
+            <div id="content">
+            ]]></search>
+
+            <add><![CDATA[
+            <script type="text/javascript">
+            $('document').ready(function(){
+                OneGoOpencart.loadOrderStatus('<?php echo $token ?>', <?php echo $order_id ?>);
+            })
+            </script>
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/controller/sale/order.php">
+        <operation>
+        <search position="after"><![CDATA[
+            $this->template = 'sale/order_list.tpl';
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status') && !empty($this->data['orders'])) {
+                $this->load->model('total/onego');
+                $this->data['orders'] = $this->model_total_onego->addTransactionStatuses($this->data['orders']);
+            }
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/view/template/common/header.tpl">
+        <operation>
+        <search position="before"><![CDATA[
+            <li><a href="<?php echo $contact; ?>"><?php echo $text_contact; ?></a></li>
+            ]]></search>
+
+            <add><![CDATA[
+            <?php if (!empty($onego_rc)) { ?>
+            <li class="onego_menuitem_rc"><a href="<?php echo $onego_rc ?>"><?php echo $text_onego_rc; ?></a></li>
+            <?php } ?>
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/controller/common/header.php">
+        <operation>
+        <search position="before"><![CDATA[
+            $this->data['contact'] = $this->url->link('sale/contact'
+            ]]></search>
+
+            <add><![CDATA[
+            if ($this->config->get('onego_status')) {
+                $this->data['text_onego_rc'] = $this->language->get('menu_item_onego_rc');
+                $this->data['onego_rc'] = $this->url->link('sale/onego_rc', 'token='.$this->session->data['token'], 'SSL');
+            }
+            ]]></add>
+        </operation>
+        <operation>
+        <search position="before"><![CDATA[
+            $this->load->language('common/header');
+            ]]></search>
+
+            <add><![CDATA[
+            $this->load->language('total/onego');
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/model/sale/order.php">
+        <operation>
+        <search position="replace"><![CDATA[
+            public function addOrderHistory($order_id
+            ]]></search>
+
+            <add><![CDATA[
+            // wrapper for original confirm() to always call ModelTotalOnego::confirm() in the end
+            public function addOrderHistory($order_id)
+            {
+                // status before
+                $order_info = $this->getOrder($order_id);
+                $order_status_before = $order_info['order_status_id'];
+
+                // call original code
+                $args = func_get_args();
+                call_user_func_array(
+                    array($this, '_onego_wrapped_addOrderHistory'),
+                    $args
+                );
+
+                // call onego code after original
+                if ($this->config->get('onego_status')) {
+                    $this->load->model('total/onego');
+                    $this->model_total_onego->emailRCDetails($order_id, $order_status_before);
+                }
+            }
+
+            private function _onego_wrapped_addOrderHistory($order_id
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/controller/account/download.php">
+        <operation>
+            <search position="replace"><![CDATA[
+            header('Content-Length: ' . filesize($file));
+            ]]></search>
+            <add><![CDATA[
+
+            ]]></add>
+        </operation>
+        <operation>
+            <search position="replace"><![CDATA[
+            readfile($file, 'rb');
+            ]]></search>
+            <add><![CDATA[
+            $content = file_get_contents($file);
+
+            if ($this->config->get('onego_status')) {
+                $this->load->model('total/onego');
+
+                // replace with actual RC info
+                $codes = $this->model_total_onego->getOrderRCText($download_info['order_id'], $download_info['order_product_id']);
+                $content = str_replace('{%CODESINFO%}', $codes, $content);
+            }
+
+            header('Content-Length: '.strlen($content));
+            echo $content;
+
+            ]]></add>
+        </operation>
+    </file>
+    
+</modification>

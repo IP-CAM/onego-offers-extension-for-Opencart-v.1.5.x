@@ -1,0 +1,25 @@
+Extension deployment checklist:
+
+0. Make changes to code;
+
+1. Test with all supported Opencart versions;
+
+2. Update extension version in system/library/onego/config.inc.php file;
+
+3. Check and update README.txt;
+
+4. Tag commit in GIT repository to match new version released;
+
+5. Extension files structure:
+src/ - all files from repository
+README.txt - file moved from repository files root
+
+This file must not be released to public;
+
+6. Create ZIP file;
+
+7. Upload ZIP file to OneGo site for the extension;
+
+8. Update documentation on the site;
+
+9. Update extension page on Opencart extensions directory.

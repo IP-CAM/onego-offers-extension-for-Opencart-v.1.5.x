@@ -1,0 +1,69 @@
+.onego_loading_container {
+    background: transparent url(../image/loading.gif) no-repeat center center;
+}
+#onego_transaction_status_error {
+    color: red;
+}
+.onego_notification {
+    color: gray;
+}
+#onego_transaction_change_notification {
+    color: orange;
+    font-weight: bold;
+}
+.onego_transaction_status_failed {
+    color: red;
+}
+.onego_transaction_status_ok {
+    color: gray;
+}
+.onego_transaction_status_expired {
+    color: red;
+}
+#onego_transaction_status_loading {
+    display: none;
+}
+#onego_check_results {
+    overflow: auto;
+    height: 50px;
+    display: none;
+    border: 1px solid silver;
+    margin-top: 5px;
+    padding: 5px;
+}
+.onego_ok {
+    color: green;
+}
+.onego_error {
+    color: red;
+}
+#onego_extension_info {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dotted silver;
+}
+#onego_rc_upload fieldset {
+    padding: 15px;
+}
+#onego_rc_upload fieldset legend {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+fieldset#rcUpload .help {
+    margin-bottom: 5px;
+}
+fieldset#rcAssignToProduct {
+    margin-top: 25px;
+}
+fieldset#rcAssignToProduct h2 {
+    font-size: 1em;
+    padding: 0px;
+    margin: 0 0 15px 0;
+}
+.rc_uploaded {
+    background-color: #EEEEEE;
+    padding: 10px;
+    margin-bottom: 15px;
+    font-weight: bold;
+    font-size: 1.2em;
+}
