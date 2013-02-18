@@ -1,3 +1,3 @@
 [submodule "system/library/onego/sdk"]
 	path = system/library/onego/sdk
-	url = gitosis@git.onego.com:public/php-api.git
+	url = git@github.com:onego/php-sdk.git

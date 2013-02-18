@@ -22,14 +22,14 @@ For more information on OneGo loyalty system visit: http://business.onego.com
 
 2.1. Requirements
 
-This extension is tested and compatible with Opencart versions 1.5.0, 1.5.1, 1.5.2, 1.5.3 and 1.5.4.
+This extension is tested and compatible with Opencart versions 1.5.0 to 1.5.5.
 VQMOD extension is required for easier installation, but extension can also be used without it -
 you will need to modify Opencart files manually, though.
 PHP CURL extension must be installed on the server.
 
 2.2. Installation
 
-- Simply copy files from src/ directory to root directory of your Opencart installation;
+- Simply copy extension files to the root directory of your Opencart installation;
 - Open admin interface, go to Extensions > Order Totals, click "Install" for this extension;
 - Open extension configuration page to configure it for your OneGo business account;
 - Copy template files to your theme directory and modify them if needed.
