@@ -7,7 +7,7 @@ Contents of this document:
 3. Changelog
 4. License and disclaimer
 
-------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
 1. Overview
 
 Onego.com allows merchants to create, manage, publish and analyze offers, rewards and
@@ -17,7 +17,7 @@ customers to use offers, accrue rewards, use gift card balances and allows you t
 For more information on this extension and a demo visit: http://developers.onego.com/eshop/integrations/opencart
 For more information on OneGo loyalty system visit: http://business.onego.com
 
-------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
 2. Installation
 
 2.1. Requirements
@@ -41,7 +41,7 @@ extensions.
 To install extension without VQMOD, you will have to open vqmod/xml/onego_benefits.xml file and apply
 changes configured there to your code manually.
 
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 3. Changelog
 
 v0.9.9 - Feb 12 2013
@@ -59,7 +59,7 @@ v0.9.5 - Dec 30, 2012
 v0.9.4 - Dec 1, 2012
   * Initial release
 
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 4. Licence and disclaimer
 
 The MIT License (MIT)
